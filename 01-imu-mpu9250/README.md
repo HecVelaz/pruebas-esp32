@@ -91,4 +91,4 @@ El programa lee el valor más reciente de los registros cada 200 ms. No usa la F
 
 | Fecha | Módulo | WHO_AM_I | Magnetómetro | Observaciones |
 |-------|--------|----------|--------------|---------------|
-|       |        |          |              |               |
+| 2026-09-24 | Rotulado "MPU-9250/6500" (azul, 10 pines) | `0x70` en `0x68` → **MPU-6500** | No tiene (un solo dispositivo en el bus I2C) | Placa quieta y casi plana: acel. (-0,10, 0,01, 0,99) g, gyro (-0,1, -5,1, -0,2) °/s (offset de Y dentro de ±5 °/s del datasheet, lo corrige la calibración de `02`), T ≈ 28 °C. El módulo se vende con cualquiera de los dos chips: solo WHO_AM_I lo distingue. |

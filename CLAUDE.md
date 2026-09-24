@@ -2,9 +2,9 @@
 
 ## Estado actual
 
-- **Funciona (probado en placa):** toolchain y flasheo (`00-hola-mundo`). IMU en ROS 2 (`02-imu-ros2`): `/imu/data_raw` a 50,0 Hz por micro-ROS serial, con hora sincronizada con el agente y calibración del bias del gyro OK. Probado con `imu_filter_madgwick` y RViz2 (orientación OK).
-- **Compila, sin prueba en placa:** `01-imu-mpu9250` (escáner I2C, WHO_AM_I, magnetómetro AK8963) y el entorno `-e wifi` de `02` (no se compiló: falta `wifi_config.h`).
-- **Falta:** confirmar el modelo del IMU (0x71 MPU-9250 o 0x70 MPU-6500) con `01`. Publicar `/imu/mag` si hay AK8963. Probar WiFi UDP. `03-hcsr04` (idea: `sensor_msgs/Range` por micro-ROS para la altura). `04-gps`.
+- **Funciona (probado en placa):** toolchain y flasheo (`00-hola-mundo`). IMU en ROS 2 (`02-imu-ros2`): `/imu/data_raw` a 50,0 Hz por micro-ROS serial, con hora sincronizada con el agente y calibración del bias del gyro OK. Probado con `imu_filter_madgwick` y RViz2 (orientación OK) en la notebook y en la PC de escritorio. `01-imu-mpu9250`: el IMU es un **MPU-6500** (WHO_AM_I `0x70`, **sin magnetómetro**), así que el yaw deriva y no hay `/imu/mag`.
+- **Compila, sin prueba en placa:** el entorno `-e wifi` de `02` (no se compiló: falta `wifi_config.h`).
+- **Falta:** probar WiFi UDP. Opcional: un magnetómetro externo por I2C (por ejemplo QMC5883L en 0x0D) para corregir el yaw. `03-hcsr04` (idea: `sensor_msgs/Range` por micro-ROS para la altura). `04-gps`.
 - **Pines:** I2C del IMU: SDA = GPIO8, SCL = GPIO9, 400 kHz, AD0→GND (0x68). NCS y FSYNC sin conectar. Prohibidos: GPIO19/20 (USB) y 26–37 (flash/PSRAM). En la Freenove, GPIO8/9 comparten líneas con la cámara.
 - **Decisiones:**
   - PlatformIO + Arduino core 2.0.17, placa `esp32-s3-devkitc-1` con N16R8 (`qio_opi`, 16 MB).
