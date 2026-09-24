@@ -168,11 +168,11 @@ En RViz2:
 
 Sin magnetómetro (`use_mag:=false`), roll y pitch son estables, pero el **yaw deriva** lentamente: es normal. Si el módulo es MPU-9250 con AK8963, habría que publicar además `/imu/mag` (`sensor_msgs/MagneticField`) y usar `use_mag:=true`. Esa parte todavía no está implementada.
 
-## Cambiar a WiFi UDP (preparado, sin probar)
+## Cambiar a WiFi UDP
 
-El entorno `wifi` de `platformio.ini` ya está definido y `main.cpp` elige el transporte según `board_microros_transport`.
+Probado el 2026-09-24: 50 Hz sin pérdidas, también alimentando la placa sin USB (ver **Resultados**). El entorno `wifi` de `platformio.ini` ya está definido y `main.cpp` elige el transporte según `board_microros_transport`.
 
-1. Copiar la configuración y completarla con la red y la IP de la PC:
+1. Copiar la configuración y completarla con la red y la IP de la PC (`ip -4 -br addr`):
    ```bash
    cp include/wifi_config.example.h include/wifi_config.h   # está en .gitignore
    ```
@@ -185,6 +185,12 @@ El entorno `wifi` de `platformio.ini` ya está definido y `main.cpp` elige el tr
    ros2 run micro_ros_agent micro_ros_agent udp4 --port 8888
    ```
 4. Abrir el puerto si hay firewall: `sudo ufw allow 8888/udp`.
+
+Notas:
+- La PC puede estar por Ethernet y el ESP32 por WiFi, siempre que ambos estén en la misma red del router. Solo el tramo ESP32 → agente viaja por WiFi; ROS 2 y RViz2 corren en la PC como con serial.
+- No usar la red de invitados: suele aislar a los clientes y el ESP32 no llega a la PC.
+- `AGENT_IP` queda fija en el firmware: si la IP de la PC cambia (DHCP) o se usa otra PC, hay que recompilar. Conviene reservar la IP en el router.
+- Con WiFi el USB queda libre: se puede alimentar la placa con cualquier fuente. Al pulsar RST, el agente cierra la sesión anterior y acepta la nueva sin reiniciarlo.
 
 El ESP32-S3 solo usa WiFi de 2,4 GHz. `set_microros_wifi_transports` bloquea hasta conectarse a la red. Con WiFi, `Serial` queda libre y se pueden agregar mensajes de depuración.
 
@@ -206,3 +212,4 @@ El ESP32-S3 solo usa WiFi de 2,4 GHz. `set_microros_wifi_transports` bloquea has
 |-------|------------|----------------------------------------|---------------------|---------------|
 | 2026-09-23 | serial (USB CDC) | 50,00 Hz / 0,000 s / 0,041 s (σ 3,3 ms, ventana 608) | < 0,0025 rad/s por eje (una muestra en reposo; calibración OK, covarianza 1e-6) | `ros2 topic hz` mide la hora de llegada a la PC. El promedio exacto indica que no se perdieron mensajes; el máximo de 41 ms seguido de un 0 indica que a veces llegan dos mensajes juntos (jitter del USB o del agente, no del stamp). Placa casi plana: acel. (-0,57, 0,24, 9,69) m/s². |
 | 2026-09-24 | serial (USB CDC), PC de escritorio | 50,00 Hz / 0,000 s / 0,040 s (σ 2,2 ms, ventana 506) | < 0,0011 rad/s por eje (una muestra en reposo) | Segunda PC: agente compilado de nuevo en `~/microros_ws` y usuario agregado a `dialout`. Después de flashear hay que pulsar RST, porque el reset automático no arranca el firmware. RViz2 + Madgwick: orientación OK. El IMU es un MPU-6500 (ver `01`), así que no hay `/imu/mag` y el yaw deriva. Acel. (-0,86, 0,07, 9,73) m/s². |
+| 2026-09-24 | WiFi UDP (ESP32 por WiFi 2,4 GHz, PC por Ethernet, misma red) | 50,00 Hz / 0,011 s / 0,029 s (σ 1,7 ms, ventana 910) | < 0,001 rad/s por eje (una muestra en reposo) | Menos jitter que por USB. Repetido alimentando la placa con otra fuente, sin USB, después de RST: nueva sesión automática, 50,00 Hz / 0,014 s / 0,027 s (σ 1,7 ms, ventana 508). RViz2 + Madgwick OK. |
