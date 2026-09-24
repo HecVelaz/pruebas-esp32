@@ -1,0 +1,19 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "00-hola-mundo"
+		},
+		{
+			"path": "01-imu-mpu9250"
+		},
+		{
+			"path": "02-imu-ros2"
+		}
+	],
+	"settings": {
+		"platformio-ide.autoRebuildAutocompleteIndex": false
+	}
+}

@@ -1,0 +1,7 @@
+{
+  "name": "MPU9250",
+  "version": "0.1.0",
+  "description": "Driver mínimo MPU-9250/MPU-6500 por I2C (acelerómetro, giroscopio con calibración de bias, magnetómetro AK8963)",
+  "frameworks": "arduino",
+  "platforms": "espressif32"
+}
