@@ -87,7 +87,8 @@ $PIO run -t upload -t monitor       # flashear y abrir el monitor
 - ROS 2 Jazzy está instalado en `/opt/ros/jazzy`. El micro-ROS Agent se compila en `~/microros_ws` (ver `02-imu-ros2/README.md`).
 - Con `board_microros_transport = serial`, el USB lo usa el agente: el firmware **no debe imprimir por `Serial`**, y hay que **detener el agente antes de flashear**.
 - La primera compilación genera `libmicroros.a` (~5 min). Si en paralelo corre otro `pio` sobre el mismo proyecto (por ejemplo, la reindexación de la extensión de VS Code), se pisan y falla con errores como `file INSTALL cannot find librmw.a`. Por eso el workspace tiene `platformio-ide.autoRebuildAutocompleteIndex: false`. Antes de compilar, revisar que no haya otro `pio` corriendo.
-- Tienen varios entornos (`-e serial`, `-e wifi`). `default_envs = serial`. Los datos de WiFi van en `include/wifi_config.h`, que está en `.gitignore`.
+- Tienen varios entornos (`-e serial`, `-e wifi`). `default_envs = serial`. Los datos de WiFi van en `include/wifi_config.h`, que está en `.gitignore`: **hay que crearlo en cada PC** (a partir de `wifi_config.example.h`) con la IP de esa PC y re-flashear con `-e wifi`.
+- **Después de flashear, pulsar RST** en la placa. El reset automático de esptool arranca el firmware, pero la sesión con el agente queda sin crear el nodo (visto por serial y por WiFi, en las dos PCs).
 
 ## Notas de hardware
 
