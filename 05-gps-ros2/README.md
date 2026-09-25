@@ -115,4 +115,5 @@ Con WiFi la placa puede ir alimentada con una batería, sin USB. Así es más f�
 
 | Fecha | Transporte | `ros2 topic hz /gps/fix` | `/gps/status` | Observaciones |
 |-------|------------|--------------------------|---------------|---------------|
-| | | | | |
+| 2026-09-25 | WiFi UDP (placa por el conector CH343 solo para flashear y alimentar; PC por WiFi, misma red) | 0,996 Hz / 0,926 s / 1,061 s (ventana 10) | `SIN FIX \| Satelites visibles: 1` | Interiores. Sesión con el agente sin pulsar RST: el reset del CH343 después de flashear alcanzó. `/gps/fix`: `status -1`, `service 1`, coordenadas `.nan`, stamp sincronizado con la PC. Falta el fix al aire libre. |
+| 2026-09-25 | WiFi UDP, placa con batería al aire libre | ~1 Hz | `SIN FIX` → **`GPS OK`** | Primer fix en frío ~2 min (02:39:35 → 02:41:36): 3 satélites, HDOP 2,42. A los 3 min: 4–5 satélites, HDOP 1,4–1,6, posición estable en ~7 m, **verificada en el mapa**. `/gps/fix`: `status 0`, `altitude` = MSL + 15 m de geoide, covarianza `APPROXIMATED` (σ ≈ 9,6 m con HDOP 2,4). Hubo cortes de `sin datos del GPS` por falso contacto en la protoboard al mover la placa. |
