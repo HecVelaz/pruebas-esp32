@@ -19,6 +19,7 @@ Probar sensores de a uno, cada uno en su propia carpeta y proyecto PlatformIO in
 | `03-hcsr04`      | Sensor ultrasónico HC-SR04 (pendiente) |
 | `04-gps-up501`   | GPS Fastrax UP501 por UART (NMEA) |
 | `05-gps-ros2`    | GPS publicado en ROS 2 Jazzy con micro-ROS (`/gps/fix`, `/gps/status`, 1 Hz) |
+| `06-motor-36gp555` | Motor DC 36GP-555 (12 V, 160 rpm, encoder Hall) con driver IBT-2 (BTS7960), lazo abierto |
 
 Nombre de carpeta: `NN-<tipo>-<modelo>` en minúsculas (por ejemplo `03-hcsr04`, `04-gps-neo6m`).
 
@@ -104,5 +105,20 @@ $PIO run -t upload -t monitor       # flashear y abrir el monitor
 
 ## Roles
 
-- **Claude Code:** escribe el código, compila y flashea la placa.
-- **Codex:** actúa **solo como revisor**. No modifica, crea ni borra archivos, y no ejecuta uploads a la placa. Únicamente sugiere cambios (en el chat o como diff propuesto) para que Claude Code o el usuario los apliquen.
+Hay dos modos. El usuario indica cuál está vigente; ante la duda, es el **normal**.
+
+- **Modo normal** (Claude Code tiene límite disponible):
+  - **Claude Code:** escribe el código, compila, flashea la placa y hace los commits.
+  - **Codex:** actúa **solo como revisor** (`codex exec --sandbox read-only`). No modifica, crea ni borra archivos, y no ejecuta uploads a la placa. Únicamente sugiere cambios (en el chat o como diff propuesto) para que Claude Code o el usuario los apliquen.
+- **Modo respaldo** (el límite semanal de Claude Code se agotó y el usuario pide seguir con Codex):
+  - **Codex:** puede editar archivos, compilar, flashear y hacer commits, siguiendo las mismas convenciones de este archivo y de `CLAUDE.md`.
+  - Cuando el límite de Claude Code se reinicia, se vuelve al modo normal.
+
+## Continuidad entre agentes
+
+El contexto no pasa de un agente a otro: el estado vive en **git** y en **`CLAUDE.md`**.
+
+- **Al empezar** (cualquier agente): correr `git log --oneline -5` y `git status` para ver en qué quedó el trabajo. No asumir que se conoce lo que hizo el otro agente.
+- **No revertir ni pisar cambios recientes** sin revisar antes el historial (`git log`, `git show`).
+- **Al terminar una sesión:** hacer commit de lo terminado y actualizar "Estado actual" en `CLAUDE.md` con lo hecho, lo probado en placa y lo pendiente. Lo que quede sin terminar, anotarlo explícitamente.
+- **Al volver al modo normal:** Claude Code revisa lo que hizo Codex en modo respaldo (`git log`, `git diff`) antes de continuar.

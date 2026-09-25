@@ -1,0 +1,7 @@
+{
+  "name": "BTS7960",
+  "version": "0.1.0",
+  "description": "Driver mínimo del módulo IBT-2 (doble BTS7960): duty con signo por LEDC, freno y rueda libre",
+  "frameworks": "arduino",
+  "platforms": "espressif32"
+}

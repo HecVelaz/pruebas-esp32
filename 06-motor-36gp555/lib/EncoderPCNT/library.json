@@ -1,0 +1,7 @@
+{
+  "name": "EncoderPCNT",
+  "version": "0.1.0",
+  "description": "Encoder en cuadratura (x4) leído con el contador de pulsos PCNT del ESP32, con filtro de ruido",
+  "frameworks": "arduino",
+  "platforms": "espressif32"
+}
