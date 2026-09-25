@@ -58,6 +58,8 @@ Cerrar cualquier otro monitor serial y detener el micro-ROS Agent antes de flash
 ~/.platformio/penv/bin/pio run -e uart -t upload -t monitor
 ```
 
+El entorno `uart` no fija el puerto: PlatformIO busca el CH343. Si el USB nativo también está conectado, el CH343 suele quedar como `/dev/ttyACM1`; para indicarlo, agregar `--upload-port /dev/ttyACM1 --monitor-port /dev/ttyACM1`. Sin `-e`, `pio run` usa el entorno por defecto (`esp32s3`, USB nativo).
+
 `Serial` sale por UART0 (GPIO43/44) y el reset lo hace el CH343 con EN/GPIO0, sin pasar por el USB nativo. Así se probó el 2026-09-25.
 
 Escribir `r` + Enter en el monitor alterna entre el resumen y las tramas NMEA crudas.

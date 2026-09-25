@@ -96,6 +96,8 @@ class UP501 {
   static constexpr uint8_t QUEUE_LEN = 4;
 
   static double customToDouble(TinyGPSCustom &c);
+  static bool customNotEmpty(TinyGPSCustom &c);
+  static bool customIs(TinyGPSCustom &c, char a, char b);
   static bool parseUtc(const char *utc, Fix &f);
   static bool parseDate(const char *date, Fix &f);
   void onGga(uint32_t now);
@@ -110,6 +112,9 @@ class UP501 {
   // Campos leídos directo de cada trama. Los nombres incluyen el talker del UP501 ("GP").
   TinyGPSCustom ggaTime_;     // GGA, campo 1 (hhmmss.sss)
   TinyGPSCustom ggaLat_;      // GGA, campo 2 (vacío sin posición)
+  TinyGPSCustom ggaLatHem_;   // GGA, campo 3 (N/S)
+  TinyGPSCustom ggaLon_;      // GGA, campo 4
+  TinyGPSCustom ggaLonHem_;   // GGA, campo 5 (E/W)
   TinyGPSCustom ggaQuality_;  // GGA, campo 6
   TinyGPSCustom ggaSats_;     // GGA, campo 7
   TinyGPSCustom ggaHdop_;     // GGA, campo 8

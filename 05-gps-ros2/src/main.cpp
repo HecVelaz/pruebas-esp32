@@ -95,6 +95,7 @@ uint32_t fixPublished = 0;
 uint32_t fixPublishErrors = 0;
 uint32_t reconnections = 0;          // sesiones con el agente después de la primera
 uint32_t sessions = 0;
+uint32_t altMslFallbacks = 0;       // /gps/fix con altura MSL por falta de separación del geoide
 uint32_t stampDrops = 0;            // epochs descartados por stamp que no avanza
 uint32_t clockJumps = 0;            // saltos del reloj hacia atrás aceptados
 std::atomic<uint32_t> uartErrors{0};  // desbordes y errores de la UART del GPS (callback en otra tarea)
@@ -144,8 +145,16 @@ void publishFix(const UP501::Fix &f) {
     fixMsg.latitude = f.latDeg;
     fixMsg.longitude = f.lonDeg;
     // NavSatFix pide altura sobre el elipsoide WGS 84 = altura MSL de GGA + separación del geoide.
-    // Si el receptor no envía la separación, queda la altura MSL (error de decenas de metros).
-    fixMsg.altitude = isnan(f.geoidSepM) ? f.altMslM : f.altMslM + f.geoidSepM;
+    // Si el receptor no envía la separación (el UP501 sí la envía), se publica la altura MSL a propósito, con
+    // un error de decenas de metros, en lugar de NaN: navsat_transform_node (robot_localization, Jazzy)
+    // descarta los NavSatFix con altitude NaN, y con zero_altitude la altura no se usa. Se cuenta en
+    // /gps/status ("alt MSL") para detectarlo.
+    if (isnan(f.geoidSepM)) {
+      fixMsg.altitude = f.altMslM;
+      if (!isnan(f.altMslM)) altMslFallbacks++;
+    } else {
+      fixMsg.altitude = f.altMslM + f.geoidSepM;
+    }
     const double hdop = isnan(f.hdop) ? HDOP_FALLBACK : f.hdop;
     const double h = hdop * UERE_M;
     fixMsg.position_covariance[0] = h * h;
@@ -199,11 +208,11 @@ void fillStatus() {
   if (n >= 0 && (size_t)n < sizeof(statusBuf)) {
     n += snprintf(statusBuf + n, sizeof(statusBuf) - n,
                   " | epochs %lu, fix pub %lu, err pub %lu, err NMEA %lu, err UART %lu, cola %lu, stamp desc %lu,"
-                  " saltos reloj %lu, reconex %lu, loop max %lu ms",
+                  " saltos reloj %lu, reconex %lu, alt MSL %lu, loop max %lu ms",
                   (unsigned long)gps.epochCount(), (unsigned long)fixPublished, (unsigned long)fixPublishErrors,
                   (unsigned long)gps.failedChecksum(), (unsigned long)uartErrors.load(std::memory_order_relaxed),
                   (unsigned long)gps.droppedEpochs(), (unsigned long)stampDrops, (unsigned long)clockJumps,
-                  (unsigned long)reconnections,
+                  (unsigned long)reconnections, (unsigned long)altMslFallbacks,
                   (unsigned long)maxLoopMs);
     maxLoopMs = 0;
   }
