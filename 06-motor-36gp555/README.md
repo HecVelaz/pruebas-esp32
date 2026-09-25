@@ -95,11 +95,12 @@ Si A y B quedan cruzados, el motor funciona igual pero las rpm salen negativas c
 | `<n>` | Duty de −100 a 100 % (el signo es el sentido), con rampa. Ej.: `30`, `-50` |
 | `0` o `s` | Parar con rampa (queda frenado) |
 | `x` | Parar **ya** (freno inmediato) |
-| Enter | Corta el barrido o el escalón (frena), o termina el conteo `n`. Cualquier otra línea hace lo mismo y se descarta |
+| Enter | Corta el barrido, el escalón o el perfil (frena), o termina el conteo `n`. Cualquier otra línea hace lo mismo, y el programa avisa que la descartó |
 | `l` | Rueda libre (driver deshabilitado) |
 | `a` | **Barrido automático**: 10 %, 20 %, … 100 % hacia adelante y hacia atrás; mide las rpm en cada paso y estima la zona muerta |
 | `e<n>` | **Escalón** a n % desde el reposo, sin rampa: imprime un CSV cada 10 ms durante 3 s. Ej.: `e50` |
 | `n` | Contar vueltas girando la salida a mano (verificar la reducción) |
+| `p` | **Perfil en escalera** sin rampa: +20, +40, +60, +80, +100 %, freno hasta que se detiene, y −20 … −100 %; 5 s por nivel; CSV `t_ms,duty_pct,cuentas` cada 10 ms. Opcional: `p <ms por nivel> <niveles>`, ej. `p 3000 25 50 75 100` |
 | `?` | Ayuda |
 
 El escalón es el único comando sin rampa: el pico de corriente al arrancar puede hacer que la fuente de 3 A entre en protección con valores altos. Empezar con `e30` o `e50`.
@@ -138,11 +139,17 @@ El script manda el comando por el serial, junta la salida, la guarda en `resulta
 cd ~/pruebas-esp32/06-motor-36gp555
 python3 tools/graficar.py barrido          # ~75 s: curva |duty| vs |rpm de salida|, adelante y atrás
 python3 tools/graficar.py escalon 50       # para el motor, escalón a 50 % y gráfico rpm vs tiempo
+python3 tools/graficar.py perfil           # ~53 s: escalera +-20..100 %, 4 gráficos + parámetros del motor
+python3 tools/graficar.py perfil --segundos 3 --niveles 25 50 75 100
 python3 tools/graficar.py escalon --archivo resultados/escalon50_....csv   # volver a graficar sin medir
 ```
 
 - **Barrido:** además del gráfico, imprime por sentido la velocidad máxima, la pendiente (rpm por % de duty) y la **zona muerta** estimada, sacada de una recta ajustada a los puntos donde el motor gira.
 - **Escalón:** imprime la velocidad final, el **tiempo al 63 %** (≈ constante de tiempo τ, incluye el pequeño retardo inicial), el tiempo de subida 10–90 % y la **ganancia estática** (rpm/%). Con τ y la ganancia se ajusta después el PID.
+- **Perfil:** los mismos 4 gráficos que el análisis en MATLAB: posición completa, señal de control (escalera), posición de cada nivel desde 0 (continuo = positivo, punteado = negativo) y velocidad filtrada con un promedio exponencial (`--alpha`, por defecto 0,1) en pulsos/s y rpm de salida. Además calcula, por nivel, la velocidad de régimen (último 40 % del tramo) y **τ** (ajuste de primer orden a la velocidad sin filtrar, con scipy), y en conjunto la **ganancia K** (rpm/%), la **zona muerta** y el modelo `G(s) = K/(τs + 1)`. Guarda `perfil_*.csv`, `perfil_*.png`, `perfil_*_parametros.csv` y `perfil_*_parametros.png`.
+  - A diferencia de la referencia, entre +100 % y −20 % **frena y espera a que el motor se detenga**: no invierte girando.
+  - Desde parado, el primer nivel (20 %) puede no arrancar el motor por la fricción estática. Si pasa, usar `--niveles 30 45 60 80 100`.
+  - La fuente tiene que entregar la corriente de los escalones sin rampa: en una fuente de laboratorio, límite de corriente en 3 A o más.
 - **Ctrl+C** durante la medición manda `x` (freno) antes de salir. Si la prueba se corta (atasco, rechazo del escalón), el script muestra el motivo y también frena.
 - Otro puerto: `--puerto /dev/ttyACM1`. Sin ventana (solo el PNG): `--sin-ventana`.
 

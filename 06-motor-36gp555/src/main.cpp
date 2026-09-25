@@ -24,12 +24,17 @@ constexpr uint32_t BARRIDO_MEDIR_MS = 1000;    // ventana de medición
 constexpr uint32_t BARRIDO_PAUSA_MS = 1000;    // pausa en duty 0 antes de invertir o terminar
 // Escalón
 constexpr uint32_t ESCALON_MS = 3000;
+// Perfil en escalera (comando p)
+constexpr int PERFIL_MAX_NIVELES = 8;
+constexpr uint32_t PERFIL_SEG_MS_DEF = 5000;
+constexpr float PERFIL_NIVELES_DEF[] = {20, 40, 60, 80, 100};
+constexpr uint32_t PERFIL_PARADA_MS = 1000;  // freno entre la mitad positiva y la negativa
 
 BTS7960 driver;
 EncoderPCNT enc;
 bool hwOk = false;  // si el PWM o el encoder no se inicializan, no se aceptan comandos al motor
 
-enum class Modo { Manual, Barrido, Escalon, Contar };
+enum class Modo { Manual, Barrido, Escalon, Contar, Perfil };
 Modo modo = Modo::Manual;
 
 float dutyObj = 0.0f;  // % pedido (-100..100)
@@ -73,7 +78,18 @@ int64_t cuentasPrevEscalon = 0;
 // Contar vueltas
 uint32_t contarUltimoMs = 0;
 
-char linea[32];
+// Perfil
+float perfilNiv[PERFIL_MAX_NIVELES];
+int perfilN = 0;
+uint32_t perfilSegMs = PERFIL_SEG_MS_DEF;
+int perfilIdx = 0;
+int perfilSentido = 1;
+bool perfilEnParada = false;
+uint32_t perfilSegInicioMs = 0;
+uint32_t perfilInicioUs = 0;
+int64_t perfilC0 = 0;
+
+char linea[64];
 size_t lineaLen = 0;
 bool ultimoFueCR = false;
 
@@ -155,6 +171,8 @@ void ayuda() {
   Serial.println("  a      barrido automático: duty vs rpm, adelante y atrás");
   Serial.println("  e<n>   escalón a n % desde el reposo, sin rampa, CSV cada 10 ms durante 3 s. Ej: e50");
   Serial.println("  n      contar vueltas girando la salida a mano (para verificar la reducción)");
+  Serial.println("  p      perfil en escalera sin rampa: +20..+100 % y -20..-100 %, 5 s por nivel, CSV cada 10 ms");
+  Serial.println("         Opcional: p <ms por nivel> <niveles %>. Ej: p 3000 25 50 75 100");
   Serial.println("  ?      esta ayuda");
   Serial.println("Para invertir el sentido, el motor primero baja a 0 y espera a detenerse.");
   Serial.printf("Corte por atasco: duty >= %.0f %% y menos de %.0f rpm del motor durante %lu ms.\n", ATASCO_DUTY_PCT,
@@ -208,20 +226,76 @@ void iniciarEscalon(float pct) {
   Serial.printf("0,%.1f,0,0.0,0.00\n", pct);
 }
 
+void aplicarPerfil(float pct) {
+  dutyObj = pct;
+  aplicarDuty(pct);
+  perfilSegInicioMs = millis();
+  Serial.printf(">> Perfil: nivel %+.0f %%\n", pct);
+}
+
+// "p" o "p <ms> <nivel1> <nivel2> ...": los niveles son positivos; la mitad negativa es la misma escalera
+void iniciarPerfil(char *args) {
+  uint32_t segMs = PERFIL_SEG_MS_DEF;
+  float niv[PERFIL_MAX_NIVELES];
+  int n = 0;
+  char *tok = strtok(args, " ");
+  if (tok) {
+    float v;
+    if (!leerPct(tok, v) || v < 500 || v > 60000) {
+      Serial.println(">> Perfil inválido: el primer número son los ms por nivel (500..60000). Ej: p 5000 20 40 60");
+      return;
+    }
+    segMs = (uint32_t)v;
+    while ((tok = strtok(nullptr, " ")) != nullptr) {
+      if (n == PERFIL_MAX_NIVELES || !leerPct(tok, v) || v <= 0.0f) {
+        Serial.printf(">> Perfil inválido: hasta %d niveles positivos. Ej: p 5000 20 40 60\n", PERFIL_MAX_NIVELES);
+        return;
+      }
+      niv[n++] = limitar(v);
+    }
+  }
+  if (n == 0) {
+    for (float v : PERFIL_NIVELES_DEF) niv[n++] = limitar(v);
+  }
+  if (dutyObj != 0.0f || !motorQuieto()) {
+    Serial.println(">> El perfil parte del reposo: parar el motor (0), esperar a que se detenga y repetir.");
+    return;
+  }
+  for (int i = 0; i < n; i++) perfilNiv[i] = niv[i];
+  perfilN = n;
+  perfilSegMs = segMs;
+  perfilIdx = 0;
+  perfilSentido = 1;
+  perfilEnParada = false;
+  modo = Modo::Perfil;
+  rampa = false;
+  ticksPerdidos = 0;
+  Serial.printf(">> Perfil: %d niveles x %lu ms por sentido, sin rampa. Enter o cualquier línea lo corta.\n", n,
+                (unsigned long)segMs);
+  Serial.printf("# cuentas_por_vuelta_motor=%.0f reduccion=%.1f\n", CUENTAS_POR_VUELTA, REDUCCION);
+  Serial.println("t_ms,duty_pct,cuentas");
+  perfilInicioUs = micros();
+  perfilC0 = cuentas();
+  aplicarPerfil(perfilNiv[0]);
+}
+
 void procesarLinea(char *s) {
   while (*s == ' ') s++;
   size_t n = strlen(s);
   while (n > 0 && s[n - 1] == ' ') s[--n] = '\0';
 
-  // Enter o cualquier línea corta el barrido o el escalón, y termina el conteo
-  if (modo == Modo::Barrido || modo == Modo::Escalon) {
+  // Enter o cualquier línea corta el barrido, el escalón o el perfil, y termina el conteo.
+  // La línea no se ejecuta: se avisa para que se vuelva a escribir.
+  if (modo == Modo::Barrido || modo == Modo::Escalon || modo == Modo::Perfil) {
     pararYa("cortado por el usuario");
+    if (*s) Serial.printf("   Se descartó '%s': volver a escribirlo.\n", s);
     return;
   }
   if (modo == Modo::Contar) {
     modo = Modo::Manual;
     reiniciarVelocidad();
     Serial.println(">> Fin del conteo.");
+    if (*s) Serial.printf("   Se descartó '%s': volver a escribirlo.\n", s);
     return;
   }
   if (*s == '\0') return;
@@ -262,6 +336,11 @@ void procesarLinea(char *s) {
         Serial.println("   y leer 'reducción medida' (con N vueltas exactas). Enter para terminar.");
         return;
     }
+  }
+
+  if (s[0] == 'p' && (s[1] == '\0' || s[1] == ' ')) {
+    iniciarPerfil(s + 1);
+    return;
   }
 
   float pct;
@@ -453,6 +532,44 @@ void pasoEscalon() {
   }
 }
 
+void pasoPerfil() {
+  const uint32_t t = micros();
+  Serial.printf("%lu,%.1f,%lld\n", (unsigned long)((t - perfilInicioUs) / 1000), dutyAct,
+                (long long)(cuentas() - perfilC0));
+  if (modo != Modo::Perfil) return;  // el atasco pudo cortarlo en este tick
+
+  const uint32_t ahora = millis();
+  if (perfilEnParada) {
+    // Entre las dos mitades: frenado hasta que el motor está quieto (no se invierte girando)
+    if (ahora - perfilSegInicioMs >= PERFIL_PARADA_MS && motorQuieto()) {
+      perfilEnParada = false;
+      perfilSentido = -1;
+      perfilIdx = 0;
+      aplicarPerfil(-perfilNiv[0]);
+    }
+    return;
+  }
+  if (ahora - perfilSegInicioMs < perfilSegMs) return;
+
+  perfilIdx++;
+  if (perfilIdx < perfilN) {
+    aplicarPerfil(perfilSentido * perfilNiv[perfilIdx]);
+  } else if (perfilSentido > 0) {
+    perfilEnParada = true;
+    aplicarPerfil(0.0f);  // freno
+  } else {
+    modo = Modo::Manual;
+    rampa = true;
+    dutyObj = 0.0f;
+    aplicarDuty(0.0f);
+    Serial.println(">> Fin del perfil.");
+    if (ticksPerdidos > 0) {
+      Serial.printf("   Aviso: se perdieron %lu muestras (loop atrasado); ver los saltos en t_ms.\n",
+                    (unsigned long)ticksPerdidos);
+    }
+  }
+}
+
 void pasoContar() {
   const uint32_t ahora = millis();
   if (ahora - contarUltimoMs < 500) return;
@@ -535,6 +652,9 @@ void loop() {
     case Modo::Contar:
       pasoContar();
       return;
+    case Modo::Perfil:
+      pasoPerfil();
+      return;  // imprime su propio CSV
     case Modo::Manual:
       break;
   }

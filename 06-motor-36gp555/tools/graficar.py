@@ -5,6 +5,8 @@ guarda el CSV en resultados/ y los grafica.
 Uso (cerrar antes el monitor de PlatformIO, que ocupa el puerto):
     python3 tools/graficar.py barrido                 # comando 'a' del firmware
     python3 tools/graficar.py escalon 50              # comando 'e50'
+    python3 tools/graficar.py perfil                  # comando 'p': escalera +-20..100 %, 5 s por nivel
+    python3 tools/graficar.py perfil --segundos 3 --niveles 25 50 75 100
     python3 tools/graficar.py barrido --archivo resultados/barrido_....csv   # volver a graficar
     python3 tools/graficar.py escalon --archivo resultados/escalon_....csv
 Opciones: --puerto /dev/ttyACM1 (por defecto /dev/ttyACM0), --sin-ventana (solo guarda el PNG).
@@ -28,7 +30,12 @@ RE_FILA_BARRIDO = re.compile(r"^\s*([+-]?\d+)\s*\|\s*([+-]?[\d.]+)\s*\|\s*([+-]?
 # Fila del CSV del escalón: "t_ms,duty_pct,cuentas,rpm_motor,rpm_salida"
 RE_FILA_ESCALON = re.compile(r"^(\d+),([+-]?[\d.]+),([+-]?\d+),([+-]?[\d.]+),([+-]?[\d.]+)$")
 
-ERRORES = (">> ERROR", ">> Comando desconocido", ">> El escalón", ">> Escalón inválido")
+# Fila del perfil: "t_ms,duty_pct,cuentas"
+RE_FILA_PERFIL = re.compile(r"^(\d+),([+-]?[\d.]+),([+-]?\d+)$")
+RE_META_PERFIL = re.compile(r"^# cuentas_por_vuelta_motor=([\d.]+) reduccion=([\d.]+)")
+
+ERRORES = (">> ERROR", ">> Comando desconocido", ">> El escalón", ">> Escalón inválido",
+           ">> El perfil", ">> Perfil inválido")
 
 
 # ---------------------------------------------------------------- serial
@@ -77,7 +84,7 @@ def esperar_quieto(ser):
         leer_linea(ser)
 
 
-def ejecutar(ser, comando, es_fila, fin_ok, timeout_s):
+def ejecutar(ser, comando, es_fila, fin_ok, timeout_s, mostrar_filas=True):
     """Manda el comando y junta las filas hasta el mensaje final. Devuelve (filas, extra)."""
     enviar(ser, comando)
     filas, extra = [], []
@@ -90,7 +97,9 @@ def ejecutar(ser, comando, es_fila, fin_ok, timeout_s):
                 if terminado:
                     break  # sin más líneas después del final
                 continue
-            print(linea)
+            m = None if terminado else es_fila(linea)
+            if not m or mostrar_filas:
+                print(linea)
             if terminado:
                 extra.append(linea)
                 continue
@@ -98,7 +107,6 @@ def ejecutar(ser, comando, es_fila, fin_ok, timeout_s):
                 raise RuntimeError(linea)
             if linea.startswith(">> Parado ("):
                 raise RuntimeError(f"La prueba se cortó: {linea}")
-            m = es_fila(linea)
             if m:
                 filas.append(m)
             elif fin_ok in linea:
@@ -240,6 +248,204 @@ def graficar_escalon(ruta, mostrar):
     terminar(fig, ruta, mostrar)
 
 
+# ---------------------------------------------------------------- perfil en escalera
+
+def medir_perfil(ser, segundos, niveles):
+    meta = {"cpr": 64.0, "red": 50.0}
+
+    def fila(linea):
+        mm = RE_META_PERFIL.match(linea)
+        if mm:
+            meta["cpr"], meta["red"] = float(mm.group(1)), float(mm.group(2))
+            return None
+        m = RE_FILA_PERFIL.match(linea)
+        return [float(g) for g in m.groups()] if m else None
+
+    comando = "p"
+    if segundos is not None or niveles:
+        comando += f" {int((segundos or 5) * 1000)}"
+        if niveles:
+            comando += " " + " ".join(f"{abs(n):g}" for n in niveles)
+    n_niv = len(niveles) if niveles else 5
+    duracion = 2 * n_niv * (segundos or 5) + 3
+    print("Parando el motor antes del perfil...")
+    esperar_quieto(ser)
+    print(f"Perfil en curso (~{duracion:.0f} s). Ctrl+C para frenar.\n")
+    filas, _ = ejecutar(ser, comando, fila, ">> Fin del perfil.", timeout_s=duracion + 30, mostrar_filas=False)
+    if len(filas) < 50:
+        raise RuntimeError("Llegaron muy pocas muestras del perfil")
+    DIR_RESULTADOS.mkdir(exist_ok=True)
+    ruta = DIR_RESULTADOS / f"perfil_{datetime.now():%Y%m%d_%H%M%S}.csv"
+    with open(ruta, "w", newline="") as f:
+        f.write(f"# cuentas_por_vuelta_motor={meta['cpr']:g} reduccion={meta['red']:g}\n")
+        w = csv.writer(f)
+        w.writerow(["t_ms", "duty_pct", "cuentas"])
+        w.writerows([[int(r[0]), f"{r[1]:.1f}", int(r[2])] for r in filas])
+    print(f"\nDatos guardados en {ruta} ({len(filas)} muestras)")
+    return ruta
+
+
+def leer_perfil(ruta):
+    cpr, red = 64.0, 50.0
+    filas = []
+    with open(ruta) as f:
+        for linea in f:
+            linea = linea.strip()
+            mm = RE_META_PERFIL.match(linea)
+            if mm:
+                cpr, red = float(mm.group(1)), float(mm.group(2))
+            elif RE_FILA_PERFIL.match(linea):
+                filas.append([float(x) for x in linea.split(",")])
+    return np.array(filas), cpr, red
+
+
+def segmentos(duty):
+    """Tramos de duty constante: lista de (duty, i0, i1) con i1 exclusivo."""
+    cortes = np.nonzero(np.diff(duty))[0] + 1
+    bordes = np.concatenate(([0], cortes, [len(duty)]))
+    return [(duty[a], a, b) for a, b in zip(bordes[:-1], bordes[1:]) if b - a > 5]
+
+
+def ajustar_primer_orden(ts, v):
+    """Ajusta v(t) = v0 + (vf - v0)(1 - exp(-t/tau)) a la velocidad cruda de un tramo."""
+    from scipy.optimize import curve_fit
+
+    def modelo(t, v0, vf, tau):
+        return v0 + (vf - v0) * (1 - np.exp(-t / tau))
+
+    n = len(v)
+    v0_ini = v[: max(n // 50, 2)].mean()
+    vf_ini = v[int(n * 0.6):].mean()
+    try:
+        (v0, vf, tau), _ = curve_fit(modelo, ts, v, p0=(v0_ini, vf_ini, 0.08),
+                                     bounds=([-np.inf, -np.inf, 0.005], [np.inf, np.inf, 5.0]), maxfev=5000)
+        return v0, vf, tau
+    except (RuntimeError, ValueError):
+        return v0_ini, vf_ini, float("nan")
+
+
+def graficar_perfil(ruta, mostrar, alpha):
+    import matplotlib.pyplot as plt
+
+    d, cpr, red = leer_perfil(ruta)
+    t, duty, pos = d[:, 0] / 1000.0, d[:, 1], d[:, 2]
+    a_rpm = 60.0 / (cpr * red)  # pulsos/s -> rpm de salida
+
+    # Velocidad cruda (pulsos/s) y filtrada con un promedio exponencial, como en MATLAB
+    dt = np.diff(t)
+    dt[dt <= 0] = np.nan
+    v = np.concatenate(([0.0], np.diff(pos) / dt))
+    v = np.nan_to_num(v)
+    vf = np.empty_like(v)
+    acc = 0.0
+    for k, x in enumerate(v):
+        acc = alpha * x + (1 - alpha) * acc
+        vf[k] = acc
+
+    # Parámetros por nivel
+    filas_param = []
+    tramos = [tr for tr in segmentos(duty) if tr[0] != 0]
+    for dty, i0, i1 in tramos:
+        ts = t[i0:i1] - t[i0]
+        vs = v[i0:i1]
+        v_reg = vs[int(len(vs) * 0.6):].mean()  # régimen: último 40 % del tramo
+        v0, vfit, tau = ajustar_primer_orden(ts, vs)
+        filas_param.append([dty, v_reg, v_reg * a_rpm, tau * 1000, v0])
+
+    print(f"\nParámetros por nivel (cuentas por vuelta del motor {cpr:g}, reducción {red:g}:1):")
+    print("   duty %  | vel. régimen (pulsos/s) | rpm salida | tau (ms)")
+    for dty, v_reg, rpm, tau_ms, _ in filas_param:
+        print(f"   {dty:+6.1f}  | {v_reg:+23.0f} | {rpm:+10.1f} | {tau_ms:8.0f}")
+
+    # Ajuste lineal velocidad de régimen vs duty, por sentido: ganancia y zona muerta
+    P = np.array(filas_param)
+    modelo_txt = []
+    ajustes = {}
+    for signo, nombre in ((1, "adelante"), (-1, "atrás")):
+        sel = np.sign(P[:, 0]) == signo
+        if sel.sum() == 0:
+            continue
+        x, y = np.abs(P[sel, 0]), np.abs(P[sel, 2])
+        gira = y > 0.05 * max(y.max(), 1e-9)
+        taus = P[sel, 3][gira]
+        tau_med = np.nanmedian(taus) if len(taus) else float("nan")
+        if gira.sum() >= 2:
+            k, b = np.polyfit(x[gira], y[gira], 1)
+            zona = -b / k if k else float("nan")
+            ajustes[signo] = (k, b)
+            modelo_txt.append(f"  {nombre:8s}: K = {k:.3f} rpm/% ({k / a_rpm:.1f} pulsos/s por %), "
+                              f"zona muerta {zona:.1f} %, tau mediana {tau_med:.0f} ms, máx {y.max():.1f} rpm")
+        else:
+            modelo_txt.append(f"  {nombre:8s}: el motor casi no giró")
+    print("\nModelo de primer orden (velocidad de salida por encima de la zona muerta):")
+    print("\n".join(modelo_txt))
+    tau_global = np.nanmedian(P[:, 3])
+    if 1 in ajustes:
+        k = ajustes[1][0]
+        print(f"\n  G(s) = K / (tau*s + 1) = {k:.3f} / ({tau_global / 1000:.3f} s + 1)  [rpm de salida por % de duty]")
+
+    param_csv = ruta.with_name(ruta.stem + "_parametros.csv")
+    with open(param_csv, "w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["duty_pct", "vel_regimen_pulsos_s", "rpm_salida", "tau_ms", "v_inicial_pulsos_s"])
+        w.writerows([[f"{x:.4g}" for x in fila] for fila in filas_param])
+    print(f"Parámetros guardados en {param_csv}")
+
+    # Figura 1: los cuatro gráficos
+    fig, ax = plt.subplots(2, 2, figsize=(13, 8.5))
+    ax[0, 0].plot(t, pos, color="tab:blue")
+    ax[0, 0].set(title="Respuesta completa - Posición", xlabel="Tiempo (s)", ylabel="Posición (pulsos)")
+
+    ax[0, 1].step(t, duty, where="post", color="tab:red")
+    ax[0, 1].set(title="Señal de control", xlabel="Tiempo (s)", ylabel="PWM (duty %)")
+
+    colores = plt.cm.tab10(np.linspace(0, 1, 10))
+    niveles = sorted({abs(tr[0]) for tr in tramos})
+    for dty, i0, i1 in sorted(tramos, key=lambda tr: tr[0]):
+        c = colores[niveles.index(abs(dty)) % 10]
+        ax[1, 0].plot(t[i0:i1] - t[i0], pos[i0:i1] - pos[i0], "--" if dty < 0 else "-", color=c,
+                      label=f"PWM={dty:+.0f} %")
+    ax[1, 0].set(title="Respuestas por nivel de PWM", xlabel="Tiempo (s)", ylabel="Posición (pulsos)")
+    ax[1, 0].legend(fontsize=8, ncol=2)
+
+    ax[1, 1].plot(t, vf, color="tab:green")
+    ax[1, 1].set(title=f"Velocidad angular filtrada (alpha = {alpha:g})", xlabel="Tiempo (s)",
+                 ylabel="Velocidad (pulsos/s)")
+    sec = ax[1, 1].secondary_yaxis("right", functions=(lambda x: x * a_rpm, lambda x: x / a_rpm))
+    sec.set_ylabel("rpm de salida")
+    for a in ax.flat:
+        a.grid(True, alpha=0.3)
+    fig.suptitle(f"Perfil en lazo abierto — {ruta.stem}")
+
+    # Figura 2: parámetros
+    fig2, bx = plt.subplots(1, 2, figsize=(13, 4.8))
+    bx[0].plot(P[:, 0], P[:, 2], "o", color="tab:blue", label="medido (régimen)")
+    for signo, (k, b) in ajustes.items():
+        xs = np.linspace(max(-b / k, 0), 100, 50)
+        bx[0].plot(signo * xs, signo * (k * xs + b), "--", alpha=0.7,
+                   label=f"{'adelante' if signo > 0 else 'atrás'}: {k:.2f} rpm/%, zona muerta {-b / k:.0f} %")
+    bx[0].axhline(0, color="k", lw=0.5)
+    bx[0].axvline(0, color="k", lw=0.5)
+    bx[0].set(title="Velocidad de régimen vs PWM", xlabel="PWM (duty %)", ylabel="rpm de salida")
+    bx[0].legend(fontsize=8)
+    for signo in (1, -1):  # una línea por sentido, ordenada por duty
+        sel = np.sign(P[:, 0]) == signo
+        orden = np.argsort(P[sel, 0])
+        bx[1].plot(P[sel, 0][orden], P[sel, 3][orden], "o-", color="tab:purple")
+    bx[1].axhline(tau_global, color="tab:gray", ls="--", label=f"mediana {tau_global:.0f} ms")
+    bx[1].set(title="Constante de tiempo por nivel", xlabel="PWM (duty %)", ylabel="tau (ms)")
+    bx[1].legend()
+    for b_ in bx:
+        b_.grid(True, alpha=0.3)
+    fig2.suptitle(f"Parámetros del motor — {ruta.stem}")
+
+    png2 = ruta.with_name(ruta.stem + "_parametros.png")
+    fig2.tight_layout()
+    fig2.savefig(png2, dpi=120)
+    print(f"Gráfico de parámetros guardado en {png2}")
+    terminar(fig, ruta, mostrar)
+
+
 # ---------------------------------------------------------------- común
 
 def terminar(fig, ruta, mostrar):
@@ -255,11 +461,14 @@ def terminar(fig, ruta, mostrar):
 
 def main():
     p = argparse.ArgumentParser(description="Barrido y escalón del motor en lazo abierto")
-    p.add_argument("prueba", choices=["barrido", "escalon"])
+    p.add_argument("prueba", choices=["barrido", "escalon", "perfil"])
     p.add_argument("pct", nargs="?", type=float, default=50.0, help="duty del escalón en %% (por defecto 50)")
     p.add_argument("--puerto", default="/dev/ttyACM0")
     p.add_argument("--archivo", type=Path, help="volver a graficar un CSV guardado, sin medir")
     p.add_argument("--sin-ventana", action="store_true", help="no abrir la ventana, solo guardar el PNG")
+    p.add_argument("--segundos", type=float, help="perfil: segundos por nivel (por defecto 5)")
+    p.add_argument("--niveles", type=float, nargs="+", help="perfil: niveles de duty %% (por defecto 20 40 60 80 100)")
+    p.add_argument("--alpha", type=float, default=0.1, help="perfil: filtro exponencial de la velocidad (0..1]")
     a = p.parse_args()
 
     if a.prueba == "escalon" and not a.archivo and not (0 < abs(a.pct) <= 100):
@@ -272,7 +481,12 @@ def main():
         except Exception as e:  # puerto ocupado o inexistente
             sys.exit(f"No se pudo abrir {a.puerto}: {e}\n¿Está abierto el monitor de PlatformIO? Cerrarlo antes.")
         try:
-            ruta = medir_barrido(ser) if a.prueba == "barrido" else medir_escalon(ser, a.pct)
+            if a.prueba == "barrido":
+                ruta = medir_barrido(ser)
+            elif a.prueba == "escalon":
+                ruta = medir_escalon(ser, a.pct)
+            else:
+                ruta = medir_perfil(ser, a.segundos, a.niveles)
         except RuntimeError as e:
             enviar(ser, "x")
             sys.exit(f"\nERROR: {e}")
@@ -281,8 +495,10 @@ def main():
 
     if a.prueba == "barrido":
         graficar_barrido(ruta, not a.sin_ventana)
-    else:
+    elif a.prueba == "escalon":
         graficar_escalon(ruta, not a.sin_ventana)
+    else:
+        graficar_perfil(ruta, not a.sin_ventana, a.alpha)
 
 
 if __name__ == "__main__":
