@@ -6,6 +6,7 @@
 #include <Arduino.h>
 
 #include <atomic>
+#include <time.h>
 
 #include <micro_ros_platformio.h>
 #include <rcl/rcl.h>
@@ -54,6 +55,12 @@ constexpr int64_t MAX_GPS_CLOCK_DIFF_NS = 2000000000LL;
 // (resincronización con el agente) y se acepta, para no dejar /gps/fix en silencio hasta alcanzar el anterior.
 constexpr int64_t CLOCK_JUMP_NS = 1000000000LL;
 
+// El firmware del UP501 es anterior al rollover de 2019: cuenta la semana GPS con 10 bits y la fecha sale
+// 1024 semanas atrás (visto: 2007-02-09 en lugar de 2026-09-25). Si la hora del GPS está más de media
+// ventana atrás de la llegada, se le suman múltiplos de 1024 semanas.
+constexpr int64_t GPS_ROLLOVER_NS = 1024LL * 7 * 86400 * 1000000000LL;
+constexpr uint8_t GPS_ROLLOVER_MAX = 4;
+
 // Tiempos de la comunicación con el agente. Mientras dura cada espera, los bytes del GPS se acumulan en
 // el búfer de 1 kB de la UART (~1 s a 9600 baud), así que no se pierden.
 // Espera máxima de confirmación de cada publisher reliable. Con 50 ms, por WiFi, ~3 % de los /gps/fix no se
@@ -90,6 +97,11 @@ int64_t lastStampNs = 0;
 // Del último /gps/fix publicado, para /gps/status: de dónde salió el stamp y la demora de las tramas
 bool lastStampFromGps = false;
 int32_t lastLatencyMs = -1;
+// Hora UTC que informó el GPS en el último epoch con fix y su diferencia con la llegada, para diagnosticar
+// por qué no se usa como stamp (segundos intercalares viejos o rollover de semana del receptor)
+char lastGpsUtc[24] = "";
+int64_t lastGpsUtcDiffMs = 0;
+uint8_t lastGpsRollovers = 0;
 // Contadores para diagnosticar epochs perdidos (se muestran en /gps/status)
 uint32_t fixPublished = 0;
 uint32_t fixPublishErrors = 0;
@@ -118,8 +130,20 @@ void publishFix(const UP501::Fix &f) {
   bool fromGps = false;
   int64_t utcMs;
   if (f.fix && UP501::utcUnixMs(f, utcMs)) {
-    const int64_t utcNs = utcMs * 1000000LL;
+    int64_t utcNs = utcMs * 1000000LL;
+    uint8_t rollovers = 0;
+    while (rxNs - utcNs > GPS_ROLLOVER_NS / 2 && rollovers < GPS_ROLLOVER_MAX) {
+      utcNs += GPS_ROLLOVER_NS;
+      rollovers++;
+    }
     const int64_t diff = rxNs - utcNs;
+    // Fecha ya corregida, para /gps/status
+    const time_t utcSec = (time_t)(utcNs / 1000000000LL);
+    struct tm tmUtc;
+    gmtime_r(&utcSec, &tmUtc);
+    strftime(lastGpsUtc, sizeof(lastGpsUtc), "%Y-%m-%d %H:%M:%S", &tmUtc);
+    lastGpsUtcDiffMs = diff / 1000000LL;
+    lastGpsRollovers = rollovers;
     if (diff > -MAX_GPS_CLOCK_DIFF_NS && diff < MAX_GPS_CLOCK_DIFF_NS) {
       stampNs = utcNs;
       fromGps = true;
@@ -198,7 +222,8 @@ void fillStatus() {
           n += snprintf(statusBuf + n, sizeof(statusBuf) - n, " | Stamp: UTC GPS (latencia %ld ms)",
                         (long)lastLatencyMs);
         else
-          n += snprintf(statusBuf + n, sizeof(statusBuf) - n, " | Stamp: llegada");
+          n += snprintf(statusBuf + n, sizeof(statusBuf) - n, " | Stamp: llegada (UTC GPS %s, rollover %u, dif %lld ms)",
+                        lastGpsUtc[0] ? lastGpsUtc : "sin fecha", lastGpsRollovers, (long long)lastGpsUtcDiffMs);
       }
       break;
   }
