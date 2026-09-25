@@ -103,7 +103,9 @@ Sin fix, la hora y la fecha de las tramas vienen del reloj interno (por ejemplo 
 ## Driver (`lib/UP501`)
 
 - Envoltorio de [TinyGPSPlus](https://github.com/mikalhart/TinyGPSPlus) (1.1.0) que recibe un `Stream` ya abierto, sin pines ni `Serial`.
-- Estado de la comunicación: sin datos, tramas inválidas, sin fix o fix. Lo decide con un timeout de 3 s y exigiendo que la posición tenga menos de 2,5 s, porque TinyGPSPlus mantiene como válida la última posición aunque se pierda el fix.
+- Arma **una muestra por epoch** cuando llegan la GGA y la RMC con la misma hora UTC: todos los campos (posición, altura, HDOP, satélites, hora) son del mismo instante. `pollEpoch()` la entrega una sola vez; `utcUnixMs()` da su hora UTC.
+- Un epoch tiene fix solo si la GGA trae calidad > 0 y la RMC estado `A`. Si el receptor informa que perdió el fix, el estado pasa a "sin fix" en ese mismo epoch. TinyGPSPlus, en cambio, mantiene como válida la última posición.
+- Estado de la comunicación: sin datos o tramas inválidas si pasan 3 s sin bytes o sin tramas con checksum correcto; fix si el último epoch con fix tiene menos de 2,5 s.
 - Lee campos que TinyGPSPlus no expone: satélites en vista (`GSV`), calidad del fix y separación del geoide (`GGA`), y modo 2D/3D (`GSA`).
 - Lo reutiliza `05-gps-ros2` con `symlink://`: un cambio en el driver afecta a los dos proyectos.
 
