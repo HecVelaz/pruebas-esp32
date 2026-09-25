@@ -11,6 +11,12 @@
 		},
 		{
 			"path": "02-imu-ros2"
+		},
+		{
+			"path": "04-gps-up501"
+		},
+		{
+			"path": "05-gps-ros2"
 		}
 	],
 	"settings": {

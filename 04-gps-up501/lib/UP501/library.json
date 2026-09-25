@@ -1,0 +1,10 @@
+{
+  "name": "UP501",
+  "version": "0.1.0",
+  "description": "Driver mínimo del GPS Fastrax UP501 por UART (NMEA con TinyGPSPlus): estado de la comunicación, fix, satélites en vista y altura elipsoidal",
+  "frameworks": "arduino",
+  "platforms": "espressif32",
+  "dependencies": {
+    "mikalhart/TinyGPSPlus": "^1.1.0"
+  }
+}

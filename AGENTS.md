@@ -17,7 +17,8 @@ Probar sensores de a uno, cada uno en su propia carpeta y proyecto PlatformIO in
 | `01-imu-mpu9250` | IMU MPU-9250 / MPU-6500 por I2C |
 | `02-imu-ros2`    | IMU publicado en ROS 2 Jazzy con micro-ROS (`/imu/data_raw`, 50 Hz) |
 | `03-hcsr04`      | Sensor ultrasónico HC-SR04 (pendiente) |
-| `04-gps`         | GPS (pendiente)                 |
+| `04-gps-up501`   | GPS Fastrax UP501 por UART (NMEA) |
+| `05-gps-ros2`    | GPS publicado en ROS 2 Jazzy con micro-ROS (`/gps/fix`, `/gps/status`, 1 Hz) |
 
 Nombre de carpeta: `NN-<tipo>-<modelo>` en minúsculas (por ejemplo `03-hcsr04`, `04-gps-neo6m`).
 
@@ -80,6 +81,11 @@ $PIO run -t upload -t monitor       # flashear y abrir el monitor
 ```
 
 - Cerrar el monitor antes de flashear: si otro proceso tiene abierto `/dev/ttyACM0`, el upload falla.
+- **ModemManager** (activo por defecto en Ubuntu) sondea cada `/dev/ttyACM*` nuevo y, al mover DTR/RTS, deja la S3 en modo descarga (`rst:0x15 (USB_UART_CHIP_RESET), boot:0x0 ... waiting for download`): el firmware no arranca, de forma intermitente. En cada PC, una vez:
+  ```bash
+  echo 'ATTRS{idVendor}=="303a", ENV{ID_MM_DEVICE_IGNORE}="1"' | sudo tee /etc/udev/rules.d/99-esp32-mm-ignore.rules
+  sudo udevadm control --reload-rules && sudo udevadm trigger
+  ```
 - Si el upload no conecta, entrar en modo bootloader: mantener **BOOT**, pulsar **RST** y soltar **BOOT**. Después de flashear, pulsar **RST** otra vez.
 
 ### Proyectos micro-ROS (ROS 2 Jazzy)
