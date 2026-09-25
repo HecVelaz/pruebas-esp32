@@ -1,0 +1,7 @@
+{
+  "name": "L298N",
+  "version": "0.1.0",
+  "description": "Driver mínimo de un canal del L298N: duty con signo (ENA por LEDC, IN1/IN2 sentido), freno y rueda libre",
+  "frameworks": "arduino",
+  "platforms": "espressif32"
+}

@@ -20,6 +20,12 @@
 		},
 		{
 			"path": "06-motor-36gp555"
+		},
+		{
+			"path": "07-motor-rampa-vueltas"
+		},
+		{
+			"path": "08-motor-5840-l298n"
 		}
 	],
 	"settings": {

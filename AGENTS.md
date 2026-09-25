@@ -20,6 +20,8 @@ Probar sensores de a uno, cada uno en su propia carpeta y proyecto PlatformIO in
 | `04-gps-up501`   | GPS Fastrax UP501 por UART (NMEA) |
 | `05-gps-ros2`    | GPS publicado en ROS 2 Jazzy con micro-ROS (`/gps/fix`, `/gps/status`, 1 Hz) |
 | `06-motor-36gp555` | Motor DC 36GP-555 (12 V, 160 rpm, encoder Hall) con driver IBT-2 (BTS7960), lazo abierto |
+| `07-motor-rampa-vueltas` | Mismo motor: rampa de PWM 0 → 100 % que termina a N vueltas de salida, para comparar con y sin carga |
+| `08-motor-5840-l298n` | Motor 5840-31ZY (sin fin, 12 V, 160 rpm) con L298N y encoder externo de 1000 PPR, en una **ESP32-WROOM-32D**, lazo abierto |
 
 Nombre de carpeta: `NN-<tipo>-<modelo>` en minúsculas (por ejemplo `03-hcsr04`, `04-gps-neo6m`).
 
@@ -54,7 +56,7 @@ pruebas-esp32/
 - **`README.md`**: tabla de conexiones, comando para probar, salida esperada, cómo verificar que los valores son razonables y una tabla de **Resultados** para completar después de probar.
 - Al crear la carpeta, agregarla a `folders` en `pruebas-esp32.code-workspace`.
 
-La configuración de placa de `platformio.ini` es la misma en todas las pruebas:
+La configuración de placa de `platformio.ini` es la misma en todas las pruebas con la ESP32-S3 (excepción: `08-motor-5840-l298n` usa una ESP32-WROOM-32D, `board = esp32dev`, puerto `/dev/ttyUSB0` del CH340):
 
 ```ini
 platform = espressif32
