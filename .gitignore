@@ -17,3 +17,6 @@ managed_components/
 # Secretos y sistema
 .env
 *.log
+
+# Configuración local de Claude Code
+.claude/
