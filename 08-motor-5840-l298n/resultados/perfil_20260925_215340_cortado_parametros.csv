@@ -1,0 +1,4 @@
+duty_pct,vel_regimen_pulsos_s,rpm_salida,tau_ms,v_inicial_pulsos_s,variacion_regimen,valido
+20,0,0,nan,0,inf,0
+40,0,0,nan,0,inf,0
+60,0,0,nan,0,inf,0

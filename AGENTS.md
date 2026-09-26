@@ -3,6 +3,7 @@
 ## Contexto
 
 - **Placa:** Freenove ESP32-S3-WROOM **N16R8** (16 MB flash QIO, 8 MB PSRAM octal) sobre breakout Freenove v1.2
+- **Segunda placa (solo `08-motor-5840-l298n`):** ESP32-WROOM-32D (ESP32 clásico, 4 MB) en una DevKit con USB-serie **CH340** (`1a86:7523`, `/dev/ttyUSB0`). Botones **BOOT** y **EN** (reset). GPIO a evitar: 6–11 (flash), 0/2/5/12/15 (strapping), 1/3 (UART0 = USB), 34–39 (solo entrada, sin pull-up).
 - **Host:** Ubuntu 24.04
 - **Puerto:** `/dev/ttyACM0` (USB nativo del S3, `303a:1001`; el usuario está en el grupo `dialout`)
 - **Toolchain:** PlatformIO en `~/.platformio/penv/bin/pio` (framework Arduino)
@@ -46,6 +47,8 @@ pruebas-esp32/
     │       └── MPU9250.cpp
     ├── include/
     │   └── pins.h          ← pines en un solo lugar
+    ├── tools/              ← scripts de PC en Python (opcional; por ejemplo graficar.py en los motores)
+    ├── resultados/         ← CSV y PNG de las pruebas (versionados, nombre con fecha y hora)
     └── test/               ← pruebas unitarias (opcional)
 ```
 
@@ -89,7 +92,9 @@ $PIO run -t upload -t monitor       # flashear y abrir el monitor
   echo 'ATTRS{idVendor}=="303a", ENV{ID_MM_DEVICE_IGNORE}="1"' | sudo tee /etc/udev/rules.d/99-esp32-mm-ignore.rules
   sudo udevadm control --reload-rules && sudo udevadm trigger
   ```
-- Si el upload no conecta, entrar en modo bootloader: mantener **BOOT**, pulsar **RST** y soltar **BOOT**. Después de flashear, pulsar **RST** otra vez.
+- Si el upload no conecta, entrar en modo bootloader: mantener **BOOT**, pulsar **RST** y soltar **BOOT**. Después de flashear, pulsar **RST** otra vez. (En la DevKit de la ESP32-WROOM-32D el reset se llama **EN**; el puerto es `/dev/ttyUSB0`.)
+- **Motores:** el firmware no fija el driver hasta arrancar, y sin pull-down en los EN/ENA el puente flota durante el flasheo y el reset. **Apagar la fuente del motor (12 V) antes de flashear o pulsar RST/EN.** Abrir el puerto con pyserial o el monitor no reinicia ninguna de las dos placas.
+- **Scripts de los motores** (`tools/graficar.py`, `tools/rampa.py`): cerrar antes el monitor de PlatformIO (el puerto no se puede abrir dos veces). Con `--archivo` vuelven a graficar un CSV guardado sin tocar la placa.
 
 ### Proyectos micro-ROS (ROS 2 Jazzy)
 
