@@ -84,6 +84,7 @@ def abrir_puerto(puerto):
                     ser.reset_input_buffer()
                     return ser
     except BaseException:
+        frenar(ser)  # por si el motor ya estaba girando en modo manual
         ser.close()
         raise
     ser.close()
@@ -100,6 +101,28 @@ def leer_linea(ser):
 def enviar(ser, comando):
     ser.write((comando + "\n").encode())
     ser.flush()
+
+
+class PruebaCortada(RuntimeError):
+    """La prueba terminó antes de tiempo (atasco, Ctrl+C); lleva las filas recibidas hasta ese momento."""
+
+    def __init__(self, motivo, filas):
+        super().__init__(motivo)
+        self.filas = filas
+
+
+def frenar(ser):
+    """Manda 'x' (freno inmediato) y espera hasta 1 s la confirmación del firmware."""
+    try:
+        enviar(ser, "x")
+        fin = time.time() + 1.0
+        while time.time() < fin:
+            linea = leer_linea(ser)
+            if linea and linea.startswith(">> Parado ("):
+                return True
+    except Exception:  # puerto caído: no hay nada más que hacer desde acá
+        pass
+    return False
 
 
 def esperar_quieto(ser):
@@ -132,7 +155,7 @@ def ejecutar(ser, comando, es_fila, fin_ok, timeout_s, mostrar_filas=True):
             if any(linea.startswith(e) for e in ERRORES):
                 raise RuntimeError(linea)
             if linea.startswith(">> Parado ("):
-                raise RuntimeError(f"La prueba se cortó: {linea}")
+                raise PruebaCortada(f"La prueba se cortó: {linea}", filas)
             if m:
                 filas.append(m)
             elif fin_ok in linea:
@@ -142,15 +165,26 @@ def ejecutar(ser, comando, es_fila, fin_ok, timeout_s, mostrar_filas=True):
             if not terminado:
                 raise RuntimeError(f"Tiempo agotado ({timeout_s} s) esperando '{fin_ok}'")
     except KeyboardInterrupt:
-        enviar(ser, "x")
+        frenar(ser)
         print("\nInterrumpido: se mandó 'x' (freno).")
-        sys.exit(1)
+        raise PruebaCortada("interrumpida con Ctrl+C", filas)
     return filas, extra
 
 
-def guardar_csv(nombre, encabezado, filas):
+def medir_con_corte(ejecutar_prueba, guardar, minimo):
+    """Ejecuta la prueba; si se corta con al menos 'minimo' filas, guarda lo recibido como *_cortado."""
+    try:
+        return guardar(ejecutar_prueba(), "")
+    except PruebaCortada as e:
+        if len(e.filas) < minimo:
+            raise
+        print(f"\nAviso: {e}. Se guardan y grafican las {len(e.filas)} muestras recibidas.")
+        return guardar(e.filas, "_cortado")
+
+
+def guardar_csv(nombre, encabezado, filas, sufijo=""):
     DIR_RESULTADOS.mkdir(exist_ok=True)
-    ruta = DIR_RESULTADOS / f"{nombre}_{datetime.now():%Y%m%d_%H%M%S}.csv"
+    ruta = DIR_RESULTADOS / f"{nombre}_{datetime.now():%Y%m%d_%H%M%S}{sufijo}.csv"
     with open(ruta, "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(encabezado)
@@ -175,10 +209,15 @@ def medir_barrido(ser):
 
     # ~10 pasos por sentido de ~3,2 s más pausas: alrededor de 75 s
     print("Barrido en curso (~75 s). Ctrl+C para frenar.\n")
-    filas, _ = ejecutar(ser, "a", fila, ">> Fin del barrido.", timeout_s=200)
-    if not filas:
-        raise RuntimeError("No llegó ninguna fila del barrido")
-    return guardar_csv("barrido", ["duty_pct", "rpm_motor", "rpm_salida", "cuentas_s"], filas)
+
+    def prueba():
+        filas, _ = ejecutar(ser, "a", fila, ">> Fin del barrido.", timeout_s=200)
+        if not filas:
+            raise RuntimeError("No llegó ninguna fila del barrido")
+        return filas
+
+    return medir_con_corte(prueba, lambda filas, suf: guardar_csv(
+        "barrido", ["duty_pct", "rpm_motor", "rpm_salida", "cuentas_s"], filas, suf), minimo=2)
 
 
 def graficar_barrido(ruta, mostrar):
@@ -228,10 +267,15 @@ def medir_escalon(ser, pct):
     print("Parando el motor antes del escalón...")
     esperar_quieto(ser)
     print(f"Escalón a {pct:g} % (3 s). Ctrl+C para frenar.\n")
-    filas, _ = ejecutar(ser, f"e{pct:g}", fila, ">> Fin del escalón", timeout_s=15)
-    if len(filas) < 10:
-        raise RuntimeError("Llegaron muy pocas muestras del escalón")
-    return guardar_csv(f"escalon{pct:g}", ["t_ms", "duty_pct", "cuentas", "rpm_motor", "rpm_salida"], filas)
+
+    def prueba():
+        filas, _ = ejecutar(ser, f"e{pct:g}", fila, ">> Fin del escalón", timeout_s=15)
+        if len(filas) < 10:
+            raise RuntimeError("Llegaron muy pocas muestras del escalón")
+        return filas
+
+    return medir_con_corte(prueba, lambda filas, suf: guardar_csv(
+        f"escalon{pct:g}", ["t_ms", "duty_pct", "cuentas", "rpm_motor", "rpm_salida"], filas, suf), minimo=10)
 
 
 def graficar_escalon(ruta, mostrar):
@@ -297,18 +341,25 @@ def medir_perfil(ser, segundos, niveles):
     print("Parando el motor antes del perfil...")
     esperar_quieto(ser)
     print(f"Perfil en curso (~{duracion:.0f} s). Ctrl+C para frenar.\n")
-    filas, _ = ejecutar(ser, comando, fila, ">> Fin del perfil.", timeout_s=duracion + 30, mostrar_filas=False)
-    if len(filas) < 50:
-        raise RuntimeError("Llegaron muy pocas muestras del perfil")
-    DIR_RESULTADOS.mkdir(exist_ok=True)
-    ruta = DIR_RESULTADOS / f"perfil_{datetime.now():%Y%m%d_%H%M%S}.csv"
-    with open(ruta, "w", newline="") as f:
-        f.write(f"# cuentas_por_vuelta_motor={meta['cpr']:g} reduccion={meta['red']:g}\n")
-        w = csv.writer(f)
-        w.writerow(["t_ms", "duty_pct", "cuentas"])
-        w.writerows([[int(r[0]), f"{r[1]:.1f}", int(r[2])] for r in filas])
-    print(f"\nDatos guardados en {ruta} ({len(filas)} muestras)")
-    return ruta
+
+    def prueba():
+        filas, _ = ejecutar(ser, comando, fila, ">> Fin del perfil.", timeout_s=duracion + 30, mostrar_filas=False)
+        if len(filas) < 50:
+            raise RuntimeError("Llegaron muy pocas muestras del perfil")
+        return filas
+
+    def guardar(filas, sufijo):
+        DIR_RESULTADOS.mkdir(exist_ok=True)
+        ruta = DIR_RESULTADOS / f"perfil_{datetime.now():%Y%m%d_%H%M%S}{sufijo}.csv"
+        with open(ruta, "w", newline="") as f:
+            f.write(f"# cuentas_por_vuelta_motor={meta['cpr']:g} reduccion={meta['red']:g}\n")
+            w = csv.writer(f)
+            w.writerow(["t_ms", "duty_pct", "cuentas"])
+            w.writerows([[int(r[0]), f"{r[1]:.1f}", int(r[2])] for r in filas])
+        print(f"\nDatos guardados en {ruta} ({len(filas)} muestras)")
+        return ruta
+
+    return medir_con_corte(prueba, guardar, minimo=50)
 
 
 def leer_perfil(ruta):
@@ -374,17 +425,34 @@ def graficar_perfil(ruta, mostrar, alpha):
     for dty, i0, i1 in tramos:
         ts = t[i0:i1] - t[i0]
         vs = v[i0:i1]
-        v_reg = vs[int(len(vs) * 0.6):].mean()  # régimen: último 40 % del tramo
+        cola = vs[int(len(vs) * 0.6):]  # régimen: último 40 % del tramo
+        v_reg = cola.mean()
+        # Variación del régimen, con un promedio de 100 ms para no contar la cuantización del encoder
+        cola_suave = np.convolve(cola, np.ones(10) / 10, mode="valid") if len(cola) > 10 else cola
+        variacion = cola_suave.std() / abs(v_reg) if v_reg else np.inf
         v0, vfit, tau = ajustar_primer_orden(ts, vs)
-        filas_param.append([dty, v_reg, v_reg * a_rpm, tau * 1000, v0])
+        filas_param.append([dty, v_reg, v_reg * a_rpm, tau * 1000, v0, variacion, ts[-1]])
+
+    # Un nivel es válido para el modelo si el motor gira (más del 5 % de la velocidad máxima), de forma
+    # estable (variación del régimen < 20 %: descarta el avance a tirones de la fricción estática) y
+    # el ajuste dio un tau razonable (menos de un tercio del tramo). Si no, tau no se informa.
+    v_max = max(abs(f[1]) for f in filas_param) if filas_param else 0.0
+    for f in filas_param:
+        valido = (abs(f[1]) > 0.05 * v_max and f[5] < 0.2 and np.isfinite(f[3]) and f[3] / 1000 < f[6] / 3)
+        if not valido:
+            f[3] = float("nan")
+        f.append(valido)
 
     print(f"\nParámetros por nivel (cuentas por vuelta del motor {cpr:g}, reducción {red:g}:1):")
-    print("   duty %  | vel. régimen (pulsos/s) | rpm salida | tau (ms)")
-    for dty, v_reg, rpm, tau_ms, _ in filas_param:
-        print(f"   {dty:+6.1f}  | {v_reg:+23.0f} | {rpm:+10.1f} | {tau_ms:8.0f}")
+    print("   duty %  | vel. régimen (pulsos/s) | rpm salida | tau (ms) | variación")
+    for dty, v_reg, rpm, tau_ms, _, variacion, _, valido in filas_param:
+        tau_txt = f"{tau_ms:8.0f}" if valido else "       —"
+        nota = "" if valido else "  (sin giro estable: fuera del modelo)"
+        print(f"   {dty:+6.1f}  | {v_reg:+23.0f} | {rpm:+10.1f} | {tau_txt} | {100 * variacion:6.1f} %{nota}")
 
     # Ajuste lineal velocidad de régimen vs duty, por sentido: ganancia y zona muerta
-    P = np.array(filas_param)
+    P = np.array([f[:5] for f in filas_param], dtype=float)
+    validos = np.array([f[-1] for f in filas_param], dtype=bool)
     modelo_txt = []
     ajustes = {}
     for signo, nombre in ((1, "adelante"), (-1, "atrás")):
@@ -392,7 +460,7 @@ def graficar_perfil(ruta, mostrar, alpha):
         if sel.sum() == 0:
             continue
         x, y = np.abs(P[sel, 0]), np.abs(P[sel, 2])
-        gira = y > 0.05 * max(y.max(), 1e-9)
+        gira = validos[sel]
         taus = P[sel, 3][gira]
         tau_med = np.nanmedian(taus) if len(taus) else float("nan")
         if gira.sum() >= 2:
@@ -405,7 +473,7 @@ def graficar_perfil(ruta, mostrar, alpha):
             modelo_txt.append(f"  {nombre:8s}: el motor casi no giró")
     print("\nModelo de primer orden (velocidad de salida por encima de la zona muerta):")
     print("\n".join(modelo_txt))
-    tau_global = np.nanmedian(P[:, 3])
+    tau_global = np.nanmedian(P[validos, 3]) if validos.any() else float("nan")
     if 1 in ajustes:
         k = ajustes[1][0]
         print(f"\n  G(s) = K / (tau*s + 1) = {k:.3f} / ({tau_global / 1000:.3f} s + 1)  [rpm de salida por % de duty]")
@@ -413,8 +481,9 @@ def graficar_perfil(ruta, mostrar, alpha):
     param_csv = ruta.with_name(ruta.stem + "_parametros.csv")
     with open(param_csv, "w", newline="") as f:
         w = csv.writer(f)
-        w.writerow(["duty_pct", "vel_regimen_pulsos_s", "rpm_salida", "tau_ms", "v_inicial_pulsos_s"])
-        w.writerows([[f"{x:.4g}" for x in fila] for fila in filas_param])
+        w.writerow(["duty_pct", "vel_regimen_pulsos_s", "rpm_salida", "tau_ms", "v_inicial_pulsos_s",
+                    "variacion_regimen", "valido"])
+        w.writerows([[f"{x:.4g}" for x in fila[:6]] + [int(fila[-1])] for fila in filas_param])
     print(f"Parámetros guardados en {param_csv}")
 
     # Figura 1: los cuatro gráficos
@@ -511,6 +580,8 @@ def main():
             sys.exit(f"No se pudo abrir {puerto}: {e}\n¿Está abierto el monitor de PlatformIO? Cerrarlo antes.")
         except RuntimeError as e:
             sys.exit(f"ERROR en {puerto}: {e}")
+        except KeyboardInterrupt:
+            sys.exit("\nInterrumpido durante la conexión: se mandó 'x' (freno).")
         try:
             if a.prueba == "barrido":
                 ruta = medir_barrido(ser)
@@ -518,8 +589,11 @@ def main():
                 ruta = medir_escalon(ser, a.pct)
             else:
                 ruta = medir_perfil(ser, a.segundos, a.niveles)
+        except KeyboardInterrupt:  # por ejemplo, durante la espera antes de la prueba
+            frenar(ser)
+            sys.exit("\nInterrumpido: se mandó 'x' (freno).")
         except RuntimeError as e:
-            enviar(ser, "x")
+            frenar(ser)
             sys.exit(f"\nERROR: {e}")
         finally:
             ser.close()

@@ -53,7 +53,8 @@ Con x4 (flancos de A y B) son **4000 cuentas por vuelta de salida**. A 160 rpm s
 ### Fuente y corriente
 
 - **Límite de corriente de la fuente: 2 A.** Es lo máximo del L298N por canal. El motor consume 0,08–0,3 A sin carga, pero **trabado** puede pedir más de 2 A (potencia máxima 28,8 W a 12 V ≈ 2,4 A).
-- **El L298N pierde ~2 V:** usa transistores bipolares, así que con 12 V el motor recibe ~10 V y gira **algo menos de 160 rpm** a 100 %. Además se calienta: tocar el disipador después de las pruebas largas.
+- **El L298N pierde tensión:** usa transistores bipolares (dos en serie por cada camino de corriente). Pierde ~1,8–2,5 V con poca corriente, ~3 V a 1 A y hasta **~4,9 V a 2 A**, y esa tensión se vuelve calor (casi 10 W a 2 A). **Medido: 9,6 V en el motor a 100 % con 12 V de fuente.** Tocar el disipador después de pruebas largas o con carga.
+- **La corriente de frenado no pasa por la fuente:** al frenar, el motor se descarga a través del puente, así que el límite de 2 A de la fuente no la acota. Sin carga es chica; con cargas grandes, frenar desde alta velocidad exige más al L298N.
 - **El sin fin es autobloqueante:** la salida no se puede girar a mano, y el motor frena solo al cortar la tensión. Para probar el encoder con `n`, girá el eje **del encoder** con la mano antes de acoplarlo.
 - **Mucho par** (100 kg·cm): fijar el motor y no poner la mano en la salida.
 
@@ -89,15 +90,26 @@ Es el mismo análisis de 06 (ver su README): barrido duty–rpm con la zona muer
 - **Puerto automático:** busca el CH340, CH9102 o CP210x. Si no lo encuentra, usar `--puerto /dev/ttyUSB0`.
 - **Sincronización al abrir:** el CH340 mueve DTR/RTS y el ESP32 puede reiniciarse al abrir el puerto. El script manda `?` hasta que el firmware contesta la ayuda, y recién ahí manda la prueba. También descarta cualquier resto de texto que haya quedado en la línea del firmware.
 - **Velocidad en rpm de salida:** con 4000 cuentas por vuelta, en las tablas las columnas "rpm motor" y "rpm salida" coinciden (`REDUCCION = 1`).
+- **Si la prueba se corta** (por atasco o con Ctrl+C), frena y **guarda lo medido** como `*_cortado.csv`, y lo grafica igual.
+- **Ctrl+C en cualquier momento** (al conectar, al esperar que el motor pare o durante la prueba) manda `x` y espera la confirmación del freno.
+- **Perfil:** τ y el modelo usan solo los niveles con **giro estable** (más del 5 % de la velocidad máxima y variación del régimen menor al 20 %). Por ejemplo, el avance a tirones del sin fin con 20 % queda fuera, marcado con "—".
 
 ## Firmware
 
 - `src/main.cpp` adapta el de 06: mismo modo manual con rampa, barrido, escalón, perfil y protecciones (no invierte sin el motor quieto, corte por atasco, comandos bloqueados si falla la inicialización). Los umbrales están en **rpm de salida** (`include/motor_config.h`): quieto con menos de 1 rpm; atasco con duty ≥ 50 % y menos de 5 rpm durante 1 s.
-- `lib/L298N`: la misma interfaz que `lib/BTS7960` (`setDuty`, `brake`, `coast`). El PWM va por **ENA a 1 kHz**, y en la parte apagada del ciclo el motor queda en rueda libre. El sentido lo dan IN1/IN2. Duty 0 es freno (IN1 = IN2 = 0 con ENA en alto). El L298N conmuta lento: a más frecuencia pierde linealidad; a 1 kHz se escucha un zumbido.
+- `lib/L298N`: la misma interfaz que `lib/BTS7960` (`setDuty`, `brake`, `coast`), con dos formas de aplicar el PWM (`PWM_MODO` en `include/motor_config.h`):
+  - **`Freno` (por defecto):** ENA fijo en alto (GPIO25) y el PWM en **IN1** (adelante) o **IN2** (atrás). En la parte apagada del ciclo el motor queda **frenado**, así que la velocidad es casi proporcional al duty, como con el BTS7960.
+  - **`RuedaLibre`:** el PWM en ENA e IN1/IN2 fijos. En la parte apagada, rueda libre. **Medido (2026-09-25): curva saturada**: 40 % ya da 86 rpm (el 60 % de la máxima), así que la zona muerta y la K del ajuste lineal no tienen sentido.
+  - El cableado es el mismo en los dos modos. Duty 0 es freno (IN1 = IN2 = 0 con ENA en alto) y `coast()` pone ENA en bajo.
+  - Un pin que deja de tener PWM se desconecta del LEDC y queda en bajo en el acto: sin pulsos al salir del freno ni al cambiar de sentido.
+  - PWM a 1 kHz: el L298N conmuta lento y a más frecuencia pierde linealidad; se escucha un zumbido.
 - El encoder usa `lib/EncoderPCNT` de 06 (enlazado), que funciona igual en el ESP32 clásico.
 
 ## Resultados
 
 | Fecha | Prueba | Resultado | Observaciones |
 |-------|--------|-----------|---------------|
-| | | | |
+| 2026-09-25 | Encoder | Cuenta bien, pero **al revés** con este acople (+30 % daba −32 rpm) | `ENCODER_INVERTIDO = true` |
+| 2026-09-25 | Abrir el puerto (pyserial, como `graficar.py`) | **No reinicia** el ESP32 (probado dos veces) | El driver flota solo al flashear o al pulsar EN: en esos casos, 12 V apagados (sin pull-down en ENA) |
+| 2026-09-25 | Tensión en el motor a 100 % | **9,6 V** con 12 V de fuente | Pérdida del L298N (~2,4 V) |
+| 2026-09-25 | Perfil, modo `RuedaLibre` (PWM en ENA) | 20 % → 14 rpm (a tirones), 40 % → 86, 60 % → 114, 80 % → 130, 100 % → **141 rpm**; atrás casi igual. τ ≈ 40–110 ms en los niveles de 60 a 100 % | Curva **saturada**: el ajuste lineal da una zona muerta negativa. La velocidad ondula en todos los niveles (¿acople descentrado?). `resultados/perfil_20260925_214520.*` |

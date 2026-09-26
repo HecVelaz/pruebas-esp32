@@ -2,6 +2,8 @@
 
 #include <stdint.h>
 
+#include "L298N.h"
+
 // Motor 5840-31ZY (ZENG WHCD): reductor de tornillo sin fin, 12 V, 160 rpm en la salida.
 // Encoder EXTERNO acoplado al eje de SALIDA: 38S6G5-B-G24N, 1000 PPR, fases A/B, NPN colector abierto, 5-24 V.
 // Como el encoder mide directamente la salida, las rpm "del motor" que imprime el programa son las de salida:
@@ -11,10 +13,18 @@ constexpr float REDUCCION = 1.0f;
 constexpr float ENCODER_PPR = 1000.0f;  // pulsos por vuelta, por fase
 constexpr float ENCODER_X = 4.0f;       // flancos de A y B: 4000 cuentas por vuelta de salida
 // Si con duty positivo las rpm salen negativas, poner true (o cruzar blanco y verde).
-constexpr bool ENCODER_INVERTIDO = false;
+// Medido 2026-09-25 con el acople actual: +30 % daba -32 rpm -> invertido.
+constexpr bool ENCODER_INVERTIDO = true;
 
-// PWM del L298N por ENA. El L298N es bipolar y conmuta lento: a frecuencias altas pierde linealidad
-// en los extremos. 1 kHz es lineal (se escucha un zumbido); probar 5-10 kHz si molesta el ruido.
+// Forma de aplicar el PWM (ver lib/L298N/L298N.h):
+//   Freno: PWM en IN1/IN2 con ENA fijo; en la parte apagada el motor queda frenado. Velocidad casi
+//          proporcional al duty (por defecto).
+//   RuedaLibre: PWM en ENA; en la parte apagada, rueda libre. Medido 2026-09-25: curva saturada
+//          (40 % -> 86 rpm, 100 % -> 141 rpm) y zona muerta mal definida.
+constexpr L298N::Modo PWM_MODO = L298N::Modo::Freno;
+
+// El L298N es bipolar y conmuta lento: a frecuencias altas pierde linealidad en los extremos.
+// 1 kHz es lineal (se escucha un zumbido); probar 5-10 kHz si molesta el ruido.
 constexpr uint32_t PWM_FREQ_HZ = 1000;
 constexpr uint8_t PWM_BITS = 10;  // 0..1023
 

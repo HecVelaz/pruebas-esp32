@@ -11,7 +11,8 @@
 #include "motor_config.h"
 #include "pins.h"
 
-constexpr uint8_t LEDC_CH = 0;
+constexpr uint8_t LEDC_CH_A = 0;  // IN1 (modo freno) o ENA (modo rueda libre)
+constexpr uint8_t LEDC_CH_B = 1;  // IN2 (modo freno)
 
 constexpr uint32_t TICK_US = 10000;          // periodo de la rampa, las protecciones y el CSV del escalón (10 ms)
 constexpr uint32_t TELEMETRIA_TICKS = 20;    // telemetría cada 200 ms
@@ -421,8 +422,9 @@ void revisarAtasco() {
   }
   if (ahora - atascoDesdeMs >= ATASCO_MS) {
     atascoDesdeMs = 0;
+    const float dutyAlCortar = dutyAct;  // pararYa() lo pone en 0
     pararYa("ATASCO");
-    Serial.printf("   Duty %.0f %% pero %.1f rpm de salida en ese sentido durante %lu ms.\n", dutyAct,
+    Serial.printf("   Duty %.0f %% pero %.1f rpm de salida en ese sentido durante %lu ms.\n", dutyAlCortar,
                   rpmEnSentido, (unsigned long)ATASCO_MS);
     Serial.println("   Revisar: eje trabado, encoder desconectado, o rpm negativas (ENCODER_INVERTIDO).");
   }
@@ -583,7 +585,8 @@ void pasoContar() {
 void setup() {
   // Driver primero y deshabilitado, antes de cualquier espera: hasta acá ENA flota
   // (por eso el README recomienda un pull-down de 10 kΩ en ENA)
-  const bool okDriver = driver.begin(PIN_ENA, PIN_IN1, PIN_IN2, LEDC_CH, PWM_FREQ_HZ, PWM_BITS);
+  const bool okDriver =
+      driver.begin(PIN_ENA, PIN_IN1, PIN_IN2, LEDC_CH_A, LEDC_CH_B, PWM_MODO, PWM_FREQ_HZ, PWM_BITS);
   driver.coast();
   const bool okEnc = enc.begin(PIN_ENC_A, PIN_ENC_B);
   hwOk = okDriver && okEnc;
@@ -593,8 +596,9 @@ void setup() {
 
   Serial.println();
   Serial.println("== Prueba en lazo abierto: motor 5840-31ZY + L298N (ESP32-WROOM-32D) ==");
-  Serial.printf("L298N: ENA=GPIO%d (PWM), IN1=GPIO%d, IN2=GPIO%d | PWM %lu Hz, %u bits\n", PIN_ENA, PIN_IN1, PIN_IN2,
-                (unsigned long)PWM_FREQ_HZ, PWM_BITS);
+  Serial.printf("L298N: ENA=GPIO%d, IN1=GPIO%d, IN2=GPIO%d | PWM %lu Hz, %u bits, %s\n", PIN_ENA, PIN_IN1, PIN_IN2,
+                (unsigned long)PWM_FREQ_HZ, PWM_BITS,
+                PWM_MODO == L298N::Modo::Freno ? "PWM en IN1/IN2 con freno (ENA fijo)" : "PWM en ENA con rueda libre");
   Serial.printf("Encoder externo en la salida: A=GPIO%d, B=GPIO%d | %.0f PPR x%.0f = %.0f cuentas por vuelta\n",
                 PIN_ENC_A, PIN_ENC_B, ENCODER_PPR, ENCODER_X, CUENTAS_POR_VUELTA);
   Serial.printf("Límites: duty máx %.0f %%, rampa %.0f %%/s\n", DUTY_MAX_PCT, RAMPA_PCT_S);
