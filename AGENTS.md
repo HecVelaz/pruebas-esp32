@@ -3,7 +3,7 @@
 ## Contexto
 
 - **Placa:** Freenove ESP32-S3-WROOM **N16R8** (16 MB flash QIO, 8 MB PSRAM octal) sobre breakout Freenove v1.2
-- **Segunda placa (`08-motor-5840-l298n` y `09-brazo-control`):** ESP32-WROOM-32D (ESP32 clásico, 4 MB) en una DevKit con USB-serie **CH340** (`1a86:7523`, `/dev/ttyUSB0`). Botones **BOOT** y **EN** (reset). GPIO a evitar: 6–11 (flash), 0/2/5/12/15 (strapping), 1/3 (UART0 = USB), 34–39 (solo entrada, sin pull-up).
+- **Segunda placa (solo `08-motor-5840-l298n`):** ESP32-WROOM-32D (ESP32 clásico, 4 MB) en una DevKit con USB-serie **CH340** (`1a86:7523`, `/dev/ttyUSB0`). Botones **BOOT** y **EN** (reset). GPIO a evitar: 6–11 (flash), 0/2/5/12/15 (strapping), 1/3 (UART0 = USB), 34–39 (solo entrada, sin pull-up).
 - **Host:** Ubuntu 24.04
 - **Puerto:** `/dev/ttyACM0` (USB nativo del S3, `303a:1001`; el usuario está en el grupo `dialout`)
 - **Toolchain:** PlatformIO en `~/.platformio/penv/bin/pio` (framework Arduino)
@@ -23,7 +23,10 @@ Probar sensores de a uno, cada uno en su propia carpeta y proyecto PlatformIO in
 | `06-motor-36gp555` | Motor DC 36GP-555 (12 V, 160 rpm, encoder Hall) con driver IBT-2 (BTS7960), lazo abierto |
 | `07-motor-rampa-vueltas` | Mismo motor: rampa de PWM 0 → 100 % que termina a N vueltas de salida, para comparar con y sin carga |
 | `08-motor-5840-l298n` | Motor 5840-31ZY (sin fin, 12 V, 160 rpm) con L298N y encoder externo de 1000 PPR, en una **ESP32-WROOM-32D**, lazo abierto |
-| `09-brazo-control` | Firmware del brazo en la **ESP32-WROOM-32D**: J1 (36GP-555 + IBT-2), J2/J3 (5840-31ZY + L298N) y pinza (2 servos), control en cascada posición → velocidad en lazo cerrado. Pruebas del control en la PC (`pio test -e native`) |
+
+El **firmware del robot** (lo que ya no es una prueba de un componente suelto) vive en el repo
+`~/Documentos/recolector_de_frutas` (`firmware/brazo`, `firmware/lib`, …). El brazo empezó acá como
+`09-brazo-control` y se movió allá el 2026-09-27.
 
 Nombre de carpeta: `NN-<tipo>-<modelo>` en minúsculas (por ejemplo `03-hcsr04`, `04-gps-neo6m`).
 
