@@ -12,6 +12,9 @@ static constexpr float W_MIN_FF = 0.5f;         // rpm
 // Saltos del encoder: más de este múltiplo de lo posible a rpmMax en un paso se descarta
 static constexpr float FACTOR_SALTO = 3.0f;
 static constexpr int SALTOS_PARA_FALLA = 5;
+// detener(): se considera quieto con menos de esto durante QUIETO_TICKS pasos seguidos
+static constexpr float W_QUIETO = 0.5f;  // rpm
+static constexpr int QUIETO_TICKS = 5;
 
 void ControlArticulacion::configurar(const ConfigArticulacion &cfg) {
   cfg_ = cfg;
@@ -45,6 +48,7 @@ bool ControlArticulacion::irA(float qDeg) {
   }
   qObj_ = qDeg;
   modo_ = Modo::Posicion;
+  frenando_ = false;
   enReposo_ = fabsf(qObj_ - q_) < cfg_.tolPos;
   return true;
 }
@@ -70,6 +74,10 @@ void ControlArticulacion::detener() {
   wRefRpm_ = 0.0f;
   integ_ = 0.0f;
   enReposo_ = true;
+  // Con cero: frenar primero y fijar el objetivo recién quieto. Si se fijara ya, la inercia lo pasaría
+  // y el control lo haría volver hacia atrás.
+  frenando_ = conCero_;
+  quietoTicks_ = 0;
   modo_ = conCero_ ? Modo::Posicion : Modo::Libre;
 }
 
@@ -87,8 +95,8 @@ void ControlArticulacion::borrarFalla() {
   detener();
 }
 
-const char *ControlArticulacion::textoFalla() const {
-  switch (falla_) {
+const char *ControlArticulacion::texto(Falla f) {
+  switch (f) {
     case Falla::Atasco: return "atasco";
     case Falla::FueraDeLimites: return "fuera de limites";
     case Falla::Encoder: return "encoder (saltos)";
@@ -137,6 +145,12 @@ float ControlArticulacion::paso(int64_t cuentas, float dt) {
       case Modo::Duty: u = uCmd_; break;
       case Modo::Libre: u = 0.0f; break;
     }
+    // En velocidad y duty (sin lazo de posición), con cero no se deja empujar hacia afuera de los límites
+    const bool manual = modo_ == Modo::Velocidad || modo_ == Modo::Duty;
+    if (manual && conCero_ && ((q_ >= cfg_.qMax && u > 0.0f) || (q_ <= cfg_.qMin && u < 0.0f))) {
+      u = 0.0f;
+      integ_ = 0.0f;
+    }
   }
   u_ = u;
   revisarProtecciones(dt);
@@ -145,6 +159,17 @@ float ControlArticulacion::paso(int64_t cuentas, float dt) {
 }
 
 float ControlArticulacion::pasoPosicion(float dt) {
+  if (frenando_) {
+    quietoTicks_ = fabsf(w_) < W_QUIETO ? quietoTicks_ + 1 : 0;
+    if (quietoTicks_ >= QUIETO_TICKS) {
+      frenando_ = false;
+      qObj_ = q_;
+    }
+    wRefGps_ = 0.0f;
+    wRefRpm_ = 0.0f;
+    integ_ = 0.0f;
+    return 0.0f;
+  }
   const float e = qObj_ - q_;
   // Histéresis: se frena dentro de tolPos y se vuelve a mover recién con el doble de error
   if (enReposo_ && fabsf(e) < 2.0f * cfg_.tolPos) {

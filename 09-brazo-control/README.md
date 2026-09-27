@@ -6,8 +6,8 @@ con el modelo de la Entrega 5) → duty. Corre a 100 Hz en una tarea del núcleo
 monitor serial. Más adelante la capa de comandos se cambia por micro-ROS (`/brazo/joint_cmd`,
 `/brazo/joint_states`, ver `docs/ARQUITECTURA.md` del proyecto), sin tocar el control.
 
-**Estado:** compila y las pruebas del control pasan en la PC (`pio test -e native`, motor simulado). **No
-probado en placa.** Los valores marcados `MEDIR` en `include/brazo_config.h` son estimaciones.
+**Estado:** compila y las 14 pruebas del control pasan en la PC (`pio test -e native`, motor simulado).
+Revisado por Codex (10 hallazgos, aplicados). **No probado en placa.** Los valores marcados `MEDIR` en `include/brazo_config.h` son estimaciones.
 
 ## Estructura
 
@@ -17,7 +17,7 @@ probado en placa.** Los valores marcados `MEDIR` en `include/brazo_config.h` son
 | `include/brazo_config.h` | Parámetros por articulación (encoder, transmisión, límites de la E4, modelo y PI de la E5), pose de cero, servos |
 | `include/pins.h` | Pines (usa los 15 GPIO de uso general de la placa) |
 | `src/main.cpp` | Drivers, tarea de control, comandos serie, homing, watchdog, CSV |
-| `test/test_control/` | 10 pruebas con el modelo de la E5 simulado |
+| `test/test_control/` | 14 pruebas con el modelo de la E5 simulado |
 
 Drivers reutilizados por `symlink://`: `BTS7960` y `EncoderPCNT` (06), `L298N` (08).
 
@@ -50,7 +50,7 @@ $PIO run -t upload -t monitor     # flashear (12 V apagados) y abrir el monitor
 
 Secuencia de primera prueba (una articulación a la vez, con la fuente limitada a 2–3 A):
 
-1. `d 2 40` repetido: mover J2 en lazo abierto y ver con `e` que `w` tenga el **mismo signo** que el duty. Si no,
+1. `d 2 45` repetido: mover J2 en lazo abierto y ver con `e` que `w` tenga el **mismo signo** que el duty. Si no,
    cambiar `ENC_INVERTIDO` en `brazo_config.h`.
 2. `v 2 30 3`: lazo de velocidad solo (sirve para la **E6**). Con `log 2` antes, se obtiene el CSV de la respuesta.
 3. Llevar el brazo a la pose de referencia con `d`, y `z` para fijar el cero.
@@ -61,12 +61,21 @@ Secuencia de primera prueba (una articulación a la vez, con la fuente limitada 
 ## Protecciones
 
 - Sin cero, las articulaciones no aceptan movimientos en posición.
-- Objetivos recortados a los límites de la E4. Fuera de los límites + 5° → falla y freno.
+- Objetivos recortados a los límites de la E4. En `d` y `v`, con cero, no empuja hacia afuera del límite.
+  Fuera de los límites + 5° → falla y freno.
 - Atasco (duty alto sin avanzar en el sentido pedido) → falla y freno.
 - Lecturas imposibles del encoder (por ejemplo el salto falso de 32 000 cuentas pendiente en `EncoderPCNT`) se
-  descartan; 5 seguidas → falla.
-- `d` se corta a los 500 ms si no se repite; `v` a los segundos pedidos.
-- Watchdog opcional (`wd <ms>`): sin comandos, todo se detiene y sostiene. Para cuando mande la Pi.
+  descartan; 5 seguidas → falla. El cero (`z`) usa la última lectura validada.
+- `s`, el fin de `d`/`v` y el watchdog **frenan hasta que el eje queda quieto** y recién ahí sostienen esa
+  posición: no vuelven hacia atrás por la inercia.
+- Límites de puesta en marcha: `d` hasta 25 % (J1) / 45 % (J2, J3) y se corta a los 300 ms si no se repite; `v`
+  hasta 30 rpm y 5 s. Subirlos recién con la relación de transmisión medida (`brazo_config.h`).
+- Homing de a una articulación: rechaza un final de carrera ya apretado, pide 3 lecturas seguidas, corta por
+  recorrido máximo (rango + 10°) o por tiempo, y se cancela si aparece una falla.
+- Un comando nuevo cancela lo pendiente de esa articulación (homing, `d`, `v`).
+- Watchdog de comandos opcional (`wd <ms>`, solo lo alimentan comandos aceptados). Para cuando mande la Pi.
+- Watchdog de tareas del ESP32 (1 s): si la tarea de control se cuelga, la placa se reinicia.
+- Los servos no reciben pulsos hasta el primer `pinza`/`giro`.
 - J2 y J3 son de sin fin: con duty 0 (freno) el brazo queda sostenido sin corriente.
 
 ## Pendiente (MEDIR / hacer)
@@ -83,7 +92,7 @@ Secuencia de primera prueba (una articulación a la vez, con la fuente limitada 
 
 | Fecha | Prueba | Resultado |
 |---|---|---|
-| 2026-09-27 | `pio test -e native` (10 pruebas, motor simulado con el modelo de la E5) | OK |
+| 2026-09-27 | `pio test -e native` (14 pruebas, motor simulado con el modelo de la E5) | OK |
 | | Signo de encoders J1/J3 | — |
 | | Lazo de velocidad J1/J2 en placa | — |
 | | Movimiento en posición con carga | — |

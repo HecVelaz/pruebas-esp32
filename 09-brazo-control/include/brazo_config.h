@@ -66,6 +66,10 @@ constexpr float POSE_CERO[N_ART] = {0.0f, 90.0f, 0.0f};
 constexpr float HOME_RPM[N_ART] = {-10.0f, -10.0f, -10.0f};
 constexpr float HOME_Q[N_ART] = {-75.0f, -25.0f, -50.0f};  // MEDIR con la mecánica
 constexpr float HOME_TIMEOUT_S = 15.0f;
+// Recorrido máximo del homing: el rango de la articulación más este margen [°]. Corta aunque no venza el tiempo.
+constexpr float HOME_MARGEN_DEG = 10.0f;
+// El final de carrera cuenta como tocado recién con esta cantidad de lecturas seguidas en bajo (10 ms c/u)
+constexpr int HOME_FC_LECTURAS = 3;
 
 // PWM
 constexpr uint32_t PWM_BTS_HZ = 20000;  // IBT-2 (como en 06)
@@ -81,7 +85,13 @@ constexpr float GIRO_US_CENTRO = 1500.0f;
 constexpr float GIRO_US_POR_GRADO = 1000.0f / 90.0f;  // servo típico de 180°: 500-2500 µs
 constexpr float GIRO_MAX_DEG = 90.0f;
 
-// Seguridad
-constexpr uint32_t JOG_MS = 500;       // el comando d (lazo abierto) se corta solo si no se repite
-constexpr float JOG_DUTY_MAX = 60.0f;  // % máximo en lazo abierto manual
-constexpr float VEL_CMD_S_DEF = 3.0f;  // duración por defecto del comando v (modo velocidad)
+// Seguridad. Valores de PUESTA EN MARCHA: subirlos recién con la relación de transmisión medida.
+constexpr uint32_t JOG_MS = 300;  // el comando d (lazo abierto) se corta solo si no se repite
+// % máximo en lazo abierto manual. J1: ~25 rpm del motor; J2/J3: apenas por encima de la zona muerta del sin fin
+constexpr float JOG_DUTY_MAX[N_ART] = {25.0f, 45.0f, 45.0f};
+constexpr float VEL_CMD_MAX_RPM = 30.0f;  // |rpm| máximo del comando v (el control admite hasta rpmMax)
+constexpr float VEL_CMD_S_DEF = 2.0f;     // duración por defecto del comando v
+constexpr float VEL_CMD_S_MAX = 5.0f;
+// Si la tarea de control deja de correr este tiempo, el watchdog de tareas del ESP32 reinicia la placa
+// (al reiniciar, los EN quedan en bajo por los pull-down: puentes deshabilitados)
+constexpr uint32_t TWDT_S = 1;

@@ -116,13 +116,75 @@ void test_saltos_seguidos_son_falla() {
 }
 
 void test_fuera_de_limites() {
+  // Con cero, una lectura fuera de [qMin - margen, qMax + margen] es falla (por ejemplo, un cero mal fijado)
+  ControlArticulacion k;
+  k.configurar(CFG_ART[2]);
+  k.fijarCero(0, 45.0f);
+  const float cuentasPorGrado = 1.0f / k.gradosPorCuenta();
+  for (int n = 1; n <= 20; n++) k.paso((int64_t)(n * 1.0f * cuentasPorGrado), TS);  // +20° en 0,2 s
+  TEST_ASSERT_EQUAL(ControlArticulacion::Falla::FueraDeLimites, k.falla());
+  TEST_ASSERT_EQUAL_FLOAT(0.0f, k.u());
+}
+
+void test_manual_no_empuja_afuera_del_limite() {
+  // En duty y velocidad (sin lazo de posición), con cero, al llegar al límite se corta en ese sentido
   ControlArticulacion k;
   k.configurar(CFG_ART[2]);
   MotorSim m = simDe(2);
   k.fijarCero(m.leer(), 45.0f);
-  TEST_ASSERT_TRUE(k.duty(60.0f));  // lazo abierto hacia afuera del límite de +50°
-  correr(k, m, 2.0f);
-  TEST_ASSERT_EQUAL(ControlArticulacion::Falla::FueraDeLimites, k.falla());
+  TEST_ASSERT_TRUE(k.duty(45.0f));
+  correr(k, m, 3.0f);
+  TEST_ASSERT_EQUAL(ControlArticulacion::Falla::Ninguna, k.falla());
+  TEST_ASSERT_EQUAL_FLOAT(0.0f, k.u());
+  TEST_ASSERT_TRUE(k.q() < CFG_ART[2].qMax + CFG_ART[2].margenLim);
+  TEST_ASSERT_TRUE(k.duty(-45.0f));  // hacia adentro sí
+  correr(k, m, 0.5f);
+  TEST_ASSERT_TRUE(k.q() < CFG_ART[2].qMax);
+}
+
+void test_detener_no_vuelve_atras() {
+  // Frenar en pleno movimiento: duty 0 hasta quedar quieto y recién ahí sostener, sin retroceder
+  ControlArticulacion k;
+  k.configurar(CFG_ART[0]);
+  MotorSim m = simDe(0);
+  k.fijarCero(m.leer(), -60.0f);
+  k.irA(60.0f);
+  correr(k, m, 1.5f);  // a velocidad máxima
+  TEST_ASSERT_TRUE(fabsf(k.w()) > 3.0f);
+  k.detener();
+  const float qAlDetener = k.q();
+  float uMin = 0.0f;
+  for (int n = 0; n < 300; n++) {
+    const float u = k.paso(m.leer(), TS);
+    uMin = fminf(uMin, u);
+    m.paso(u, TS);
+  }
+  TEST_ASSERT_EQUAL_FLOAT(0.0f, uMin);  // nunca empujó hacia atrás
+  TEST_ASSERT_TRUE(k.q() >= qAlDetener);
+  TEST_ASSERT_FALSE(k.frenando());
+  TEST_ASSERT_TRUE(k.llego());
+}
+
+void test_cero_con_ultima_lectura_validada() {
+  // Si justo al fijar el cero la lectura cruda es un salto falso, fijarCeroUltima usa la anterior buena
+  ControlArticulacion k;
+  k.configurar(CFG_ART[1]);
+  k.paso(1000, TS);
+  k.paso(1000 + 32000, TS);  // salto falso: descartado
+  k.fijarCeroUltima(0.0f);
+  k.paso(1000, TS);
+  TEST_ASSERT_FLOAT_WITHIN(0.01f, 0.0f, k.q());
+  TEST_ASSERT_EQUAL(ControlArticulacion::Falla::Ninguna, k.falla());
+}
+
+void test_quitar_cero_para_homing() {
+  ControlArticulacion k;
+  k.configurar(CFG_ART[0]);
+  k.fijarCero(0, CFG_ART[0].qMin);  // parado justo en el límite
+  k.quitarCero();
+  TEST_ASSERT_TRUE(k.velocidad(-10.0f));
+  const float u = k.paso(0, TS);
+  TEST_ASSERT_TRUE(u < 0.0f);  // sin cero, el límite no frena el homing
 }
 
 void setUp() {}
@@ -140,5 +202,9 @@ int main() {
   RUN_TEST(test_descarta_salto_de_encoder);
   RUN_TEST(test_saltos_seguidos_son_falla);
   RUN_TEST(test_fuera_de_limites);
+  RUN_TEST(test_manual_no_empuja_afuera_del_limite);
+  RUN_TEST(test_detener_no_vuelve_atras);
+  RUN_TEST(test_cero_con_ultima_lectura_validada);
+  RUN_TEST(test_quitar_cero_para_homing);
   return UNITY_END();
 }
