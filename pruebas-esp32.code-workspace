@@ -26,6 +26,9 @@
 		},
 		{
 			"path": "08-motor-5840-l298n"
+		},
+		{
+			"path": "09-brazo-control"
 		}
 	],
 	"settings": {

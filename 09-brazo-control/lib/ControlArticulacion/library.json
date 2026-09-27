@@ -1,0 +1,6 @@
+{
+  "name": "ControlArticulacion",
+  "version": "0.1.0",
+  "description": "Control en cascada (posición P + velocidad PI con feedforward) de una articulación, sin Arduino: se prueba en la PC",
+  "platforms": ["espressif32", "native"]
+}
