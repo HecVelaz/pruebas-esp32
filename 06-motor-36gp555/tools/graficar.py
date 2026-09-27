@@ -41,27 +41,39 @@ ERRORES = (">> ERROR", ">> Comando desconocido", ">> El escalón", ">> Escalón 
 # ---------------------------------------------------------------- serial
 
 def abrir_puerto(puerto):
+    """Abre el puerto y espera a que el firmware responda. Lanza serial.SerialException si no se puede abrir
+    y RuntimeError si el firmware no contesta."""
     import serial  # solo hace falta para medir, no para volver a graficar
 
     # Mismos DTR/RTS que el monitor de PlatformIO: así abrir el puerto no reinicia la S3
     ser = serial.Serial(puerto, BAUD, timeout=0.1)
-    time.sleep(0.3)
-    # Si igual se reinició, esperar a que termine de arrancar
-    inicio = time.time()
-    reinicio = False
-    while time.time() - inicio < 2.5:
-        linea = leer_linea(ser)
-        if linea is None:
-            if not reinicio:
-                break
-            continue
-        if "== Prueba en lazo abierto" in linea:
-            reinicio = True
-            print("Aviso: la placa se reinició al abrir el puerto. Esperando el arranque...")
-        if "ERROR" in linea:
-            print("  " + linea)
-    ser.reset_input_buffer()
-    return ser
+    # Sincronizar pidiendo la ayuda ('?') hasta que llegue. Cubre dos casos:
+    #  - si igual se reinició, hay que esperar el arranque (~2 s);
+    #  - un resto de texto a medias en la línea del firmware: el primer '?' lo descarta (responde
+    #    "Comando desconocido") y el siguiente ya contesta la ayuda.
+    fin = time.time() + 8.0
+    try:
+        while time.time() < fin:
+            enviar(ser, "?")
+            limite = time.time() + 1.0
+            while time.time() < limite:
+                linea = leer_linea(ser)
+                if linea is None:
+                    continue
+                if "== Prueba en lazo abierto" in linea:
+                    print("Aviso: la placa se reinició al abrir el puerto. Esperando el arranque...")
+                elif "ERROR" in linea and not linea.startswith(">> Comando desconocido"):
+                    print("  " + linea)
+                if "esta ayuda" in linea:
+                    time.sleep(0.3)  # dejar llegar el resto de la ayuda y descartarlo
+                    ser.reset_input_buffer()
+                    return ser
+    except BaseException:
+        frenar(ser)  # por si el motor ya estaba girando en modo manual
+        ser.close()
+        raise
+    ser.close()
+    raise RuntimeError("el firmware no responde: ¿está flasheado 06-motor-36gp555? Pulsar RST y repetir")
 
 
 def leer_linea(ser):
@@ -74,6 +86,20 @@ def leer_linea(ser):
 def enviar(ser, comando):
     ser.write((comando + "\n").encode())
     ser.flush()
+
+
+def frenar(ser):
+    """Manda 'x' (freno inmediato) y espera hasta 1 s la confirmación del firmware."""
+    try:
+        enviar(ser, "x")
+        fin = time.time() + 1.0
+        while time.time() < fin:
+            linea = leer_linea(ser)
+            if linea and linea.startswith(">> Parado ("):
+                return True
+    except Exception:  # puerto caído: no hay nada más que hacer desde acá
+        pass
+    return False
 
 
 def esperar_quieto(ser):
@@ -116,7 +142,7 @@ def ejecutar(ser, comando, es_fila, fin_ok, timeout_s, mostrar_filas=True):
             if not terminado:
                 raise RuntimeError(f"Tiempo agotado ({timeout_s} s) esperando '{fin_ok}'")
     except KeyboardInterrupt:
-        enviar(ser, "x")
+        frenar(ser)
         print("\nInterrumpido: se mandó 'x' (freno).")
         sys.exit(1)
     return filas, extra
@@ -476,10 +502,16 @@ def main():
 
     ruta = a.archivo
     if ruta is None:
+        import serial
+
         try:
             ser = abrir_puerto(a.puerto)
-        except Exception as e:  # puerto ocupado o inexistente
+        except serial.SerialException as e:  # puerto ocupado o inexistente
             sys.exit(f"No se pudo abrir {a.puerto}: {e}\n¿Está abierto el monitor de PlatformIO? Cerrarlo antes.")
+        except RuntimeError as e:
+            sys.exit(f"ERROR en {a.puerto}: {e}")
+        except KeyboardInterrupt:
+            sys.exit("\nInterrumpido durante la conexión: se mandó 'x' (freno).")
         try:
             if a.prueba == "barrido":
                 ruta = medir_barrido(ser)
@@ -487,8 +519,11 @@ def main():
                 ruta = medir_escalon(ser, a.pct)
             else:
                 ruta = medir_perfil(ser, a.segundos, a.niveles)
+        except KeyboardInterrupt:  # por ejemplo, durante la espera antes de la prueba
+            frenar(ser)
+            sys.exit("\nInterrumpido: se mandó 'x' (freno).")
         except RuntimeError as e:
-            enviar(ser, "x")
+            frenar(ser)
             sys.exit(f"\nERROR: {e}")
         finally:
             ser.close()
