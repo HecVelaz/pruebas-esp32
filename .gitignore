@@ -23,3 +23,6 @@ managed_components/
 
 # Graphify (grafo de conocimiento generado)
 graphify-out/
+
+# Documentos del robot copiados solo para lectura (viven en recolector_de_frutas)
+docs/
