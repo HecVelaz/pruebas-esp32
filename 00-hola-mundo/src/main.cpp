@@ -8,6 +8,6 @@ void setup() {
 }
 
 void loop() {
-  Serial.println("Hola mundo desde ESP32-S3");
+  Serial.printf("Hola mundo desde %s\n", ESP.getChipModel());
   delay(1000);
 }
