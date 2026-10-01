@@ -1,0 +1,495 @@
+<title>Cableado J1 · J2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@600;700&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: una columna de banco de trabajo; mapa de la placa arriba, luego un esquema + lista por articulación. */
+:root {
+  --bg: #f2f4f1; --surface: #ffffff; --surface-2: #f7f9f6; --ink: #1b2420; --muted: #5a6760;
+  --line: #d6ddd7; --line-strong: #9aa7a0;
+  --pcb: #1e5a44; --pcb-ink: #e6f1ea; --can: #b9c3be; --can-ink: #26302b;
+  --copper: #b06a24; --pin-off: #7f8c85;
+  --j1: #1d64c8; --j2: #c2410c; --j3: #7c3aed; --fc: #0e7f74;
+  --pwr: #d1242f; --gnd: #343a37; --v33: #b8236f; --v5: #a85a08;
+  --outline: #4b5563; --on-flag: #ffffff;
+  --w-white: #f6f6f6; --w-yellow: #e2b100; --w-green: #2c9a4c; --w-blue: #2563eb; --w-black: #161616; --w-red: #d62828;
+  --warn-bg: #fff3dc; --warn-ink: #6f4300; --warn-line: #e9b75a;
+  --ok: #1f7a4a;
+  --f-disp: "Barlow Semi Condensed", "Arial Narrow", system-ui, sans-serif;
+  --f-body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "DejaVu Sans Mono", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111714; --surface: #18201c; --surface-2: #1d2621; --ink: #e3ebe6; --muted: #9caaa2;
+    --line: #2b3731; --line-strong: #56655d;
+    --pcb: #1b4a39; --pcb-ink: #e1efe6; --can: #8c9892; --can-ink: #111714;
+    --copper: #d9944f; --pin-off: #67756e;
+    --j1: #6ea6ff; --j2: #ff8a4c; --j3: #b592ff; --fc: #3ccfbf;
+    --pwr: #ff6b6b; --gnd: #c3ccc7; --v33: #f070b3; --v5: #f0a24a;
+    --outline: #d4d9d6; --on-flag: #111714;
+    --warn-bg: #2d2412; --warn-ink: #f3cf8a; --warn-line: #7a5a1e;
+    --ok: #4fcf8a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111714; --surface: #18201c; --surface-2: #1d2621; --ink: #e3ebe6; --muted: #9caaa2;
+  --line: #2b3731; --line-strong: #56655d;
+  --pcb: #1b4a39; --pcb-ink: #e1efe6; --can: #8c9892; --can-ink: #111714;
+  --copper: #d9944f; --pin-off: #67756e;
+  --j1: #6ea6ff; --j2: #ff8a4c; --j3: #b592ff; --fc: #3ccfbf;
+  --pwr: #ff6b6b; --gnd: #c3ccc7; --v33: #f070b3; --v5: #f0a24a;
+  --outline: #d4d9d6; --on-flag: #111714;
+  --warn-bg: #2d2412; --warn-ink: #f3cf8a; --warn-line: #7a5a1e;
+  --ok: #4fcf8a;
+  color-scheme: dark;
+}
+body { background: var(--bg); color: var(--ink); font: 400 16px/1.55 var(--f-body); }
+.wrap { max-width: 1120px; margin: 0 auto; padding-inline: 16px; padding-block: 28px 64px; display: grid; gap: 40px; }
+h1, h2, h3 { font-family: var(--f-disp); line-height: 1.1; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(2rem, 5vw, 2.9rem); font-weight: 700; letter-spacing: .005em; }
+h2 { font-size: 1.65rem; font-weight: 700; }
+h3 { font-size: 1.2rem; font-weight: 600; }
+p { margin: 0; max-width: 68ch; }
+code, .mono { font-family: var(--f-mono); font-size: .9em; }
+.eyebrow { font: 600 .78rem/1 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--copper); }
+header { display: grid; gap: 14px; }
+.lead { color: var(--muted); font-size: 1.08rem; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); font-size: .92rem; }
+.chip b { font-family: var(--f-mono); font-weight: 600; }
+.chip.warn { background: var(--warn-bg); border-color: var(--warn-line); color: var(--warn-ink); }
+section { display: grid; gap: 16px; min-width: 0; }
+.sec-head { display: grid; gap: 6px; }
+.sec-head p { color: var(--muted); }
+.rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.rule { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: grid; gap: 4px; min-width: 0; }
+.rule strong { font-family: var(--f-disp); font-size: 1.08rem; font-weight: 600; }
+.rule span { color: var(--muted); font-size: .95rem; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .9rem; color: var(--muted); }
+.legend i { display: inline-block; width: 22px; height: 4px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+.legend i.dash { background: repeating-linear-gradient(90deg, var(--muted) 0 6px, transparent 6px 10px) !important; }
+.fig { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow-x: auto; }
+.fig svg { display: block; width: 100%; min-width: 780px; height: auto; }
+.fig-note { font-size: .92rem; color: var(--muted); }
+.warnbox { background: var(--warn-bg); border: 1px solid var(--warn-line); color: var(--warn-ink); border-radius: 10px; padding: 12px 16px; font-size: .95rem; }
+.joint { display: grid; gap: 16px; padding-top: 8px; border-top: 3px solid var(--jc); }
+.joint .tag { font: 600 .8rem/1 var(--f-mono); color: var(--jc); letter-spacing: .06em; text-transform: uppercase; }
+.two { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+/* Lista para tildar */
+.check { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.check li { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+.check label { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; padding: 10px 12px; cursor: pointer; align-items: start; }
+.check input { width: 18px; height: 18px; margin: 3px 0 0; accent-color: var(--ok); }
+.check input:focus-visible { outline: 2px solid var(--copper); outline-offset: 2px; }
+.check li:has(input:checked) { border-color: var(--ok); }
+.check li:has(input:checked) .ct { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--ok); }
+.progress { display: flex; align-items: center; gap: 10px; font: 600 .9rem var(--f-mono); color: var(--muted); }
+.bar { flex: 1; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; max-width: 260px; }
+.bar > div { height: 100%; width: 0; background: var(--ok); transition: width .25s; }
+@media (prefers-reduced-motion: reduce) { .bar > div { transition: none; } }
+.pill { font: 600 .78rem var(--f-mono); padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; }
+/* Tablas */
+.tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: .95rem; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 .78rem var(--f-mono); letter-spacing: .05em; text-transform: uppercase; color: var(--muted); background: var(--surface-2); }
+tr:last-child td { border-bottom: 0; }
+td.n { font-family: var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bands { display: inline-flex; gap: 3px; vertical-align: middle; padding: 3px 6px; background: #e8d6af; border-radius: 6px; }
+.bands i { width: 6px; height: 16px; border-radius: 1px; }
+button.reset { font: 600 .88rem var(--f-body); color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 8px; padding: 7px 14px; cursor: pointer; justify-self: start; }
+button.reset:hover { border-color: var(--copper); }
+button.reset:focus-visible { outline: 2px solid var(--copper); outline-offset: 2px; }
+footer { color: var(--muted); font-size: .9rem; display: grid; gap: 4px; }
+/* SVG */
+svg text { font-family: var(--f-body); }
+.w { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.dash { stroke-dasharray: 7 5; }
+.under { fill: none; stroke: var(--outline); stroke-width: 6.5; stroke-linecap: round; stroke-linejoin: round; }
+.gnd path { stroke: var(--gnd); stroke-width: 2; fill: none; stroke-linecap: round; }
+.bx { fill: var(--surface-2); stroke: var(--line-strong); stroke-width: 1.5; }
+.bx-esp { fill: var(--pcb); }
+.term { fill: var(--surface); stroke: var(--ink); stroke-width: 1.5; }
+.term-esp { fill: var(--copper); }
+.tl { fill: var(--ink); font: 500 12.5px var(--f-mono); }
+.tl-esp { fill: var(--pcb-ink); font: 600 12.5px var(--f-mono); }
+.tt { fill: var(--ink); font: 700 18px var(--f-disp); }
+.tt-esp { fill: var(--pcb-ink); font: 700 17px var(--f-disp); }
+.ts { fill: var(--muted); font: 500 12.5px var(--f-body); }
+.tw { fill: var(--warn-ink); font: 600 12px var(--f-body); }
+.wl { fill: var(--muted); font: italic 12px var(--f-body); }
+.flag-t { fill: var(--on-flag); font: 600 12px var(--f-mono); }
+.res { fill: #e8d6af; stroke: var(--copper); stroke-width: 1.5; }
+.rl { fill: var(--ink); font: 600 12px var(--f-mono); }
+.mot { fill: var(--surface); stroke: var(--ink); stroke-width: 2; }
+.mot-t { fill: var(--ink); font: 700 22px var(--f-disp); }
+.pin-in { fill: var(--pcb-ink); font: 600 12.5px var(--f-mono); }
+.can { fill: var(--can); }
+.can-t { fill: var(--can-ink); font: 700 14px var(--f-disp); }
+.pl { font: 500 13.5px var(--f-body); }
+.pl-na { fill: var(--muted); font: italic 12.5px var(--f-body); }
+</style>
+
+<div class="wrap">
+
+<header>
+  <span class="eyebrow">10-control-lazo-cerrado · banco de pruebas</span>
+  <h1>Cableado del brazo: J1 y J2 en la ESP32-WROOM-32D</h1>
+  <p class="lead">J1 (base giratoria) con el IBT-2 y J2 (hombro) con el L298N. Son los mismos pines que el firmware del brazo del robot, así lo que se ajuste acá pasa tal cual.</p>
+  <div class="chips">
+    <span class="chip">Fuente de laboratorio <b>12,0 V</b> · límite <b>3 A</b></span>
+    <span class="chip warn">Apagá los 12 V antes de flashear o pulsar EN</span>
+    <span class="chip">DevKit de <b>30 pines</b> con CH340 · <b>/dev/ttyUSB0</b></span>
+  </div>
+</header>
+
+<section>
+  <div class="sec-head">
+    <h2>Antes de empezar</h2>
+  </div>
+  <div class="rules">
+    <div class="rule"><strong>Dos rieles en la protoboard</strong><span>Uno de <b>3V3</b> (desde el pin 3V3 del ESP32) y uno de <b>GND</b> (desde un pin GND). En los esquemas, la etiqueta 3V3 y el símbolo ⏚ significan "al riel".</span></div>
+    <div class="rule"><strong>GND común</strong><span>El negativo de la fuente también va al riel GND. Sin eso, el ESP32 y los drivers no comparten referencia y nada funciona bien.</span></div>
+    <div class="rule"><strong>Ni 5 V ni 12 V a un GPIO</strong><span>Los GPIO son de 3,3 V. El único 5 V que se usa es VIN, y solo para el + de los encoders ópticos.</span></div>
+    <div class="rule"><strong>Cables firmes</strong><span>La protoboard ya dio falsos contactos con el GPS. Apretá bien los cables o usá borneras para los de potencia.</span></div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head">
+    <h2>Mapa de la placa</h2>
+    <p>Vista de arriba, con el USB abajo. Cada pin dice a dónde va y si lleva resistencia.</p>
+  </div>
+  <div class="legend">
+    <span><i style="background:var(--j1)"></i>J1 · IBT-2</span>
+    <span><i style="background:var(--j2)"></i>J2 · L298N</span>
+    <span><i class="dash"></i>Para después (J3, finales de carrera, servos)</span>
+    <span><i style="background:var(--v33)"></i>3V3</span>
+    <span><i style="background:var(--gnd)"></i>GND</span>
+    <span><i style="background:var(--v5)"></i>5 V (VIN)</span>
+  </div>
+  <div class="fig"><svg id="d-placa" viewBox="0 0 1000 715" role="img" aria-label="Mapa de pines de la ESP32 DevKit de 30 pines con sus conexiones"></svg></div>
+  <div class="warnbox">El orden de los pines es el de la DevKit de 30 pines más común (DOIT). Si tu placa tiene 38 pines o es de otra marca, el orden cambia: guiate por el número impreso al lado de cada pin (D34, D25…), no por la posición.</div>
+</section>
+
+<section class="joint" style="--jc: var(--j1)">
+  <div class="sec-head">
+    <span class="tag">J1 · base giratoria</span>
+    <h2>Motor 36GP-555 con IBT-2</h2>
+    <p>Los colores de los cables del motor y del encoder son los de la placa SCX-555. Si invertís blanco y amarillo, solo cambia el sentido de giro.</p>
+  </div>
+  <div class="fig"><svg id="d-j1" viewBox="0 0 960 530" role="img" aria-label="Esquema de J1: fuente, motor, IBT-2, encoder y ESP32"></svg></div>
+  <div class="warnbox">Los GPIO 34 y 35 no tienen pull-up interno. Sin las dos resistencias de 10 kΩ a 3V3, el encoder no cuenta. El encoder va a <b>3V3, no a 5 V</b>: con 5 V sus salidas quedarían a 5 V.</div>
+  <div class="progress"><span id="p-j1">0 / 0</span><div class="bar"><div id="b-j1"></div></div></div>
+  <ul class="check" id="c-j1"></ul>
+</section>
+
+<section class="joint" style="--jc: var(--j2)">
+  <div class="sec-head">
+    <span class="tag">J2 · hombro</span>
+    <h2>Motor 5840-31ZY con L298N (canal A)</h2>
+    <p>Es el mismo cableado de la prueba 08, con los mismos pines. El encoder es de colector abierto: aunque se alimenta con 5 V, la señal nunca pasa de 3,3 V porque solo la baja a GND.</p>
+  </div>
+  <div class="fig"><svg id="d-j2" viewBox="0 0 960 500" role="img" aria-label="Esquema de J2: fuente, motor, L298N, encoder y ESP32"></svg></div>
+  <div class="warnbox">Sacá el jumper de <b>ENA</b> y conectá el GPIO25 al pin de señal (el de adentro), no al de 5 V. El jumper <b>5V-EN</b> queda puesto y el borne de 5 V queda libre.</div>
+  <div class="progress"><span id="p-j2">0 / 0</span><div class="bar"><div id="b-j2"></div></div></div>
+  <ul class="check" id="c-j2"></ul>
+</section>
+
+<section>
+  <div class="sec-head">
+    <h2>Antes de encender</h2>
+    <p>Con todo cableado y la fuente apagada.</p>
+  </div>
+  <div class="progress"><span id="p-pre">0 / 0</span><div class="bar"><div id="b-pre"></div></div></div>
+  <ul class="check" id="c-pre"></ul>
+  <button class="reset" id="reset" type="button">Desmarcar todo</button>
+</section>
+
+<section>
+  <div class="sec-head">
+    <h2>Resistencias</h2>
+    <p>Las primeras dos filas son las que hacen falta ahora. El resto, cuando se agreguen J3, los finales de carrera y la base.</p>
+  </div>
+  <div class="tbl"><table>
+    <thead><tr><th>Valor</th><th>Colores</th><th>Cant.</th><th>Dónde</th><th>Para qué</th></tr></thead>
+    <tbody>
+      <tr><td class="n">10 kΩ</td><td><span class="bands"><i style="background:#7b4a2a"></i><i style="background:#111"></i><i style="background:#e8730c"></i></span></td><td class="n">2</td><td>GPIO23 → GND · GPIO25 → GND</td><td>Pull-down: los drivers quedan apagados mientras el ESP32 arranca o se flashea</td></tr>
+      <tr><td class="n">10 kΩ</td><td><span class="bands"><i style="background:#7b4a2a"></i><i style="background:#111"></i><i style="background:#e8730c"></i></span></td><td class="n">2</td><td>GPIO34 → 3V3 · GPIO35 → 3V3</td><td>Pull-up del encoder de J1</td></tr>
+      <tr><td class="n">10 kΩ</td><td><span class="bands"><i style="background:#7b4a2a"></i><i style="background:#111"></i><i style="background:#e8730c"></i></span></td><td class="n">1</td><td>GPIO13 → GND</td><td>Pull-down de ENB (J3, después)</td></tr>
+      <tr><td class="n">10 kΩ</td><td><span class="bands"><i style="background:#7b4a2a"></i><i style="background:#111"></i><i style="background:#e8730c"></i></span></td><td class="n">2</td><td>GPIO36 → 3V3 · GPIO39 → 3V3</td><td>Pull-up de los finales de carrera (después)</td></tr>
+      <tr><td class="n">4,7 kΩ</td><td><span class="bands"><i style="background:#f2c200"></i><i style="background:#7a3fb0"></i><i style="background:#d22"></i></span></td><td class="n">0–4</td><td>GPIO32, 33, 18, 19 → 3V3</td><td>Opcional: pull-up más firme para los encoders de J2 y J3 si hay ruido</td></tr>
+      <tr><td class="n">10 kΩ</td><td><span class="bands"><i style="background:#7b4a2a"></i><i style="background:#111"></i><i style="background:#e8730c"></i></span></td><td class="n">1</td><td>ESP32-S3 GPIO38 → GND</td><td>Base: pull-down de los EN de tracción</td></tr>
+      <tr><td class="n">20 kΩ</td><td><span class="bands"><i style="background:#d22"></i><i style="background:#111"></i><i style="background:#e8730c"></i></span></td><td class="n">4</td><td>A y B de cada encoder de tracción → GND</td><td>Base: bajan la señal de 5 V a 3,3 V (medir antes de conectar a la S3)</td></tr>
+    </tbody>
+  </table></div>
+  <p class="fig-note"><b>Ahora alcanza con 4 de 10 kΩ</b> (marrón, negro, naranja). Pull-down = del pin a GND; pull-up = del pin a 3V3.</p>
+</section>
+
+<section>
+  <div class="sec-head">
+    <h2>Para después</h2>
+    <p>Ya tienen pines reservados. No hace falta cablearlos para el control de J1 y J2.</p>
+  </div>
+  <div class="tbl"><table>
+    <thead><tr><th>Qué</th><th>Del componente</th><th>Al ESP32</th><th>Resistencia</th></tr></thead>
+    <tbody>
+      <tr><td>J3 codo · L298N canal B</td><td>Motor → OUT3 y OUT4 · jumper de ENB sacado</td><td class="n">ENB → 13 · IN3 → 16 · IN4 → 17</td><td>10 kΩ de GPIO13 a GND</td></tr>
+      <tr><td>J3 · encoder 38S6G5</td><td>rojo → VIN · negro → GND</td><td class="n">blanco (A) → 18 · verde (B) → 19</td><td>no (pull-up interno)</td></tr>
+      <tr><td>Final de carrera J1</td><td>COM → GND · NA → GPIO</td><td class="n">GPIO36 (VP)</td><td>10 kΩ de GPIO36 a 3V3</td></tr>
+      <tr><td>Final de carrera J2</td><td>COM → GND · NA → GPIO</td><td class="n">GPIO39 (VN)</td><td>10 kΩ de GPIO39 a 3V3</td></tr>
+      <tr><td>Servo de la pinza</td><td>Alimentación de 5–6 V aparte, GND común</td><td class="n">señal → 4</td><td>no</td></tr>
+      <tr><td>Servo de giro J4</td><td>Alimentación de 5–6 V aparte, GND común</td><td class="n">señal → 14</td><td>no</td></tr>
+    </tbody>
+  </table></div>
+  <p class="fig-note">Los bumpers y los motores de tracción van en la ESP32-S3 de la base: están en <code>CONEXIONES.md</code> de esta carpeta.</p>
+</section>
+
+<footer>
+  <span>Fuente de verdad de los pines: <code>10-control-lazo-cerrado/include/pins.h</code> (igual a <code>firmware/brazo/include/pins.h</code> del robot).</span>
+  <span>Versión del 01/10/2026. Nada de esto está probado en placa todavía.</span>
+</footer>
+
+</div>
+
+<script>
+(function () {
+  // ---------- Ayudantes de SVG ----------
+  const P = pts => 'M' + pts.map(p => p[0] + ' ' + p[1]).join(' L ');
+  function wire(pts, c, o) {
+    o = o || {};
+    let s = '';
+    if (o.real) s += '<path class="under" d="' + P(pts) + '"/>';
+    s += '<path class="w' + (o.dash ? ' dash' : '') + '" d="' + P(pts) + '" style="stroke:var(--' + c + ');stroke-width:' + (o.real ? 3.5 : 2.5) + '"/>';
+    return s;
+  }
+  const dot = (x, y, c) => '<circle cx="' + x + '" cy="' + y + '" r="4.5" style="fill:var(--' + c + ')"/>';
+  const gnd = (x, y) => '<g class="gnd"><path d="M' + x + ' ' + y + ' V' + (y + 8) + ' M' + (x - 11) + ' ' + (y + 8) + ' H' + (x + 11) + ' M' + (x - 7) + ' ' + (y + 12.5) + ' H' + (x + 7) + ' M' + (x - 3) + ' ' + (y + 17) + ' H' + (x + 3) + '"/></g>';
+  function flag(x, y, label, dir, c) {
+    c = c || 'v33';
+    const w = label.length * 7.6 + 14, h = 20;
+    let lead, bx, by;
+    if (dir === 'right') { lead = 'M' + x + ' ' + y + ' H' + (x + 8); bx = x + 8; by = y - h / 2; }
+    else if (dir === 'up') { lead = 'M' + x + ' ' + y + ' V' + (y - 8); bx = x - w / 2; by = y - 8 - h; }
+    else { lead = 'M' + x + ' ' + y + ' V' + (y + 8); bx = x - w / 2; by = y + 8; }
+    return '<path class="w" d="' + lead + '" style="stroke:var(--' + c + ');stroke-width:2.5"/>' +
+      '<rect x="' + bx + '" y="' + by + '" width="' + w + '" height="' + h + '" rx="4" style="fill:var(--' + c + ')"/>' +
+      '<text class="flag-t" x="' + (bx + w / 2) + '" y="' + (by + 14) + '" text-anchor="middle">' + label + '</text>';
+  }
+  // Resistencia vertical de 10 kΩ (marrón, negro, naranja) entre y e y+len
+  function res(x, y, len, label, side) {
+    const bands = ['#7b4a2a', '#111111', '#e8730c'];
+    let s = '<rect class="res" x="' + (x - 7) + '" y="' + y + '" width="14" height="' + len + '" rx="3"/>';
+    bands.forEach((b, i) => { const by = y + len * (0.22 + i * 0.17); s += '<rect x="' + (x - 7) + '" y="' + by + '" width="14" height="4" style="fill:' + b + '"/>'; });
+    const left = side === 'left';
+    s += '<text class="rl" x="' + (left ? x - 14 : x + 14) + '" y="' + (y + len / 2 + 4) + '" text-anchor="' + (left ? 'end' : 'start') + '">' + label + '</text>';
+    return s;
+  }
+  const txt = (x, y, s, cls, anchor) => '<text class="' + (cls || 'ts') + '" x="' + x + '" y="' + y + '" text-anchor="' + (anchor || 'start') + '">' + s + '</text>';
+  const box = (x, y, w, h, cls) => '<rect class="' + (cls || 'bx') + '" x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="8"/>';
+  function term(x, y, label, side, esp) {
+    const left = side === 'left';
+    return '<rect class="' + (esp ? 'term-esp' : 'term') + '" x="' + (x - 4.5) + '" y="' + (y - 4.5) + '" width="9" height="9" rx="1.5"/>' +
+      '<text class="' + (esp ? 'tl-esp' : 'tl') + '" x="' + (left ? x + 11 : x - 11) + '" y="' + (y + 4.5) + '" text-anchor="' + (left ? 'start' : 'end') + '">' + label + '</text>';
+  }
+  function motor(cx, cy, l1, l2) {
+    return '<circle class="mot" cx="' + cx + '" cy="' + cy + '" r="34"/>' + txt(cx, cy + 8, 'M', 'mot-t', 'middle') +
+      txt(cx, cy + 56, l1, 'tl', 'middle') + txt(cx, cy + 72, l2, 'ts', 'middle');
+  }
+  function fuente() {
+    return box(20, 20, 170, 70) + txt(32, 46, 'Fuente de laboratorio', 'tl') + txt(32, 66, '12,0 V · límite 3 A', 'ts') +
+      term(190, 40, '+', 'right') + term(190, 70, '−', 'right');
+  }
+
+  // ---------- Esquema de J1 ----------
+  let s = '';
+  s += fuente();
+  s += wire([[190, 40], [360, 40]], 'pwr');
+  s += wire([[190, 70], [360, 70]], 'gnd') + dot(230, 70, 'gnd') + wire([[230, 70], [230, 96]], 'gnd') + gnd(230, 96);
+  s += txt(244, 112, 'GND común', 'ts');
+  s += motor(285, 175, '36GP-555', 'motor J1');
+  s += wire([[317, 163], [360, 163]], 'w-white', { real: true }) + txt(338, 154, 'blanco', 'wl', 'middle');
+  s += wire([[317, 187], [360, 187]], 'w-yellow', { real: true }) + txt(338, 206, 'amarillo', 'wl', 'middle');
+  s += box(360, 20, 200, 270);
+  s += txt(460, 150, 'IBT-2', 'tt', 'middle') + txt(460, 170, 'BTS7960', 'ts', 'middle');
+  s += term(360, 40, 'B+', 'left') + term(360, 70, 'B−', 'left') + term(360, 163, 'M+', 'left') + term(360, 187, 'M−', 'left');
+  [['RPWM', 50], ['LPWM', 80], ['R_EN', 110], ['L_EN', 140], ['R_IS', 170], ['L_IS', 200], ['VCC', 230], ['GND', 260]]
+    .forEach(([l, y]) => { s += term(560, y, l, 'right'); });
+  s += wire([[560, 170], [578, 170]], 'pin-off', { dash: true }) + wire([[560, 200], [578, 200]], 'pin-off', { dash: true });
+  s += txt(586, 189, 'sin conectar', 'wl');
+  s += wire([[560, 230], [600, 230]], 'v33') + flag(600, 230, '3V3', 'right');
+  s += wire([[560, 260], [590, 260], [590, 268]], 'gnd') + gnd(590, 268);
+  s += wire([[560, 50], [780, 50]], 'j1') + wire([[560, 80], [780, 80]], 'j1');
+  s += wire([[560, 110], [610, 110], [610, 125]], 'j1') + wire([[560, 140], [610, 140], [610, 125]], 'j1') + dot(610, 125, 'j1');
+  s += wire([[610, 125], [780, 125]], 'j1') + txt(625, 145, 'R_EN y L_EN juntos', 'wl');
+  s += dot(720, 125, 'j1') + wire([[720, 125], [720, 152]], 'gnd') + res(720, 152, 44, '10 kΩ', 'right') + wire([[720, 196], [720, 206]], 'gnd') + gnd(720, 206);
+  s += box(780, 20, 160, 480, 'bx-esp');
+  s += term(780, 50, 'GPIO21', 'left', true) + term(780, 80, 'GPIO22', 'left', true) + term(780, 125, 'GPIO23', 'left', true);
+  s += term(780, 385, 'GPIO34', 'left', true) + term(780, 425, 'GPIO35', 'left', true);
+  s += txt(860, 465, 'ESP32-WROOM', 'tt-esp', 'middle') + txt(860, 485, '3V3 y GND a los rieles', 'tl-esp', 'middle');
+  s += box(360, 330, 200, 150);
+  s += txt(374, 402, 'Encoder Hall', 'tt') + txt(374, 422, 'placa SCX-555', 'ts');
+  s += term(560, 350, 'Enc+', 'right') + term(560, 385, 'A', 'right') + term(560, 425, 'B', 'right') + term(560, 460, 'Enc−', 'right');
+  s += wire([[560, 350], [600, 350]], 'w-green', { real: true }) + txt(582, 342, 'verde', 'wl', 'middle') + flag(600, 350, '3V3', 'right');
+  s += wire([[560, 385], [780, 385]], 'w-black', { real: true }) + txt(600, 377, 'negro', 'wl', 'middle');
+  s += dot(670, 385, 'w-black') + wire([[670, 385], [670, 372]], 'v33') + res(670, 328, 44, '10 kΩ', 'right') + flag(670, 328, '3V3', 'up');
+  s += wire([[560, 425], [780, 425]], 'w-red', { real: true }) + txt(600, 417, 'rojo', 'wl', 'middle');
+  s += dot(730, 425, 'w-red') + wire([[730, 425], [730, 438]], 'v33') + res(730, 438, 40, '10 kΩ', 'left') + flag(730, 478, '3V3', 'down');
+  s += wire([[560, 460], [600, 460], [600, 470]], 'w-blue', { real: true }) + txt(582, 452, 'azul', 'wl', 'middle') + gnd(600, 470);
+  document.getElementById('d-j1').innerHTML = s;
+
+  // ---------- Esquema de J2 ----------
+  s = '';
+  s += fuente();
+  s += wire([[190, 40], [360, 40]], 'pwr');
+  s += wire([[190, 70], [360, 70]], 'gnd') + dot(230, 70, 'gnd') + wire([[230, 70], [230, 96]], 'gnd') + gnd(230, 96);
+  s += txt(244, 112, 'GND común', 'ts');
+  s += wire([[360, 100], [340, 100]], 'pin-off', { dash: true }) + txt(334, 104, 'libre', 'wl', 'end');
+  s += motor(285, 175, '5840-31ZY', 'motor J2 · sin fin');
+  s += wire([[317, 163], [360, 163]], 'j2') + wire([[317, 187], [360, 187]], 'j2');
+  s += box(360, 20, 200, 270);
+  s += txt(460, 150, 'L298N', 'tt', 'middle') + txt(460, 170, 'canal A → J2', 'ts', 'middle');
+  s += txt(460, 240, 'jumper 5V-EN: puesto', 'tw', 'middle') + txt(460, 258, 'jumper de ENA: sacado', 'tw', 'middle');
+  s += term(360, 40, '12V', 'left') + term(360, 70, 'GND', 'left') + term(360, 100, '5V', 'left') + term(360, 163, 'OUT1', 'left') + term(360, 187, 'OUT2', 'left');
+  s += term(560, 50, 'IN1', 'right') + term(560, 80, 'IN2', 'right') + term(560, 120, 'ENA', 'right');
+  s += wire([[560, 50], [780, 50]], 'j2') + wire([[560, 80], [780, 80]], 'j2') + wire([[560, 120], [780, 120]], 'j2');
+  s += dot(700, 120, 'j2') + wire([[700, 120], [700, 135]], 'gnd') + res(700, 135, 44, '10 kΩ', 'right') + wire([[700, 179], [700, 190]], 'gnd') + gnd(700, 190);
+  s += box(780, 20, 160, 470, 'bx-esp');
+  s += term(780, 50, 'GPIO26', 'left', true) + term(780, 80, 'GPIO27', 'left', true) + term(780, 120, 'GPIO25', 'left', true);
+  s += term(780, 390, 'GPIO32', 'left', true) + term(780, 425, 'GPIO33', 'left', true);
+  s += txt(860, 455, 'ESP32-WROOM', 'tt-esp', 'middle') + txt(860, 475, '3V3 y GND a los rieles', 'tl-esp', 'middle');
+  s += box(360, 320, 200, 160);
+  s += txt(374, 398, 'Encoder óptico', 'tt') + txt(374, 418, '38S6G5 · 1000 PPR', 'ts');
+  s += term(560, 345, '+', 'right') + term(560, 390, 'A', 'right') + term(560, 425, 'B', 'right') + term(560, 460, '−', 'right');
+  s += wire([[560, 345], [600, 345]], 'w-red', { real: true }) + txt(582, 337, 'rojo', 'wl', 'middle') + flag(600, 345, '5V (VIN)', 'right', 'v5');
+  s += wire([[560, 390], [780, 390]], 'w-white', { real: true }) + txt(600, 382, 'blanco', 'wl', 'middle');
+  s += wire([[560, 425], [780, 425]], 'w-green', { real: true }) + txt(600, 417, 'verde', 'wl', 'middle');
+  s += txt(690, 411, 'sin resistencias (pull-up interno)', 'wl', 'middle');
+  s += wire([[560, 460], [600, 460], [600, 468]], 'w-black', { real: true }) + txt(582, 452, 'negro', 'wl', 'middle') + gnd(600, 468);
+  document.getElementById('d-j2').innerHTML = s;
+
+  // ---------- Mapa de la placa (DevKit de 30 pines, USB abajo) ----------
+  const R10_33 = { t: ' · 10 kΩ a 3V3', c: 'v33' }, R10_G = { t: ' · 10 kΩ a GND', c: 'gnd' };
+  const izq = [
+    ['EN', 'botón de reset', 'na'],
+    ['VP 36', 'Final de carrera J1', 'fc', R10_33, true],
+    ['VN 39', 'Final de carrera J2', 'fc', R10_33, true],
+    ['D34', 'J1 encoder A (negro)', 'j1', R10_33],
+    ['D35', 'J1 encoder B (rojo)', 'j1', R10_33],
+    ['D32', 'J2 encoder A (blanco)', 'j2'],
+    ['D33', 'J2 encoder B (verde)', 'j2'],
+    ['D25', 'L298N ENA (J2)', 'j2', R10_G],
+    ['D26', 'L298N IN1 (J2)', 'j2'],
+    ['D27', 'L298N IN2 (J2)', 'j2'],
+    ['D14', 'Servo giro J4', 'j3', null, true],
+    ['D12', 'no usar (strapping)', 'na'],
+    ['D13', 'L298N ENB (J3)', 'j3', R10_G, true],
+    ['GND', 'riel GND', 'gnd'],
+    ['VIN', '5 V → + de los encoders de J2 y J3', 'v5']
+  ];
+  const der = [
+    ['D23', 'IBT-2 R_EN + L_EN (J1)', 'j1', R10_G],
+    ['D22', 'IBT-2 LPWM (J1)', 'j1'],
+    ['TX0', 'no usar (USB)', 'na'],
+    ['RX0', 'no usar (USB)', 'na'],
+    ['D21', 'IBT-2 RPWM (J1)', 'j1'],
+    ['D19', 'J3 encoder B (verde)', 'j3', null, true],
+    ['D18', 'J3 encoder A (blanco)', 'j3', null, true],
+    ['D5', 'no usar (strapping)', 'na'],
+    ['D17', 'L298N IN4 (J3)', 'j3', null, true],
+    ['D16', 'L298N IN3 (J3)', 'j3', null, true],
+    ['D4', 'Servo de la pinza', 'j3', null, true],
+    ['D2', 'no usar (LED de la placa)', 'na'],
+    ['D15', 'no usar (strapping)', 'na'],
+    ['GND', 'riel GND', 'gnd'],
+    ['3V3', 'riel 3V3: VCC del IBT-2, encoder J1, pull-ups', 'v33']
+  ];
+  s = '';
+  s += '<rect class="bx-esp" x="420" y="30" width="160" height="650" rx="12"/>';
+  s += '<rect class="can" x="445" y="48" width="110" height="148" rx="4"/>';
+  s += txt(500, 112, 'ESP32', 'can-t', 'middle') + txt(500, 132, 'WROOM-32D', 'can-t', 'middle');
+  s += '<rect x="472" y="672" width="56" height="26" rx="4" style="fill:var(--pin-off)"/>' + txt(500, 690, 'USB', 'flag-t', 'middle');
+  const y0 = 225, dy = 30;
+  function pinRow(p, i, side) {
+    const [name, label, g, rn, later] = p, y = y0 + i * dy, left = side === 'l';
+    const px = left ? 436 : 564, used = g !== 'na';
+    let r = '<circle cx="' + px + '" cy="' + y + '" r="6.5" style="fill:var(--' + (used ? 'copper' : 'pin-off') + ')"/>';
+    r += '<text class="pin-in" x="' + (left ? 450 : 550) + '" y="' + (y + 4.5) + '" text-anchor="' + (left ? 'start' : 'end') + '">' + name + '</text>';
+    const lx = left ? 342 : 658;
+    if (used) {
+      r += wire([[left ? 429 : 571, y], [left ? 350 : 650, y]], g, { dash: !!later });
+      r += '<text class="pl" x="' + lx + '" y="' + (y + 4.5) + '" text-anchor="' + (left ? 'end' : 'start') + '">' +
+        '<tspan style="fill:var(--' + g + ');font-weight:600">' + label + '</tspan>' +
+        (rn ? '<tspan style="fill:var(--' + rn.c + ');font-weight:700">' + rn.t + '</tspan>' : '') +
+        (later ? '<tspan style="fill:var(--muted)"> · después</tspan>' : '') + '</text>';
+    } else {
+      r += '<text class="pl-na" x="' + lx + '" y="' + (y + 4.5) + '" text-anchor="' + (left ? 'end' : 'start') + '">' + label + '</text>';
+    }
+    return r;
+  }
+  izq.forEach((p, i) => { s += pinRow(p, i, 'l'); });
+  der.forEach((p, i) => { s += pinRow(p, i, 'r'); });
+  s += txt(500, 22, 'antena', 'ts', 'middle');
+  document.getElementById('d-placa').innerHTML = s;
+
+  // ---------- Listas para tildar ----------
+  const listas = {
+    j1: [
+      'Fuente + → IBT-2 <b>B+</b> · fuente − → IBT-2 <b>B−</b>',
+      'Fuente − también al <b>riel GND</b> (GND común)',
+      'Motor: blanco → <b>M+</b> · amarillo → <b>M−</b>',
+      'IBT-2 <b>VCC → 3V3</b> · IBT-2 <b>GND → GND</b>',
+      'IBT-2 RPWM → <b>GPIO21</b> · LPWM → <b>GPIO22</b>',
+      'R_EN y L_EN puenteados → <b>GPIO23</b>',
+      'Resistencia de 10 kΩ de <b>GPIO23 a GND</b>',
+      'Encoder: verde (Enc+) → <b>3V3</b> · azul (Enc−) → <b>GND</b>',
+      'Encoder: negro (A) → <b>GPIO34</b> · rojo (B) → <b>GPIO35</b>',
+      'Resistencias de 10 kΩ de <b>GPIO34 a 3V3</b> y de <b>GPIO35 a 3V3</b>',
+      'R_IS y L_IS sin conectar'
+    ],
+    j2: [
+      'Fuente + → L298N <b>12V</b> · fuente − → L298N <b>GND</b>',
+      'Jumper <b>5V-EN puesto</b> · borne 5V libre',
+      'Jumper de <b>ENA sacado</b>',
+      'Motor → <b>OUT1</b> y <b>OUT2</b>',
+      'IN1 → <b>GPIO26</b> · IN2 → <b>GPIO27</b> · ENA (pin de señal) → <b>GPIO25</b>',
+      'Resistencia de 10 kΩ de <b>GPIO25 a GND</b>',
+      'Encoder: rojo (+) → <b>VIN (5 V)</b> · negro (−) → <b>GND</b>',
+      'Encoder: blanco (A) → <b>GPIO32</b> · verde (B) → <b>GPIO33</b>'
+    ],
+    pre: [
+      'Pin <b>3V3</b> del ESP32 al riel 3V3 · pin <b>GND</b> al riel GND',
+      'Fuente en <b>12,0 V</b> con límite de <b>3 A</b> y la salida apagada',
+      'Multímetro en continuidad: <b>no hay corto</b> entre +12 V y GND',
+      'Multímetro en continuidad: el GND de la fuente, de los dos drivers y del ESP32 están unidos',
+      'Ningún cable de 5 V o 12 V llega a un GPIO',
+      'Flashear con los 12 V apagados · recién después encender la fuente'
+    ]
+  };
+  const KEY = 'cableado-j1j2-v1';
+  let marcados = {};
+  try { marcados = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { marcados = {}; }
+  const guardar = () => { try { localStorage.setItem(KEY, JSON.stringify(marcados)); } catch (e) {} };
+  function progreso(g) {
+    const n = listas[g].length, k = listas[g].filter((_, i) => marcados[g + '-' + i]).length;
+    document.getElementById('p-' + g).textContent = k + ' / ' + n + (k === n ? ' · listo' : '');
+    document.getElementById('b-' + g).style.width = (100 * k / n) + '%';
+  }
+  Object.keys(listas).forEach(g => {
+    const ul = document.getElementById('c-' + g);
+    ul.innerHTML = listas[g].map((t, i) => {
+      const id = g + '-' + i;
+      return '<li><label for="' + id + '"><input type="checkbox" id="' + id + '"' + (marcados[id] ? ' checked' : '') + '><span class="ct">' + t + '</span></label></li>';
+    }).join('');
+    ul.addEventListener('change', e => { marcados[e.target.id] = e.target.checked; guardar(); progreso(g); });
+    progreso(g);
+  });
+  document.getElementById('reset').addEventListener('click', () => {
+    marcados = {}; guardar();
+    document.querySelectorAll('.check input').forEach(i => { i.checked = false; });
+    Object.keys(listas).forEach(progreso);
+  });
+})();
+</script>
