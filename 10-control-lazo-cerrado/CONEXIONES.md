@@ -9,11 +9,15 @@ queda listo para después.
 
 ## Fuente de laboratorio
 
-- **12,0 V** y **límite de corriente en 3 A** aunque la fuente dé más. El límite no es para la fuente sino para
-  proteger drivers y cables: con un cable mal puesto o un motor trabado corta en 3 A en vez de quemar algo.
-  El L298N aguanta 2 A por canal.
-- Si al arrancar la fuente entra en CC (baja la tensión y se enciende el indicador de corriente), subir a 4–5 A.
-  Con 3 A ya se hicieron todas las pruebas de lazo abierto (`06`, `08`).
+- **12,0 V** y un límite de corriente según lo que esté conectado. El límite no es para la fuente sino para
+  proteger drivers y cables: con un cable mal puesto o un motor trabado corta antes de quemar algo.
+  - **Solo J1 (IBT-2): 3 A.** Con 3 A se hicieron las pruebas de lazo abierto de `06`.
+  - **Solo J2 (L298N): 2 A.** El L298N aguanta **2 A continuos por canal** (3 A solo como pico de 100 ms) y no
+    tiene protección propia: un atasco con 3 A lo puede dañar antes de que corte el firmware.
+  - **J1 y J2 juntos: 3 A** en la fuente y un **fusible rápido de 2 A** en el +12 V del L298N, porque el límite
+    de la fuente es para la suma de los dos y no protege a cada driver.
+- Si con J1 la fuente entra en CC al arrancar (baja la tensión y se enciende el indicador de corriente), se puede
+  subir a 4 A, pero **nunca por encima de 2 A en la rama del L298N**.
 - **GND común:** el negativo de la fuente, el GND de cada driver y el GND del ESP32 unidos.
 - **Apagar los 12 V antes de flashear o pulsar EN/RST** hasta que estén los pull-down de los EN.
 
@@ -44,17 +48,20 @@ queda listo para después.
    verde (Encoder+) ◄──────────── 3V3   (NO a 5 V: las salidas quedarían a 5 V)
    azul  (Encoder−) ◄──────────── GND
    negro (Signal A) ──────┬─────► GPIO34
-                          └ 10 kΩ ─ 3V3                  (pull-up OBLIGATORIO)
+                          └ 10 kΩ ─ 3V3                  (pull-up recomendado)
    rojo  (Signal B) ──────┬─────► GPIO35
-                          └ 10 kΩ ─ 3V3                  (pull-up OBLIGATORIO)
+                          └ 10 kΩ ─ 3V3                  (pull-up recomendado)
 ```
 
-GPIO 34–39 de la WROOM no tienen pull-up interno: sin esas dos resistencias el encoder no cuenta.
+GPIO 34–39 de la WROOM no tienen pull-up interno. La placa SCX-555 parece traer los suyos (R1 y R2, código
+`512` = 5,1 kΩ, de A y B a Encoder+), así que con el encoder a 3V3 ya daría 0/3,3 V. Igual se ponen los dos de
+10 kΩ: no molestan (en paralelo quedan ~3,4 kΩ) y no se depende de la placa. Para confirmarlo, **sin alimentar**,
+medir de negro a verde y de rojo a verde: unos 5 kΩ.
 
 ### A2. J2 hombro: 5840-31ZY + L298N canal A
 
 ```
- Fuente 12 V (+) ─────────────► L298N 12V
+ Fuente 12 V (+) ─[fusible 2 A]► L298N 12V   ← fusible si J1 comparte la fuente; solo J2: límite en 2 A
  Fuente 12 V (−) ─────────────► L298N GND
                     (libre)     L298N 5V   ← jumper "5V-EN" PUESTO (el regulador alimenta la lógica)
 
@@ -168,7 +175,7 @@ bumper.
 | Valor | Cant. | Dónde | Función |
 |-------|-------|-------|---------|
 | 10 kΩ | 3 | WROOM GPIO 23, 25, 13 → GND | Pull-down de EN de J1, ENA de J2 y ENB de J3 |
-| 10 kΩ | 4 | WROOM GPIO 34, 35, 36, 39 → 3V3 | Pull-up del encoder de J1 y de los finales de carrera |
+| 10 kΩ | 4 | WROOM GPIO 34, 35, 36, 39 → 3V3 | Pull-up del encoder de J1 (recomendado) y de los finales de carrera (obligatorio) |
 | 10 kΩ | 1 | S3 GPIO 38 → GND | Pull-down de los EN de tracción |
 | 20 kΩ | 4 | Señales A y B de los 2 encoders de tracción → GND | Bajar 5 V a 3,3 V |
 | 4,7 kΩ | 4 (opcional) | WROOM GPIO 32, 33, 18, 19 → 3V3 | Pull-up más firme para los encoders de J2/J3 con cables largos |

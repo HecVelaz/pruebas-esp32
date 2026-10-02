@@ -1,0 +1,350 @@
+<title>Plan lazo cerrado</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@600;700&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@500;600&display=swap">
+<style>
+/* Mismo estilo que conexiones.html: hoja de ruta arriba, una tarjeta por paso con su lista para tildar. */
+:root {
+  --bg: #f2f4f1; --surface: #ffffff; --surface-2: #f7f9f6; --ink: #1b2420; --muted: #5a6760;
+  --line: #d6ddd7; --line-strong: #9aa7a0; --copper: #b06a24;
+  --j1: #1d64c8; --j2: #c2410c; --both: #0e7f74;
+  --warn-bg: #fff3dc; --warn-ink: #6f4300; --warn-line: #e9b75a;
+  --info-bg: #e8f1fb; --info-ink: #173f6e; --info-line: #9cc0e6;
+  --ok: #1f7a4a; --now: #b06a24;
+  --f-disp: "Barlow Semi Condensed", "Arial Narrow", system-ui, sans-serif;
+  --f-body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "DejaVu Sans Mono", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111714; --surface: #18201c; --surface-2: #1d2621; --ink: #e3ebe6; --muted: #9caaa2;
+    --line: #2b3731; --line-strong: #56655d; --copper: #d9944f;
+    --j1: #6ea6ff; --j2: #ff8a4c; --both: #3ccfbf;
+    --warn-bg: #2d2412; --warn-ink: #f3cf8a; --warn-line: #7a5a1e;
+    --info-bg: #16243a; --info-ink: #b9d4f5; --info-line: #2f4f7a;
+    --ok: #4fcf8a; --now: #f0a24a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111714; --surface: #18201c; --surface-2: #1d2621; --ink: #e3ebe6; --muted: #9caaa2;
+  --line: #2b3731; --line-strong: #56655d; --copper: #d9944f;
+  --j1: #6ea6ff; --j2: #ff8a4c; --both: #3ccfbf;
+  --warn-bg: #2d2412; --warn-ink: #f3cf8a; --warn-line: #7a5a1e;
+  --info-bg: #16243a; --info-ink: #b9d4f5; --info-line: #2f4f7a;
+  --ok: #4fcf8a; --now: #f0a24a;
+  color-scheme: dark;
+}
+body { background: var(--bg); color: var(--ink); font: 400 16px/1.55 var(--f-body); margin: 0; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-inline: 16px; padding-block: 28px 64px; display: grid; gap: 40px; }
+h1, h2, h3 { font-family: var(--f-disp); line-height: 1.1; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(2rem, 5vw, 2.9rem); font-weight: 700; }
+h2 { font-size: 1.65rem; font-weight: 700; }
+h3 { font-size: 1.15rem; font-weight: 600; }
+p { margin: 0; max-width: 72ch; }
+code { font-family: var(--f-mono); font-size: .88em; background: var(--surface-2); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
+.eyebrow { font: 600 .78rem/1 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--copper); }
+header { display: grid; gap: 14px; }
+.lead { color: var(--muted); font-size: 1.08rem; }
+section { display: grid; gap: 16px; min-width: 0; }
+.sec-head { display: grid; gap: 6px; }
+.sec-head p { color: var(--muted); }
+.warnbox, .infobox { border-radius: 10px; padding: 12px 16px; font-size: .95rem; }
+.warnbox { background: var(--warn-bg); border: 1px solid var(--warn-line); color: var(--warn-ink); }
+.infobox { background: var(--info-bg); border: 1px solid var(--info-line); color: var(--info-ink); }
+
+/* Hoja de ruta */
+.track { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 0; counter-reset: none; }
+.track li { position: relative; display: grid; justify-items: center; gap: 6px; text-align: center; padding-top: 2px; }
+.track li::before { content: ""; position: absolute; top: 19px; left: 0; right: 0; height: 3px; background: var(--line); z-index: 0; }
+.track li:first-child::before { left: 50%; }
+.track li:last-child::before { right: 50%; }
+.track li.done::before { background: var(--ok); }
+.track a { text-decoration: none; color: inherit; display: grid; justify-items: center; gap: 6px; }
+.dot { position: relative; z-index: 1; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; font: 700 1rem var(--f-mono); background: var(--surface); border: 2px solid var(--line-strong); color: var(--muted); }
+.track li.done .dot { background: var(--ok); border-color: var(--ok); color: var(--surface); }
+.track li.now .dot { border-color: var(--now); color: var(--now); box-shadow: 0 0 0 4px color-mix(in srgb, var(--now) 25%, transparent); }
+.tname { font: 600 .9rem/1.2 var(--f-disp); }
+.tsub { font-size: .78rem; color: var(--muted); line-height: 1.25; }
+@media (max-width: 760px) {
+  .track { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .track li { grid-template-columns: 38px minmax(0, 1fr); justify-items: start; text-align: left; gap: 12px; }
+  .track li::before { top: 0; bottom: 0; left: 18px; right: auto; width: 3px; height: auto; }
+  .track li:first-child::before { left: 18px; top: 19px; }
+  .track li:last-child::before { right: auto; bottom: calc(100% - 19px); }
+  .track a { grid-column: 1 / -1; grid-template-columns: 38px minmax(0, 1fr); justify-items: start; align-items: center; gap: 12px; }
+}
+
+/* Tarjetas de paso */
+.step { background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--sc, var(--line-strong)); border-radius: 12px; padding: 18px 20px; display: grid; gap: 14px; scroll-margin-top: 16px; min-width: 0; }
+.step.now { box-shadow: 0 0 0 2px var(--now); }
+.step-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; align-items: start; }
+.num { font: 700 1.6rem/1 var(--f-mono); color: var(--sc, var(--muted)); }
+.step-head p { color: var(--muted); margin-top: 4px; }
+.state { font: 600 .75rem var(--f-mono); padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line-strong); color: var(--muted); white-space: nowrap; }
+.state.done { color: var(--ok); border-color: var(--ok); }
+.state.now { color: var(--now); border-color: var(--now); }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+.box { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; gap: 6px; align-content: start; }
+.box h4 { margin: 0; font: 600 .76rem var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.box ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: .95rem; }
+.tag { font: 600 .74rem var(--f-mono); padding: 1px 7px; border-radius: 999px; border: 1px solid currentColor; }
+.tag.j1 { color: var(--j1); } .tag.j2 { color: var(--j2); }
+
+/* Lista para tildar */
+.check { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.check li { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+.check label { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; padding: 9px 12px; cursor: pointer; align-items: start; }
+.check input { width: 18px; height: 18px; margin: 3px 0 0; accent-color: var(--ok); }
+.check input:focus-visible { outline: 2px solid var(--copper); outline-offset: 2px; }
+.check li:has(input:checked) { border-color: var(--ok); }
+.check li:has(input:checked) .ct { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--ok); }
+.progress { display: flex; align-items: center; gap: 10px; font: 600 .88rem var(--f-mono); color: var(--muted); }
+.bar { flex: 1; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; max-width: 260px; }
+.bar > div { height: 100%; width: 0; background: var(--ok); transition: width .25s; }
+@media (prefers-reduced-motion: reduce) { .bar > div { transition: none; } }
+
+/* Glosario y tabla */
+.gloss { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.gloss div { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; gap: 4px; }
+.gloss strong { font-family: var(--f-disp); font-size: 1.05rem; }
+.gloss span { color: var(--muted); font-size: .94rem; }
+.tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: .95rem; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 .76rem var(--f-mono); letter-spacing: .05em; text-transform: uppercase; color: var(--muted); background: var(--surface-2); }
+tr:last-child td { border-bottom: 0; }
+td.n { font-family: var(--f-mono); white-space: nowrap; }
+pre.diag { margin: 0; overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; font: 500 .86rem/1.5 var(--f-mono); }
+button.reset { font: 600 .88rem var(--f-body); color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 8px; padding: 7px 14px; cursor: pointer; justify-self: start; }
+button.reset:hover { border-color: var(--copper); }
+button.reset:focus-visible { outline: 2px solid var(--copper); outline-offset: 2px; }
+footer { color: var(--muted); font-size: .9rem; display: grid; gap: 4px; }
+</style>
+
+<div class="wrap">
+
+<header>
+  <span class="eyebrow">10-control-lazo-cerrado · hoja de ruta</span>
+  <h1>Lazo cerrado de J1 y J2: plan de trabajo</h1>
+  <p class="lead">Del cableado a las ganancias en el firmware del brazo, de a un paso. Cada paso se prueba en la placa antes de pasar al siguiente. Tildá las tareas a medida que las terminás: la hoja de ruta marca solo en qué paso estás.</p>
+</header>
+
+<section>
+  <ol class="track" id="track"></ol>
+</section>
+
+<section>
+  <div class="sec-head">
+    <h2>Qué vamos a construir</h2>
+    <p>Dos lazos, uno dentro del otro (cascada). Primero se ajusta el de adentro (velocidad) y recién después el de afuera (posición).</p>
+  </div>
+<pre class="diag">ángulo pedido ─► [P posición, 50 Hz] ─► velocidad pedida ─► [PI + zona muerta, 100 Hz] ─► PWM ─► motor
+                      ▲                                               ▲                            │
+                      │                                               │                            │
+                      └── posición ───────────────────────────────────┴── velocidad (encoder) ─────┘</pre>
+  <div class="gloss">
+    <div><strong>Lazo cerrado</strong><span>El ESP32 mide con el encoder lo que pasó, lo compara con lo pedido y corrige el PWM. En lazo abierto (06, 07, 08) solo mandábamos PWM sin mirar.</span></div>
+    <div><strong>Error</strong><span>Lo pedido menos lo medido. Todo el control trata de llevarlo a cero.</span></div>
+    <div><strong>P (proporcional, Kp)</strong><span>Corrige en proporción al error: mucho error, mucha corrección. Solo con P suele quedar un error chico que no se va.</span></div>
+    <div><strong>I (integral, Ki)</strong><span>Suma el error en el tiempo y empuja hasta borrarlo. Demasiado Ki hace que oscile.</span></div>
+    <div><strong>Zona muerta (feedforward)</strong><span>El motor no arranca con menos de cierto % de PWM. Se le suma ese % de entrada para que el PI no tenga que "descubrirlo".</span></div>
+    <div><strong>Anti-windup</strong><span>Si el PWM ya está al 100 %, se deja de sumar el error en la I; si no, al soltar se pasa de largo.</span></div>
+    <div><strong>Sobrepico</strong><span>Cuánto se pasa de lo pedido antes de asentarse. En un brazo conviene que sea chico o nulo.</span></div>
+    <div><strong>Escalón</strong><span>Cambiar lo pedido de golpe (por ejemplo de 0 a 60 rpm) y graficar cómo responde. Es la prueba básica para ajustar.</span></div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head">
+    <h2>Pasos</h2>
+  </div>
+  <div id="steps" style="display:grid; gap:18px"></div>
+  <button class="reset" id="reset" type="button">Desmarcar todo</button>
+</section>
+
+<section>
+  <div class="sec-head">
+    <h2>Datos de partida</h2>
+    <p>De las pruebas en lazo abierto (06, 07, 08) y de la identificación E5. Los que dicen "medir" salen de los pasos 1 y 3.</p>
+  </div>
+  <div class="tbl"><table>
+    <thead><tr><th></th><th>J1 · base giratoria</th><th>J2 · hombro</th></tr></thead>
+    <tbody>
+      <tr><td>Motor y driver</td><td>36GP-555 50:1 · IBT-2, 20 kHz</td><td>5840-31ZY sin fin · L298N modo freno</td></tr>
+      <tr><td>Encoder</td><td class="n">3200 cuentas / vuelta de salida</td><td class="n">4000 cuentas / vuelta</td></tr>
+      <tr><td>Modelo de velocidad</td><td class="n">1,58 / (0,065 s + 1)</td><td class="n">1,33 / (0,059 s + 1)</td></tr>
+      <tr><td>Zona muerta</td><td>~16 % sin carga, ~25 % con carga</td><td>entre 20 y 40 % · <b>medir</b></td></tr>
+      <tr><td>PI inicial (E5)</td><td class="n">Kp ≈ 0,41 · Ki ≈ 6,3</td><td class="n">Kp ≈ 0,44 · Ki ≈ 7,5</td></tr>
+      <tr><td>Límites</td><td class="n">±75°</td><td class="n">−25° … 135°</td></tr>
+      <tr><td>Transmisión a la articulación</td><td><b>medir</b></td><td><b>medir</b></td></tr>
+      <tr><td>Fuente</td><td>3 A</td><td>2 A (fusible de 2 A si va con J1)</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<footer>
+  <span>Detalle de cada paso y resultados: <code>README.md</code>. Cableado: <code>conexiones.html</code> y <code>CONEXIONES.md</code>. Destino de las ganancias: <code>recolector_de_frutas/firmware/brazo/include/brazo_config.h</code>.</span>
+  <span>Lo tildado se guarda solo en este navegador.</span>
+</footer>
+
+</div>
+
+<script>
+(() => {
+  // Cada paso: título, para qué, cómo se ve que está bien, cuidado, y tareas para tildar.
+  const pasos = [
+    { id: 'c', n: '—', t: 'Cableado', sub: 'J1 y J2 en la WROOM', c: 'both',
+      para: 'Dejar los dos motores conectados como en el robot, con las protecciones puestas.',
+      ok: ['Todas las casillas de <code>conexiones.html</code> tildadas', 'Sin cortos entre +12 V y GND (multímetro)'],
+      cuidado: ['Fuente: 3 A solo J1, 2 A solo J2, fusible de 2 A en el L298N si van juntos'],
+      tareas: [
+        'Cablear J1 (IBT-2 y encoder SCX-555) según <code>conexiones.html</code>',
+        'Cablear J2 (L298N canal A y encoder 38S6G5)',
+        'Poner las 4 resistencias de 10 kΩ: GPIO23 y 25 a GND, GPIO34 y 35 a 3V3',
+        'Opcional: medir R1/R2 de la SCX-555 (negro→verde y rojo→verde, sin alimentar, ~5 kΩ)',
+        'Revisión final de "Antes de encender" en <code>conexiones.html</code>'
+      ] },
+    { id: '0', n: '0', t: 'Sentido y signo', sub: 'motor y encoder de acuerdo', c: 'both',
+      para: 'Que "positivo" signifique lo mismo para el PWM, el encoder y la articulación. Si no coinciden, el lazo empuja para el lado equivocado y se dispara.',
+      ok: ['Duty positivo → cuentas que suben → la articulación gira hacia el lado que elegimos como positivo', 'Lo mismo en J1 y en J2'],
+      cuidado: ['Duty bajo (20–40 %) y pulsos cortos: el brazo está montado', 'Si el signo sale al revés se corrige en el firmware, no recableando'],
+      tareas: [
+        'Escribir el firmware base de 10: <code>platformio.ini</code> (esp32dev) y drivers enlazados por symlink',
+        'Comandos por serial: duty manual, leer cuentas, poner a cero, parar',
+        'Corte de seguridad por ángulo (no salir de los límites) aunque todavía sea en cuentas',
+        'Compilar y flashear con los 12 V apagados',
+        '<span class="tag j1">J1</span> girar a mano: las cuentas cambian (prueba de los pull-up en 34/35)',
+        '<span class="tag j1">J1</span> duty positivo corto: anotar si las cuentas suben o bajan y corregir el signo',
+        '<span class="tag j2">J2</span> duty positivo corto: lo mismo (el sin fin no se mueve a mano)',
+        'Elegir y anotar qué sentido es "ángulo positivo" en cada articulación',
+        'Revisión con Codex del firmware base'
+      ] },
+    { id: '1', n: '1', t: 'Transmisión', sub: 'cuentas → grados', c: 'both',
+      para: 'El encoder mide el eje del motor, pero lo que importa es el ángulo de la articulación. Hay que saber cuántas cuentas hay por grado.',
+      ok: ['Tres mediciones que dan casi lo mismo', 'Juego mecánico (ida y vuelta) medido y anotado'],
+      cuidado: ['Mover despacio y lejos de los límites'],
+      tareas: [
+        'Marcar una referencia en cada articulación (transportador o cinta)',
+        '<span class="tag j1">J1</span> mover un ángulo conocido, anotar cuentas: repetir 3 veces',
+        '<span class="tag j2">J2</span> lo mismo',
+        'Medir el juego: ir y volver al mismo punto y ver la diferencia',
+        'Pasar a <code>pins.h</code>/config las cuentas por grado y anotar en el README'
+      ] },
+    { id: '2', n: '2', t: 'PI de velocidad J1', sub: 'lazo interno', c: 'j1',
+      para: 'Que J1 siga una velocidad pedida aunque cambie la carga. Es la base del lazo de posición.',
+      ok: ['Llega a la velocidad pedida sin oscilar', 'Sobrepico chico (orientativo: menos de 10 %) y sin error permanente', 'Mismo comportamiento en los dos sentidos'],
+      cuidado: ['Escalones cortos o de ida y vuelta para no llegar a ±75°', 'Atasco → freno'],
+      tareas: [
+        'Implementar el PI a 100 Hz con zona muerta, anti-windup y saturación',
+        'Comando de escalón de velocidad y datos por serial (tiempo, pedido, medido, PWM)',
+        'Script <code>tools/</code> que guarda CSV + PNG en <code>resultados/</code>',
+        'Primer escalón con las ganancias de E5 (Kp 0,41 · Ki 6,3)',
+        'Ajustar Kp y Ki mirando las gráficas, de a un cambio por vez',
+        'Anotar las ganancias finales y una gráfica en el README'
+      ] },
+    { id: '3', n: '3', t: 'PI de velocidad J2', sub: 'sin fin y zona muerta', c: 'j2',
+      para: 'Lo mismo para J2. El sin fin tiene mucha fricción, así que primero hay que conocer bien su zona muerta.',
+      ok: ['Igual que en J1', 'Funciona con el brazo en distintos ángulos (la carga por peso cambia)'],
+      cuidado: ['Fuente en 2 A', 'Límites −25° … 135°'],
+      tareas: [
+        'Medir el umbral de arranque entre 20 y 40 % (subir de a 5 %), en los dos sentidos',
+        'Cargar esa zona muerta en el feedforward',
+        'Escalones con las ganancias de E5 (Kp 0,44 · Ki 7,5)',
+        'Ajustar Kp y Ki',
+        'Probar con el brazo en dos o tres ángulos distintos',
+        'Anotar ganancias, zona muerta y gráfica en el README'
+      ] },
+    { id: '4', n: '4', t: 'P de posición', sub: 'lazo externo', c: 'both',
+      para: 'Pedir un ángulo y que la articulación vaya, frene y se quede ahí sin pasarse.',
+      ok: ['Llega sin pasarse (o casi)', 'Error final chico (orientativo: menos de 1°)', 'Se queda quieta sin "zumbar"'],
+      cuidado: ['Velocidad máxima limitada al principio', 'Revisar antes el salto de 32 000 cuentas de <code>EncoderPCNT</code>'],
+      tareas: [
+        'Revisar/arreglar el salto falso de 32 000 cuentas en <code>EncoderPCNT</code>',
+        'Comando de cero manual (llevar a la marca y poner a cero)',
+        'P de posición a 50 Hz con saturación de velocidad',
+        '<span class="tag j1">J1</span> escalones de ángulo (por ejemplo 0 → 30° → −30°) y ajustar el P',
+        '<span class="tag j2">J2</span> lo mismo',
+        'Opcional: perfil trapezoidal (acelera, va constante, frena)',
+        'Anotar ganancias y gráficas'
+      ] },
+    { id: '5', n: '5', t: 'Perturbación y carga', sub: '¿corrige solo?', c: 'both',
+      para: 'Comprobar que el lazo de verdad corrige: si algo lo empuja, vuelve.',
+      ok: ['Al frenarlo con la mano y soltar, vuelve al ángulo sin oscilar', 'Con peso en la pinza llega igual (quizás más lento)'],
+      cuidado: ['Mano lejos de la pinza y de los engranajes'],
+      tareas: [
+        'Frenar suave con la mano y soltar, en J1 y en J2',
+        'Agregar un peso parecido al del limón y repetir los escalones',
+        'Si hace falta, retocar las ganancias',
+        'Anotar resultados'
+      ] },
+    { id: '6', n: '6', t: 'Al firmware del brazo', sub: 'integración', c: 'both',
+      para: 'Llevar lo ajustado al firmware real del robot, que ya tiene la cascada escrita.',
+      ok: ['El firmware del brazo mueve J1 y J2 igual que el de prueba'],
+      cuidado: ['Los arreglos de drivers se hacen en <code>recolector_de_frutas/firmware/lib</code>'],
+      tareas: [
+        'Pasar ganancias, zona muerta y cuentas por grado a <code>brazo_config.h</code>',
+        'Compilar y probar el firmware del brazo con J1 y J2',
+        'Actualizar el README y el estado en <code>CLAUDE.md</code>',
+        'Pendiente después: finales de carrera (GPIO 36 y 39) y homing'
+      ] }
+  ];
+
+  const KEY = 'plan-lazo-cerrado-v1';
+  let marcados = {};
+  try { marcados = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { marcados = {}; }
+  const guardar = () => { try { localStorage.setItem(KEY, JSON.stringify(marcados)); } catch (e) {} };
+  const col = c => c === 'j1' ? 'var(--j1)' : c === 'j2' ? 'var(--j2)' : 'var(--both)';
+  const lista = xs => '<ul>' + xs.map(x => '<li>' + x + '</li>').join('') + '</ul>';
+
+  document.getElementById('steps').innerHTML = pasos.map(p =>
+    '<article class="step" id="paso-' + p.id + '" style="--sc:' + col(p.c) + '">' +
+      '<div class="step-head"><span class="num">' + p.n + '</span>' +
+        '<div><h3>' + p.t + '</h3><p>' + p.para + '</p></div>' +
+        '<span class="state" id="s-' + p.id + '"></span></div>' +
+      '<div class="cols">' +
+        '<div class="box"><h4>Está bien cuando</h4>' + lista(p.ok) + '</div>' +
+        '<div class="box"><h4>Cuidado</h4>' + lista(p.cuidado) + '</div>' +
+      '</div>' +
+      '<div class="progress"><span id="p-' + p.id + '"></span><div class="bar"><div id="b-' + p.id + '"></div></div></div>' +
+      '<ul class="check">' + p.tareas.map((t, i) => {
+        const id = p.id + '-' + i;
+        return '<li><label for="' + id + '"><input type="checkbox" id="' + id + '"' + (marcados[id] ? ' checked' : '') + '><span class="ct">' + t + '</span></label></li>';
+      }).join('') + '</ul>' +
+    '</article>').join('');
+
+  function actualizar() {
+    let actual = -1;
+    pasos.forEach((p, k) => {
+      const n = p.tareas.length, h = p.tareas.filter((_, i) => marcados[p.id + '-' + i]).length;
+      p.hecho = h === n;
+      if (!p.hecho && actual < 0) actual = k;
+      document.getElementById('p-' + p.id).textContent = h + ' / ' + n;
+      document.getElementById('b-' + p.id).style.width = (100 * h / n) + '%';
+    });
+    document.getElementById('track').innerHTML = pasos.map((p, k) => {
+      const cls = p.hecho ? 'done' : (k === actual ? 'now' : '');
+      return '<li class="' + cls + '"><a href="#paso-' + p.id + '"><span class="dot">' + (p.hecho ? '✓' : p.n) + '</span>' +
+        '<span><span class="tname">' + p.t + '</span><br><span class="tsub">' + p.sub + '</span></span></a></li>';
+    }).join('');
+    pasos.forEach((p, k) => {
+      const s = document.getElementById('s-' + p.id), art = document.getElementById('paso-' + p.id);
+      s.className = 'state' + (p.hecho ? ' done' : k === actual ? ' now' : '');
+      s.textContent = p.hecho ? 'listo' : k === actual ? 'ahora' : 'pendiente';
+      art.classList.toggle('now', k === actual);
+    });
+  }
+
+  document.getElementById('steps').addEventListener('change', e => {
+    if (e.target.type !== 'checkbox') return;
+    marcados[e.target.id] = e.target.checked; guardar(); actualizar();
+  });
+  document.getElementById('reset').addEventListener('click', () => {
+    marcados = {}; guardar();
+    document.querySelectorAll('.check input').forEach(i => { i.checked = false; });
+    actualizar();
+  });
+  actualizar();
+})();
+</script>

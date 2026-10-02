@@ -139,7 +139,7 @@ svg text { font-family: var(--f-body); }
   <h1>Cableado del brazo: J1 y J2 en la ESP32-WROOM-32D</h1>
   <p class="lead">J1 (base giratoria) con el IBT-2 y J2 (hombro) con el L298N. Son los mismos pines que el firmware del brazo del robot, así lo que se ajuste acá pasa tal cual.</p>
   <div class="chips">
-    <span class="chip">Fuente de laboratorio <b>12,0 V</b> · límite <b>3 A</b></span>
+    <span class="chip">Fuente de laboratorio <b>12,0 V</b> · límite <b>2 A</b> si está J2</span>
     <span class="chip warn">Apagá los 12 V antes de flashear o pulsar EN</span>
     <span class="chip">DevKit de <b>30 pines</b> con CH340 · <b>/dev/ttyUSB0</b></span>
   </div>
@@ -181,7 +181,7 @@ svg text { font-family: var(--f-body); }
     <p>Los colores de los cables del motor y del encoder son los de la placa SCX-555. Si invertís blanco y amarillo, solo cambia el sentido de giro.</p>
   </div>
   <div class="fig"><svg id="d-j1" viewBox="0 0 960 530" role="img" aria-label="Esquema de J1: fuente, motor, IBT-2, encoder y ESP32"></svg></div>
-  <div class="warnbox">Los GPIO 34 y 35 no tienen pull-up interno. Sin las dos resistencias de 10 kΩ a 3V3, el encoder no cuenta. El encoder va a <b>3V3, no a 5 V</b>: con 5 V sus salidas quedarían a 5 V.</div>
+  <div class="warnbox">Los GPIO 34 y 35 no tienen pull-up interno. La placa SCX-555 parece traer los suyos (R1 y R2, código 512 = 5,1 kΩ, de A y B a Encoder+), pero poné igual las dos de 10 kΩ a 3V3: no molestan y así no dependés de la placa. Para confirmarlo, sin alimentar, medí de negro a verde y de rojo a verde: unos 5 kΩ. El encoder va a <b>3V3, no a 5 V</b>: con 5 V sus salidas quedarían a 5 V.</div>
   <div class="progress"><span id="p-j1">0 / 0</span><div class="bar"><div id="b-j1"></div></div></div>
   <ul class="check" id="c-j1"></ul>
 </section>
@@ -194,6 +194,7 @@ svg text { font-family: var(--f-body); }
   </div>
   <div class="fig"><svg id="d-j2" viewBox="0 0 960 500" role="img" aria-label="Esquema de J2: fuente, motor, L298N, encoder y ESP32"></svg></div>
   <div class="warnbox">Sacá el jumper de <b>ENA</b> y conectá el GPIO25 al pin de señal (el de adentro), no al de 5 V. El jumper <b>5V-EN</b> queda puesto y el borne de 5 V queda libre.</div>
+  <div class="warnbox">El L298N aguanta <b>2 A continuos por canal</b> (3 A solo como pico de 100 ms) y no tiene protección propia. Probando solo J2: límite de la fuente en <b>2 A</b>. Con J1 y J2 en la misma fuente, el límite es para la suma: poné un <b>fusible rápido de 2 A</b> en el cable de +12 V del L298N.</div>
   <div class="progress"><span id="p-j2">0 / 0</span><div class="bar"><div id="b-j2"></div></div></div>
   <ul class="check" id="c-j2"></ul>
 </section>
@@ -217,7 +218,7 @@ svg text { font-family: var(--f-body); }
     <thead><tr><th>Valor</th><th>Colores</th><th>Cant.</th><th>Dónde</th><th>Para qué</th></tr></thead>
     <tbody>
       <tr><td class="n">10 kΩ</td><td><span class="bands"><i style="background:#7b4a2a"></i><i style="background:#111"></i><i style="background:#e8730c"></i></span></td><td class="n">2</td><td>GPIO23 → GND · GPIO25 → GND</td><td>Pull-down: los drivers quedan apagados mientras el ESP32 arranca o se flashea</td></tr>
-      <tr><td class="n">10 kΩ</td><td><span class="bands"><i style="background:#7b4a2a"></i><i style="background:#111"></i><i style="background:#e8730c"></i></span></td><td class="n">2</td><td>GPIO34 → 3V3 · GPIO35 → 3V3</td><td>Pull-up del encoder de J1</td></tr>
+      <tr><td class="n">10 kΩ</td><td><span class="bands"><i style="background:#7b4a2a"></i><i style="background:#111"></i><i style="background:#e8730c"></i></span></td><td class="n">2</td><td>GPIO34 → 3V3 · GPIO35 → 3V3</td><td>Pull-up del encoder de J1 (recomendado: la SCX-555 parece traer 5,1 kΩ propios)</td></tr>
       <tr><td class="n">10 kΩ</td><td><span class="bands"><i style="background:#7b4a2a"></i><i style="background:#111"></i><i style="background:#e8730c"></i></span></td><td class="n">1</td><td>GPIO13 → GND</td><td>Pull-down de ENB (J3, después)</td></tr>
       <tr><td class="n">10 kΩ</td><td><span class="bands"><i style="background:#7b4a2a"></i><i style="background:#111"></i><i style="background:#e8730c"></i></span></td><td class="n">2</td><td>GPIO36 → 3V3 · GPIO39 → 3V3</td><td>Pull-up de los finales de carrera (después)</td></tr>
       <tr><td class="n">4,7 kΩ</td><td><span class="bands"><i style="background:#f2c200"></i><i style="background:#7a3fb0"></i><i style="background:#d22"></i></span></td><td class="n">0–4</td><td>GPIO32, 33, 18, 19 → 3V3</td><td>Opcional: pull-up más firme para los encoders de J2 y J3 si hay ruido</td></tr>
@@ -298,14 +299,14 @@ svg text { font-family: var(--f-body); }
     return '<circle class="mot" cx="' + cx + '" cy="' + cy + '" r="34"/>' + txt(cx, cy + 8, 'M', 'mot-t', 'middle') +
       txt(cx, cy + 56, l1, 'tl', 'middle') + txt(cx, cy + 72, l2, 'ts', 'middle');
   }
-  function fuente() {
-    return box(20, 20, 170, 70) + txt(32, 46, 'Fuente de laboratorio', 'tl') + txt(32, 66, '12,0 V · límite 3 A', 'ts') +
+  function fuente(lim) {
+    return box(20, 20, 170, 70) + txt(32, 46, 'Fuente de laboratorio', 'tl') + txt(32, 66, '12,0 V · límite ' + lim, 'ts') +
       term(190, 40, '+', 'right') + term(190, 70, '−', 'right');
   }
 
   // ---------- Esquema de J1 ----------
   let s = '';
-  s += fuente();
+  s += fuente('3 A');
   s += wire([[190, 40], [360, 40]], 'pwr');
   s += wire([[190, 70], [360, 70]], 'gnd') + dot(230, 70, 'gnd') + wire([[230, 70], [230, 96]], 'gnd') + gnd(230, 96);
   s += txt(244, 112, 'GND común', 'ts');
@@ -334,16 +335,19 @@ svg text { font-family: var(--f-body); }
   s += term(560, 350, 'Enc+', 'right') + term(560, 385, 'A', 'right') + term(560, 425, 'B', 'right') + term(560, 460, 'Enc−', 'right');
   s += wire([[560, 350], [600, 350]], 'w-green', { real: true }) + txt(582, 342, 'verde', 'wl', 'middle') + flag(600, 350, '3V3', 'right');
   s += wire([[560, 385], [780, 385]], 'w-black', { real: true }) + txt(600, 377, 'negro', 'wl', 'middle');
-  s += dot(670, 385, 'w-black') + wire([[670, 385], [670, 372]], 'v33') + res(670, 328, 44, '10 kΩ', 'right') + flag(670, 328, '3V3', 'up');
+  s += dot(670, 385, 'w-black') + wire([[670, 385], [670, 372]], 'v33') + res(670, 328, 44, '', 'left') + flag(670, 328, '3V3', 'up');
   s += wire([[560, 425], [780, 425]], 'w-red', { real: true }) + txt(600, 417, 'rojo', 'wl', 'middle');
-  s += dot(730, 425, 'w-red') + wire([[730, 425], [730, 438]], 'v33') + res(730, 438, 40, '10 kΩ', 'left') + flag(730, 478, '3V3', 'down');
+  // El pull-up de B también sube a 3V3: salta el cable de A (puente = sin conexión)
+  s += dot(730, 425, 'w-red') + '<path class="w" d="M730 425 V393 A8 8 0 0 1 730 377 V372" style="stroke:var(--v33);stroke-width:2.5"/>' +
+    res(730, 328, 44, '', 'right') + flag(730, 328, '3V3', 'up');
+  s += txt(700, 290, 'pull-up de 10 kΩ: A y B a 3V3', 'wl', 'middle');
   s += wire([[560, 460], [600, 460], [600, 470]], 'w-blue', { real: true }) + txt(582, 452, 'azul', 'wl', 'middle') + gnd(600, 470);
   document.getElementById('d-j1').innerHTML = s;
 
   // ---------- Esquema de J2 ----------
   s = '';
-  s += fuente();
-  s += wire([[190, 40], [360, 40]], 'pwr');
+  s += fuente('2 A');
+  s += wire([[190, 40], [360, 40]], 'pwr') + txt(275, 32, 'fusible 2 A si va con J1', 'wl', 'middle');
   s += wire([[190, 70], [360, 70]], 'gnd') + dot(230, 70, 'gnd') + wire([[230, 70], [230, 96]], 'gnd') + gnd(230, 96);
   s += txt(244, 112, 'GND común', 'ts');
   s += wire([[360, 100], [340, 100]], 'pin-off', { dash: true }) + txt(334, 104, 'libre', 'wl', 'end');
@@ -461,14 +465,15 @@ svg text { font-family: var(--f-body); }
     ],
     pre: [
       'Pin <b>3V3</b> del ESP32 al riel 3V3 · pin <b>GND</b> al riel GND',
-      'Fuente en <b>12,0 V</b> con límite de <b>3 A</b> y la salida apagada',
+      'Fuente en <b>12,0 V</b> y la salida apagada · límite <b>3 A</b> solo J1, <b>2 A</b> solo J2',
+      'Con J1 y J2 juntos: <b>fusible rápido de 2 A</b> en el +12 V del L298N (límite de la fuente en 3 A)',
       'Multímetro en continuidad: <b>no hay corto</b> entre +12 V y GND',
       'Multímetro en continuidad: el GND de la fuente, de los dos drivers y del ESP32 están unidos',
       'Ningún cable de 5 V o 12 V llega a un GPIO',
       'Flashear con los 12 V apagados · recién después encender la fuente'
     ]
   };
-  const KEY = 'cableado-j1j2-v1';
+  const KEY = 'cableado-j1j2-v2';
   let marcados = {};
   try { marcados = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { marcados = {}; }
   const guardar = () => { try { localStorage.setItem(KEY, JSON.stringify(marcados)); } catch (e) {} };

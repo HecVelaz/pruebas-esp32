@@ -30,7 +30,8 @@ Las del brazo del robot (`recolector_de_frutas/docs/conexiones.html`), todo en l
 `include/pins.h`. **Cableado completo** (motor → driver → ESP32, tracción, bumpers y lista de resistencias) en
 [`CONEXIONES.md`](CONEXIONES.md). Diagrama para cablear (mapa de la placa, esquemas de J1 y J2 con las
 resistencias y lista para tildar): [`conexiones.html`](conexiones.html), abrir en el navegador. Fuente:
-laboratorio a 12 V con límite de 3 A.
+laboratorio a 12 V: límite de 3 A con J1, 2 A con J2 sola y fusible de 2 A en el L298N si van los dos juntos
+(ver `CONEXIONES.md`).
 
 | GPIO | Conecta a | Nota |
 |------|-----------|------|
@@ -46,7 +47,7 @@ laboratorio a 12 V con límite de 3 A.
 
 ## Plan paso a paso
 
-Cada paso se prueba en la placa antes de pasar al siguiente.
+Cada paso se prueba en la placa antes de pasar al siguiente. Hoja de ruta con las tareas de cada paso, para tildar: [`plan.html`](plan.html).
 
 | Paso | Qué | Para qué |
 |------|-----|----------|
