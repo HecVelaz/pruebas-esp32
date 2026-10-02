@@ -12,7 +12,7 @@ constexpr float J1_CUENTAS_POR_VUELTA = 16.0f * 4.0f * 50.0f;
 //    revés del sentido positivo de q1 (antihorario visto desde arriba). Invierte motor y encoder juntos,
 //    así siguen de acuerdo.
 constexpr bool J1_ENCODER_INVERTIDO = false;
-constexpr bool J1_SENTIDO_INVERTIDO = false;
+constexpr bool J1_SENTIDO_INVERTIDO = true;   // prueba 0 (2026-10-02): duty + giraba horario
 
 // PWM del IBT-2 (igual que en 06)
 constexpr uint32_t J1_PWM_FREQ_HZ = 20000;

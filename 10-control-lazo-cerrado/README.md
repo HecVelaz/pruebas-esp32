@@ -65,7 +65,7 @@ conocida y mandar un comando de cero.
 
 ## Estado
 
-- [ ] Paso 0: cableado verificado
+- [x] Paso 0 J1 (2026-10-02): encoder normal, sentido INVERTIDO (`J1_SENTIDO_INVERTIDO = true`). J2: pendiente
 - [ ] Paso 1: transmisión J1 = ? · J2 = ?
 - [ ] Paso 2: PI de velocidad J1 (Kp = ?, Ki = ?)
 - [ ] Paso 3: PI de velocidad J2 (Kp = ?, Ki = ?, zona muerta = ?)
@@ -79,4 +79,4 @@ conocida y mandar un comando de cero.
 
 | Fecha | Paso | Resultado |
 |-------|------|-----------|
-| | | |
+| 2026-10-02 | 0 (J1) | Con duty + las cuentas suben (encoder normal), pero la base giraba horario → `J1_SENTIDO_INVERTIDO = true`. Verificado tras reflashear: `p 30 300` antihorario OK, `p -30 300` horario OK. `p 25 100`: solo 13 cuentas (1,5° de salida) en 0,1 s; con 30 % se mueve bien. Encoder en reposo A=0 B=1 |
