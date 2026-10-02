@@ -47,7 +47,7 @@ laboratorio a 12 V: límite de 3 A con J1, 2 A con J2 sola y fusible de 2 A en e
 
 ## Plan paso a paso
 
-Cada paso se prueba en la placa antes de pasar al siguiente. Hoja de ruta con las tareas de cada paso, para tildar: [`plan.html`](plan.html).
+Cada paso se prueba en la placa antes de pasar al siguiente. Hoja de ruta con las tareas de cada paso, para tildar: [`plan.html`](plan.html). Plan **solo de J1**, más simple y para seguir paso a paso: [`plan_j1.html`](plan_j1.html).
 
 | Paso | Qué | Para qué |
 |------|-----|----------|

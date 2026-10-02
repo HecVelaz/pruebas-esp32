@@ -1,0 +1,291 @@
+<title>Plan J1 base</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@600;700&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@500;600&display=swap">
+<style>
+/* Plan solo de J1: una tarjeta por paso, en orden, con lo que se hace, lo que se ve y lo que se anota. */
+:root {
+  --bg: #f2f4f1; --surface: #ffffff; --surface-2: #f7f9f6; --ink: #1b2420; --muted: #5a6760;
+  --line: #d6ddd7; --line-strong: #9aa7a0; --copper: #b06a24; --j1: #1d64c8;
+  --warn-bg: #fff3dc; --warn-ink: #6f4300; --warn-line: #e9b75a;
+  --ok: #1f7a4a; --now: #b06a24; --code-bg: #eef2ee;
+  --f-disp: "Barlow Semi Condensed", "Arial Narrow", system-ui, sans-serif;
+  --f-body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "DejaVu Sans Mono", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111714; --surface: #18201c; --surface-2: #1d2621; --ink: #e3ebe6; --muted: #9caaa2;
+    --line: #2b3731; --line-strong: #56655d; --copper: #d9944f; --j1: #6ea6ff;
+    --warn-bg: #2d2412; --warn-ink: #f3cf8a; --warn-line: #7a5a1e;
+    --ok: #4fcf8a; --now: #f0a24a; --code-bg: #121a16;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111714; --surface: #18201c; --surface-2: #1d2621; --ink: #e3ebe6; --muted: #9caaa2;
+  --line: #2b3731; --line-strong: #56655d; --copper: #d9944f; --j1: #6ea6ff;
+  --warn-bg: #2d2412; --warn-ink: #f3cf8a; --warn-line: #7a5a1e;
+  --ok: #4fcf8a; --now: #f0a24a; --code-bg: #121a16;
+  color-scheme: dark;
+}
+body { background: var(--bg); color: var(--ink); font: 400 16.5px/1.6 var(--f-body); margin: 0; }
+.wrap { max-width: 900px; margin: 0 auto; padding-inline: 16px; padding-block: 28px 64px; display: grid; gap: 32px; }
+h1, h2, h3 { font-family: var(--f-disp); line-height: 1.1; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(2rem, 5vw, 2.7rem); font-weight: 700; }
+h2 { font-size: 1.55rem; font-weight: 700; }
+h3 { font-size: 1.05rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-family: var(--f-mono); font-size: .76rem; }
+p { margin: 0; }
+code, kbd { font-family: var(--f-mono); font-size: .88em; background: var(--code-bg); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; }
+pre { margin: 0; overflow-x: auto; background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font: 500 .84rem/1.5 var(--f-mono); }
+.eyebrow { font: 600 .78rem/1 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--j1); }
+header { display: grid; gap: 12px; }
+.lead { color: var(--muted); font-size: 1.08rem; }
+.warnbox { background: var(--warn-bg); border: 1px solid var(--warn-line); color: var(--warn-ink); border-radius: 10px; padding: 12px 16px; font-size: .95rem; }
+
+/* Mapa de pasos */
+.track { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.track li { position: relative; display: grid; justify-items: center; text-align: center; }
+.track li::before { content: ""; position: absolute; top: 18px; left: 0; right: 0; height: 3px; background: var(--line); }
+.track li:first-child::before { left: 50%; }
+.track li:last-child::before { right: 50%; }
+.track li.done::before { background: var(--ok); }
+.track a { position: relative; text-decoration: none; color: inherit; display: grid; justify-items: center; gap: 6px; }
+.dot { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font: 700 .95rem var(--f-mono); background: var(--surface); border: 2px solid var(--line-strong); color: var(--muted); }
+.track li.done .dot { background: var(--ok); border-color: var(--ok); color: var(--surface); }
+.track li.now .dot { border-color: var(--now); color: var(--now); box-shadow: 0 0 0 4px color-mix(in srgb, var(--now) 25%, transparent); }
+.tname { font: 600 .86rem/1.15 var(--f-disp); }
+@media (max-width: 680px) {
+  .track { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .track li { justify-items: start; text-align: left; }
+  .track li::before { top: 0; bottom: 0; left: 17px; right: auto; width: 3px; height: auto; }
+  .track li:first-child::before { top: 18px; left: 17px; }
+  .track li:last-child::before { bottom: calc(100% - 18px); right: auto; }
+  .track a { grid-template-columns: 36px minmax(0, 1fr); align-items: center; justify-items: start; gap: 12px; }
+}
+
+/* Pasos */
+.step { background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--j1); border-radius: 12px; padding: 18px 20px; display: grid; gap: 16px; scroll-margin-top: 12px; min-width: 0; }
+.step.now { box-shadow: 0 0 0 2px var(--now); }
+.step.done { border-left-color: var(--ok); }
+.step-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; align-items: start; }
+.num { font: 700 1.7rem/1 var(--f-mono); color: var(--j1); }
+.state { font: 600 .74rem var(--f-mono); padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line-strong); color: var(--muted); white-space: nowrap; }
+.state.done { color: var(--ok); border-color: var(--ok); }
+.state.now { color: var(--now); border-color: var(--now); }
+.simple { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; gap: 6px; }
+.part { display: grid; gap: 8px; }
+.check { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; counter-reset: paso; }
+.check li { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; counter-increment: paso; }
+.check label { display: grid; grid-template-columns: 22px 1.6em minmax(0, 1fr); gap: 8px; padding: 9px 12px; cursor: pointer; align-items: start; }
+.check label::after { content: none; }
+.check .nn { font: 600 .85rem/1.6 var(--f-mono); color: var(--muted); }
+.check .nn::before { content: counter(paso) "."; }
+.check input { width: 18px; height: 18px; margin: 3px 0 0; accent-color: var(--ok); }
+.check input:focus-visible, .notes input:focus-visible { outline: 2px solid var(--copper); outline-offset: 2px; }
+.check li:has(input:checked) { border-color: var(--ok); }
+.check li:has(input:checked) .ct { color: var(--muted); }
+.ct { display: grid; gap: 6px; min-width: 0; }
+.ct small { color: var(--muted); font-size: .9rem; }
+.ok-list { margin: 0; padding-left: 20px; display: grid; gap: 3px; }
+.notes { display: grid; gap: 8px; }
+.notes label { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 220px); gap: 10px; align-items: center; font-size: .95rem; }
+.notes input { font: 500 .92rem var(--f-mono); color: var(--ink); background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 6px; padding: 6px 8px; width: 100%; box-sizing: border-box; }
+@media (max-width: 560px) { .notes label { grid-template-columns: minmax(0, 1fr); gap: 4px; } }
+.progress { display: flex; align-items: center; gap: 10px; font: 600 .86rem var(--f-mono); color: var(--muted); }
+.bar { flex: 1; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; max-width: 240px; }
+.bar > div { height: 100%; width: 0; background: var(--ok); transition: width .25s; }
+@media (prefers-reduced-motion: reduce) { .bar > div { transition: none; } }
+.later { color: var(--muted); font-style: italic; font-size: .93rem; }
+button.reset { font: 600 .88rem var(--f-body); color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 8px; padding: 7px 14px; cursor: pointer; justify-self: start; }
+button.reset:hover { border-color: var(--copper); }
+button.reset:focus-visible { outline: 2px solid var(--copper); outline-offset: 2px; }
+footer { color: var(--muted); font-size: .9rem; display: grid; gap: 4px; }
+</style>
+
+<div class="wrap">
+
+<header>
+  <span class="eyebrow">10-control-lazo-cerrado · solo J1</span>
+  <h1>Lazo cerrado de la base (J1), paso a paso</h1>
+  <p class="lead">Solo el motor de la base: 36GP-555 con el IBT-2. J2 queda desconectado. Cada paso tiene qué es en simple, qué hacés, cómo saber que salió bien y qué anotar. Hacelos en orden: no pases al siguiente sin terminar el anterior.</p>
+  <div class="warnbox"><b>Siempre:</b> fuente en 12,0 V con límite de 3 A · ruedas trabadas · mano en el botón de salida de la fuente · <b>12 V apagados para flashear</b> · nadie cerca del brazo.</div>
+</header>
+
+<section>
+  <ol class="track" id="track"></ol>
+</section>
+
+<div id="steps" style="display:grid; gap:20px"></div>
+
+<button class="reset" id="reset" type="button">Borrar todo lo tildado y anotado</button>
+
+<footer>
+  <span>Cableado: <code>conexiones.html</code> (sección J1). Plan general de J1 y J2: <code>plan.html</code>. Detalle y resultados: <code>README.md</code>.</span>
+  <span>Lo tildado y anotado se guarda solo en este navegador: pasame los valores para dejarlos en el firmware y el README.</span>
+</footer>
+
+</div>
+
+<script>
+(() => {
+  // h: qué hacés (con explicación corta), ok: está bien si, notas: qué anotar (id, etiqueta, ejemplo)
+  const pasos = [
+    { id: 'prep', n: 'A', t: 'Preparar',
+      simple: 'Dejar el motor de la base conectado y el robot en un lugar seguro antes de mover nada.',
+      h: [
+        ['Cablear solo la sección <b>J1</b> de <code>conexiones.html</code>', 'IBT-2, encoder SCX-555 y GND común: el (−) de la fuente también al riel GND.'],
+        ['Poner las 3 resistencias de 10 kΩ: <code>GPIO23 → GND</code>, <code>GPIO34 → 3V3</code>, <code>GPIO35 → 3V3</code>', 'La de GPIO23 deja el motor apagado mientras el ESP32 arranca.'],
+        ['Multímetro en continuidad: <b>no hay corto</b> entre +12 V y GND', ''],
+        ['Marcar el <b>frente</b> de la base (0°) con una raya en la parte fija y otra en la que gira', 'Esa marca es el cero de J1. Está a 75° de cada tope.'],
+        ['Trabar las ruedas o apoyar el robot contra algo firme', '']
+      ],
+      ok: ['Todo cableado, sin cortos', 'La base apunta al frente, en su marca'],
+      notas: [] },
+
+    { id: '0', n: '0', t: 'Sentido y signo',
+      simple: 'Comprobar que "positivo" signifique lo mismo para el motor, el encoder y la base (positivo = <b>antihorario visto desde arriba</b>). Si no coinciden, el lazo cerrado empujaría para el lado equivocado y la base se dispararía.',
+      h: [
+        ['Con los 12 V apagados, abrir el monitor', '<pre>cd ~/Documentos/pruebas-esp32/10-control-lazo-cerrado\n~/.platformio/penv/bin/pio device monitor</pre>'],
+        ['Escribir <kbd>e</kbd> y girar con el dedo el <b>disco negro del imán</b>, atrás del motor', 'Las cuentas tienen que subir para un lado y bajar para el otro (64 por vuelta del disco). Enter para salir. Si no llegás al disco, saltá este paso.'],
+        ['Base en su marca y escribir <kbd>z</kbd>', 'Pone las cuentas a cero. Sin esto el firmware no deja dar pulsos.'],
+        ['Encender los 12 V y mandar <kbd>p 25 100</kbd>', 'Es 25 % de potencia durante 0,1 s: la base se mueve unos pocos grados. Mirá para qué lado gira, desde arriba. Si dice "Casi no giró", probá <kbd>p 30 100</kbd>.'],
+        ['Si dice <i>"Las cuentas van al REVÉS"</i>: escribir <kbd>ie</kbd> y repetir el pulso', 'Invierte la lectura del encoder. Tiene que pasar a decir OK.'],
+        ['Si dice OK pero la base giró <b>horario</b>: escribir <kbd>is</kbd> y repetir el pulso', 'Invierte motor y encoder juntos. Tiene que girar antihorario y decir OK.'],
+        ['Mandar <kbd>p -25 100</kbd>', 'Tiene que girar <b>horario</b>, las cuentas bajar y decir OK.'],
+        ['Pasarme los dos valores: los dejo fijos en <code>config.h</code> y reflasheo', '<kbd>ie</kbd> e <kbd>is</kbd> se pierden al reiniciar la placa.']
+      ],
+      ok: ['<kbd>p 25 100</kbd> → OK, cuentas suben, gira antihorario', '<kbd>p -25 100</kbd> → OK, cuentas bajan, gira horario'],
+      notas: [['enc', 'Encoder (normal / INVERTIDO)', 'normal'], ['sen', 'Sentido (normal / INVERTIDO)', 'normal'], ['arr', 'Duty con el que arrancó (%)', '25']] },
+
+    { id: '1', n: '1', t: 'Transmisión',
+      simple: 'El encoder está en el motor, pero lo que nos importa es el ángulo de la base. Hay que medir <b>cuántas cuentas hay por cada grado de la base</b>, para poder pedirle "andá a 30°".',
+      h: [
+        ['Pegar un transportador (o una hoja con ángulos marcados) en la parte fija, centrado en el eje de la base', ''],
+        ['Base en la marca, <kbd>z</kbd>', ''],
+        ['Con pulsos cortos, llevar la base a <b>+30°</b> según el transportador y anotar las cuentas', 'El firmware de este paso tendrá un comando para moverla despacio; lo escribo cuando termines el paso 0.'],
+        ['Volver a 0° y repetir dos veces más', 'Si las tres mediciones dan casi lo mismo, la medición es buena.'],
+        ['Ir a +30° y volver a 0° desde el otro lado: anotar la diferencia', 'Es el <b>juego</b> (holgura) de la mecánica: cuánto se mueve el motor sin que la base se mueva.']
+      ],
+      ok: ['Las tres mediciones difieren en menos de ~2 %', 'Sabemos cuántas cuentas son 1° de la base'],
+      notas: [['c30a', 'Cuentas a +30° (1.ª)', ''], ['c30b', 'Cuentas a +30° (2.ª)', ''], ['c30c', 'Cuentas a +30° (3.ª)', ''], ['juego', 'Juego (cuentas o grados)', '']] },
+
+    { id: '2', n: '2', t: 'Control de velocidad',
+      simple: 'El primer lazo cerrado: le pedimos una velocidad (por ejemplo 20 rpm) y el ESP32 ajusta solo el PWM para mantenerla, aunque cambie la carga. Se ajustan dos números: <b>Kp</b> (cuánto corrige según el error) y <b>Ki</b> (cuánto insiste hasta que el error sea cero).',
+      h: [
+        ['Fijar las <b>especificaciones</b> del lazo de velocidad y anotarlas abajo', 'Qué le exigimos antes de ajustar: tiempo de establecimiento (por ejemplo 0,2 s), sobrepico máximo (por ejemplo 10 %) y error final (0). Son la vara para decir "está bien".'],
+        ['<b>Diseño teórico</b>: calcular Kp y Ki con el modelo de la E5 para cumplir esas especificaciones (lo hago yo en un script de <code>tools/</code>)', 'Modelo de J1: G = 1,58 / (0,065 s + 1) [rpm/%]. Es la justificación de las ganancias para el informe, como el LGR de la Entrega 6 de 2025.'],
+        ['<b>Simular</b> el escalón con esas ganancias y guardar la gráfica', 'Así sabemos qué esperar antes de mover el motor.'],
+        ['Flashear el firmware del paso 2 (lo escribo yo)', 'Control de velocidad a 100 Hz, con la zona muerta y las protecciones.'],
+        ['Base en la marca, <kbd>z</kbd>', ''],
+        ['Hacer un <b>escalón</b>: pedir de golpe una velocidad baja y graficar', 'El script guarda un CSV y un PNG en <code>resultados/</code>. Los movimientos van y vuelven para no llegar a los topes.'],
+        ['Primero con las ganancias del diseño teórico (las de la E5 eran Kp = 0,41 · Ki = 6,3)', ''],
+        ['<b>Comparar real contra simulación</b> en la misma gráfica', 'Si se parecen, el modelo sirve. Si no, se ve dónde difiere (zona muerta, carga, juego).'],
+        ['Mirar la gráfica: ¿cumple las especificaciones? ¿se pasa? ¿oscila?', 'Si oscila: bajar Ki. Si es lenta: subir Kp. De a un cambio por vez.'],
+        ['Probar los dos sentidos', '']
+      ],
+      ok: ['Cumple las especificaciones: tiempo de establecimiento, sobrepico y error final', 'La respuesta real se parece a la simulada', 'Igual en los dos sentidos'],
+      notas: [['ts2', 'Especificación: tiempo de establecimiento (s)', '0,2'], ['mp2', 'Especificación: sobrepico máximo (%)', '10'], ['kpt', 'Kp teórico', ''], ['kit', 'Ki teórico', ''], ['kp', 'Kp final', ''], ['ki', 'Ki final', ''], ['png2', 'Gráfica real vs. simulada (PNG)', '']] },
+
+    { id: '3', n: '3', t: 'Control de posición',
+      simple: 'El segundo lazo, por encima del de velocidad: le pedimos un ángulo (por ejemplo 30°) y la base va, frena y se queda ahí. Se ajusta un número, <b>Kp de posición</b>, y una velocidad máxima.',
+      h: [
+        ['Fijar las <b>especificaciones</b> del lazo de posición', 'Para un brazo: sobrepico 0 % (no pasarse del ángulo), tiempo de establecimiento (por ejemplo 1 s para 20°) y error final menor a ~1°.'],
+        ['<b>Diseño teórico y simulación</b> del Kp de posición (lo hago yo)', 'Con el lazo de velocidad ya cerrado como modelo. Sale el Kp y la gráfica simulada.'],
+        ['Flashear el firmware del paso 3 (lo escribo yo)', 'Incluye el arreglo del salto falso de 32 000 cuentas del encoder.'],
+        ['Base en la marca, <kbd>z</kbd>', ''],
+        ['Pedir 0° → 20° → −20° → 0° con velocidad máxima baja', ''],
+        ['<b>Comparar real contra simulación</b> y ajustar el Kp de posición', 'Si se pasa del ángulo: bajarlo. Si llega muy lento: subirlo.'],
+        ['Probar ángulos más grandes, sin pasar de ±60°', 'Los topes están en ±75°.']
+      ],
+      ok: ['Cumple las especificaciones: sin pasarse, a tiempo, error final menor a ~1°', 'La respuesta real se parece a la simulada', 'Se queda quieta, sin zumbar'],
+      notas: [['ts3', 'Especificación: tiempo de establecimiento (s)', '1'], ['kppt', 'Kp de posición teórico', ''], ['kpp', 'Kp de posición final', ''], ['vmax', 'Velocidad máxima (°/s)', ''], ['err', 'Error final típico (°)', ''], ['png3', 'Gráfica real vs. simulada (PNG)', '']] },
+
+    { id: '4', n: '4', t: 'Perturbación',
+      simple: 'Comprobar que el lazo de verdad corrige: si algo empuja la base, vuelve sola a su ángulo.',
+      h: [
+        ['Con la base quieta en 0°, frenarla suave con la mano y soltar', 'Mano lejos de engranajes.'],
+        ['Agregar un peso en la pinza parecido al de un limón y repetir los ángulos del paso 3', ''],
+        ['Si hace falta, retocar las ganancias', ''],
+        ['<b>Grabar el video de la demo</b>: escalones de ángulo y la perturbación con la mano', 'Para la Entrega 6, como los videos del informe de 2025. Que se vea la base y, si se puede, la gráfica en la pantalla.'],
+        ['Revisar que estén guardados los <b>CSV y PNG</b> de cada prueba en <code>resultados/</code>', 'Son los datos experimentales del informe.']
+      ],
+      ok: ['Vuelve al ángulo sin oscilar', 'Con peso llega igual (quizás más lento)', 'Hay video, CSV y gráficas para el informe'],
+      notas: [['pert', 'Observaciones', ''], ['video', 'Video (archivo o enlace)', '']] },
+
+    { id: '5', n: '5', t: 'Al robot',
+      simple: 'Pasar los números que encontramos al firmware real del brazo, que ya tiene el control escrito.',
+      h: [
+        ['Pasar signos, cuentas por grado, Kp, Ki y Kp de posición a <code>brazo_config.h</code> (lo hago yo)', ''],
+        ['Probar el firmware del brazo con J1: mismo comportamiento que acá', ''],
+        ['Anotar todo en el README y en <code>CLAUDE.md</code>', '']
+      ],
+      ok: ['El firmware del robot mueve la base igual que el de prueba'],
+      notas: [] }
+  ];
+
+  const KEY = 'plan-j1-v1';
+  let st = { c: {}, n: {} };
+  try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s && s.c && s.n) st = s; } catch (e) {}
+  const guardar = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} };
+  const esc = s => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+
+  document.getElementById('steps').innerHTML = pasos.map(p =>
+    '<article class="step" id="paso-' + p.id + '">' +
+      '<div class="step-head"><span class="num">' + p.n + '</span><h2>' + p.t + '</h2><span class="state" id="s-' + p.id + '"></span></div>' +
+      '<div class="simple"><h3>En simple</h3><p>' + p.simple + '</p></div>' +
+      '<div class="part"><h3>Qué hacés</h3>' +
+        '<div class="progress"><span id="p-' + p.id + '"></span><div class="bar"><div id="b-' + p.id + '"></div></div></div>' +
+        '<ol class="check">' + p.h.map(([t, d], i) => {
+          const id = p.id + '-' + i;
+          return '<li><label for="' + id + '"><input type="checkbox" id="' + id + '"' + (st.c[id] ? ' checked' : '') + '>' +
+            '<span class="nn"></span><span class="ct"><span>' + t + '</span>' + (d ? '<small>' + d + '</small>' : '') + '</span></label></li>';
+        }).join('') + '</ol></div>' +
+      '<div class="part"><h3>Está bien si</h3><ul class="ok-list">' + p.ok.map(x => '<li>' + x + '</li>').join('') + '</ul></div>' +
+      (p.notas.length ? '<div class="part"><h3>Anotá</h3><div class="notes">' + p.notas.map(([k, l, ph]) => {
+          const id = 'n-' + p.id + '-' + k;
+          return '<label for="' + id + '">' + l + '<input id="' + id + '" data-k="' + id + '" placeholder="' + esc(ph ? 'ej. ' + ph : '') + '" value="' + esc(st.n[id] || '') + '"></label>';
+        }).join('') + '</div></div>' : '') +
+    '</article>').join('');
+
+  function actualizar() {
+    let actual = -1;
+    pasos.forEach((p, k) => {
+      const n = p.h.length, h = p.h.filter((_, i) => st.c[p.id + '-' + i]).length;
+      p.hecho = h === n;
+      if (!p.hecho && actual < 0) actual = k;
+      document.getElementById('p-' + p.id).textContent = h + ' / ' + n;
+      document.getElementById('b-' + p.id).style.width = (100 * h / n) + '%';
+    });
+    document.getElementById('track').innerHTML = pasos.map((p, k) => {
+      const cls = p.hecho ? 'done' : (k === actual ? 'now' : '');
+      return '<li class="' + cls + '"><a href="#paso-' + p.id + '"><span class="dot">' + (p.hecho ? '✓' : p.n) + '</span><span class="tname">' + p.t + '</span></a></li>';
+    }).join('');
+    pasos.forEach((p, k) => {
+      const s = document.getElementById('s-' + p.id), art = document.getElementById('paso-' + p.id);
+      const now = k === actual;
+      s.className = 'state' + (p.hecho ? ' done' : now ? ' now' : '');
+      s.textContent = p.hecho ? 'listo' : now ? 'ahora' : 'después';
+      art.classList.toggle('now', now);
+      art.classList.toggle('done', p.hecho);
+    });
+  }
+
+  const steps = document.getElementById('steps');
+  steps.addEventListener('change', e => {
+    if (e.target.type === 'checkbox') { st.c[e.target.id] = e.target.checked; guardar(); actualizar(); }
+  });
+  steps.addEventListener('input', e => {
+    if (e.target.dataset.k) { st.n[e.target.dataset.k] = e.target.value; guardar(); }
+  });
+  document.getElementById('reset').addEventListener('click', () => {
+    if (!confirm('¿Borrar todo lo tildado y anotado?')) return;
+    st = { c: {}, n: {} }; guardar();
+    document.querySelectorAll('.check input').forEach(i => { i.checked = false; });
+    document.querySelectorAll('.notes input').forEach(i => { i.value = ''; });
+    actualizar();
+  });
+  actualizar();
+})();
+</script>
