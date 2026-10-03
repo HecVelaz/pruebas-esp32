@@ -38,10 +38,12 @@ constexpr int32_t J1_AVANCE_MIN = 3;          // la base tiene que avanzar al me
 constexpr float J1_DUTY_MOVER_PCT = 30.0f;    // con 25 % casi no arranca con la carga del brazo
 constexpr uint32_t J1_MOVER_MAX_MS = 15000;   // a 30 % la base va a ~10-15 °/s
 
-// Paso 2: PI de velocidad de la base (tools/diseno_velocidad.py, cancelación de polo con Ti = tau)
-// Especificación: ts(2 %) = 0,25 s, sobrepico 0, error final 0. Modelo: K = 1,90 (°/s)/%, tau = 65 ms.
+// Paso 2: PI de velocidad de la base. Diseño (tools/diseno_velocidad.py, cancelación de polo con Ti = tau,
+// modelo K = 1,90 (°/s)/%, tau = 65 ms) para ts = 0,25 s: Kp = 0,549, Ki = 8,44. En placa el juego de la
+// correa (no está en el modelo) daba 18 % de sobrepico: con Ki = 4 (80 escalones, 2026-10-02) quedó en
+// ts 0,33-0,38 s y sobrepico 4-7 %. Especificación ajustada: ts <= 0,4 s, sobrepico <= 10 %.
 constexpr float J1_KP_VEL = 0.549f;           // % de duty por °/s de error
-constexpr float J1_KI_VEL = 8.44f;            // % de duty por ° de error acumulado (Kp / tau)
+constexpr float J1_KI_VEL = 4.0f;             // % de duty por ° de error acumulado
 constexpr float J1_ZONA_MUERTA_PCT = 17.0f;   // feedforward: duty con el que la base apenas se mueve
 constexpr uint32_t J1_TS_VEL_US = 10000;      // lazo de velocidad a 100 Hz
 constexpr int J1_VENTANA_VEL = 4;             // la velocidad se mide en 4 muestras (40 ms): 0,56 °/s por cuenta

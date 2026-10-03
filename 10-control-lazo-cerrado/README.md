@@ -67,7 +67,7 @@ conocida y mandar un comando de cero.
 
 - [x] Paso 0 J1 (2026-10-02): encoder normal, sentido INVERTIDO (`J1_SENTIDO_INVERTIDO = true`). J2: pendiente
 - [x] Paso 1 J1 (2026-10-02): reductora 50:1 × correa 90/18 = **44,44 cuentas por grado de la base** (16 000 por vuelta), confirmado a ojo con un doblez de 45°. J2: pendiente
-- [ ] Paso 2: PI de velocidad J1 (Kp = ?, Ki = ?)
+- [x] Paso 2 J1 (2026-10-02): PI de velocidad **Kp = 0,549, Ki = 4** (diseño Ki = 8,44 daba 18 % de sobrepico por el juego de la correa); ts 0,33–0,38 s, sobrepico 4–7 %. Kalman descartado (no mejora la medición). J2: pendiente
 - [ ] Paso 3: PI de velocidad J2 (Kp = ?, Ki = ?, zona muerta = ?)
 - [ ] Paso 4: P de posición J1 / J2
 - [ ] Paso 5: pruebas con perturbación y carga
@@ -81,3 +81,6 @@ conocida y mandar un comando de cero.
 |-------|------|-----------|
 | 2026-10-02 | 0 (J1) | Con duty + las cuentas suben (encoder normal), pero la base giraba horario → `J1_SENTIDO_INVERTIDO = true`. Verificado tras reflashear: `p 30 300` antihorario OK, `p -30 300` horario OK. `p 25 100`: solo 13 cuentas (1,5° de salida) en 0,1 s; con 30 % se mueve bien. Encoder en reposo A=0 B=1 |
 | 2026-10-02 | 1 (J1) | Sin transportador: `m 45` quedó paralelo a un doblez de 45° de una hoja (error de pocos grados como mucho, a ojo); `m 0` vuelve a la marca sin diferencia visible (juego no medible a ojo). Repetible: 45,59° y 45,79° según el encoder. Con 30 % la base va a 22–28 °/s (→ zona muerta en marcha ≈ 17 % con K de la E5); al cortar el duty se pasa 0,6–0,8° (+) y 1,2–1,3° (−), y hacia − va algo más rápido. Cero de J1 = brazo hacia el **costado** del robot. Límite de software subido a ±60° |
+| 2026-10-02 | 2 (J1) | Diseño por cancelación de polo para ts 0,25 s: Kp 0,549, Ki 8,44 (`tools/diseno_velocidad.py`). En placa (`ev`, `tools/escalon_velocidad.py`): un escalón con Ki 8,44 → ts 0,47 s y **18 % de sobrepico**; la meseta al arrancar y el golpe al invertir son el **juego de la correa** (el encoder está en el motor). Con pausa en 0 entre +v y −v y 40 ciclos (80 escalones): **Ki 4 → ts 0,33/0,38 s, sobrepico 3,9/7,1 % (ida/vuelta), ±0,9 %**; Ki 6 → ts 0,37/0,42 s, sobrepico 9,8/12,4 %. Elegido Ki 4. Para 20 °/s hace falta 26 % (+) y 24 % (−). Con los 12 V apagados, `ev` cortó a los 150 ms por "sin cuentas" (protección verificada) |
+| 2026-10-02 | 2 (J1) | **Kalman descartado** con los datos de la prueba de Ki 4 (`resultados/escalon_vel_20261002_215350.csv`), contra una derivada centrada sin atraso: ventana de 40 ms → error 1,6 °/s, atraso 20 ms, ruido 0,36 °/s; ventana de 20 ms → 1,2 °/s, 10 ms, 0,56 °/s; Kalman de velocidad constante (mejor q) → 1,2 °/s, 10 ms, 0,49 °/s (igual que una ventana más corta); Kalman con el modelo del motor → 1,3 °/s, ruido 1,29 °/s (peor: el modelo no tiene el juego ni la asimetría). El límite es la resolución del encoder (1 cuenta en 10 ms = 2,25 °/s). Se sigue con la ventana de 40 ms |
+| 2026-10-02 | 2 (J1) | Deriva: el lazo de velocidad no controla posición; en 40 ciclos la base se corrió hasta −4° (Ki 6) y usar `--cero` lejos de la marca corrió el cero ~20°. Hay que volver a fijar el cero en la marca |
