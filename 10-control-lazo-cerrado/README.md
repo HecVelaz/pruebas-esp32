@@ -66,7 +66,7 @@ conocida y mandar un comando de cero.
 ## Estado
 
 - [x] Paso 0 J1 (2026-10-02): encoder normal, sentido INVERTIDO (`J1_SENTIDO_INVERTIDO = true`). J2: pendiente
-- [ ] Paso 1: transmisión J1 = ? · J2 = ?
+- [x] Paso 1 J1 (2026-10-02): reductora 50:1 × correa 90/18 = **44,44 cuentas por grado de la base** (16 000 por vuelta), confirmado a ojo con un doblez de 45°. J2: pendiente
 - [ ] Paso 2: PI de velocidad J1 (Kp = ?, Ki = ?)
 - [ ] Paso 3: PI de velocidad J2 (Kp = ?, Ki = ?, zona muerta = ?)
 - [ ] Paso 4: P de posición J1 / J2
@@ -80,3 +80,4 @@ conocida y mandar un comando de cero.
 | Fecha | Paso | Resultado |
 |-------|------|-----------|
 | 2026-10-02 | 0 (J1) | Con duty + las cuentas suben (encoder normal), pero la base giraba horario → `J1_SENTIDO_INVERTIDO = true`. Verificado tras reflashear: `p 30 300` antihorario OK, `p -30 300` horario OK. `p 25 100`: solo 13 cuentas (1,5° de salida) en 0,1 s; con 30 % se mueve bien. Encoder en reposo A=0 B=1 |
+| 2026-10-02 | 1 (J1) | Sin transportador: `m 45` quedó paralelo a un doblez de 45° de una hoja (error de pocos grados como mucho, a ojo); `m 0` vuelve a la marca sin diferencia visible (juego no medible a ojo). Repetible: 45,59° y 45,79° según el encoder. Con 30 % la base va a 22–28 °/s (→ zona muerta en marcha ≈ 17 % con K de la E5); al cortar el duty se pasa 0,6–0,8° (+) y 1,2–1,3° (−), y hacia − va algo más rápido. Cero de J1 = brazo hacia el **costado** del robot. Límite de software subido a ±60° |
