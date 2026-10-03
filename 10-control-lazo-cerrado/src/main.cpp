@@ -3,7 +3,9 @@
 //  - Paso 0: pulsos cortos de duty fijo para comprobar que "positivo" es lo mismo para el motor,
 //    el encoder y la articulación (q1 positivo = antihorario visto desde arriba). Hecho: ver config.h.
 //  - Paso 1: "m <grados>" lleva la base a un ángulo con duty fijo y frena al llegar, para verificar
-//    con un transportador las cuentas por grado (transmisión 50:1 x correa 90/18).
+//    las cuentas por grado (transmisión 50:1 x correa 90/18). Hecho: 44,44 cuentas por grado.
+//  - Paso 2: PI de velocidad a 100 Hz con compensación de la zona muerta. "ev <°/s> [ms]" hace un
+//    escalón de ida y vuelta y manda un CSV que tools/escalon_velocidad.py compara con la simulación.
 #include <Arduino.h>
 
 #include "BTS7960.h"
@@ -17,16 +19,21 @@ constexpr uint32_t PULSO_MS_DEF = 200;
 constexpr uint32_t FRENO_MS = 300;        // freno después de mover, antes de dejarlo en rueda libre
 constexpr uint32_t MONITOR_CADA_MS = 200;
 constexpr uint32_t QUIETO_MS = 100;       // antes de mover, la base tiene que estar quieta este tiempo
-constexpr int64_t LIMITE_CUENTAS = (int64_t)(J1_LIMITE_GRADOS * J1_CUENTAS_POR_GRADO);
+constexpr int64_t LIM_POS_C = (int64_t)(J1_LIMITE_POS_GRADOS * J1_CUENTAS_POR_GRADO);
+constexpr int64_t LIM_NEG_C = (int64_t)(J1_LIMITE_NEG_GRADOS * J1_CUENTAS_POR_GRADO);
 
 BTS7960 motorJ1;
 EncoderPCNT encJ1;
 bool hwOk = false;
 bool ceroFijado = false;  // sin "z" no se mueve: el cero tiene que estar en la marca, lejos de los topes
 
-// Signos vigentes: arrancan con los de config.h y se pueden cambiar con "ie" e "is" para probar
-bool encInvertido = J1_ENCODER_INVERTIDO;
-bool sentidoInvertido = J1_SENTIDO_INVERTIDO;
+// Signos: los de config.h (paso 0). "ie" e "is" ya no los cambian (ver ejecutar())
+const bool encInvertido = J1_ENCODER_INVERTIDO;
+const bool sentidoInvertido = J1_SENTIDO_INVERTIDO;
+
+// Ganancias del PI de velocidad: arrancan con las de config.h y se cambian con "kp" y "ki"
+float kpVel = J1_KP_VEL;
+float kiVel = J1_KI_VEL;
 
 char linea[48];
 size_t lineaLen = 0;
@@ -44,6 +51,15 @@ int64_t cuentas() {
 }
 
 float grados(int64_t c) { return (float)c / J1_CUENTAS_POR_GRADO; }
+
+// Cuánto se pasó del rango permitido (0 si está dentro)
+int64_t excesoLimite(int64_t c) {
+  if (c > LIM_POS_C) return c - LIM_POS_C;
+  if (c < LIM_NEG_C) return LIM_NEG_C - c;
+  return 0;
+}
+// En el límite o fuera, y moverse en el sentido dir (+1/-1) la alejaría más
+bool haciaAfuera(int64_t c, int dir) { return (c >= LIM_POS_C && dir > 0) || (c <= LIM_NEG_C && dir < 0); }
 
 void aplicarDuty(float pct) {
   float d = pct / 100.0f;
@@ -78,13 +94,13 @@ void ayuda() {
                 J1_DUTY_MOVER_PCT);
   Serial.printf("  p <%%> [ms]   pulso de duty fijo, |%%| <= %.0f, por defecto %lu ms (máx %lu). Ej: p 30 300\n",
                 J1_DUTY_MAX_PCT, (unsigned long)PULSO_MS_DEF, (unsigned long)J1_PULSO_MAX_MS);
+  Serial.printf("  ev <°/s> [ms] escalón de velocidad: +v durante ms, -v durante ms y 0 (CSV). Ej: ev 20 1000\n");
+  Serial.println("  kp <x>, ki <x>  cambiar las ganancias del PI de velocidad · g  mostrarlas");
   Serial.println("  c            mostrar cuentas y grados");
-  Serial.println("  ie           invertir el signo del encoder (si con duty + las cuentas bajan)");
-  Serial.println("  is           invertir el sentido (motor y encoder juntos) si la base gira al revés de +q1");
   Serial.println("  x            rueda libre (driver deshabilitado)");
   Serial.println("  ?            esta ayuda");
-  Serial.printf("Seguridad: corte a más de ±%.0f° del cero (%lld cuentas), si avanza menos de %ld cuentas\n",
-                J1_LIMITE_GRADOS, (long long)LIMITE_CUENTAS, (long)J1_AVANCE_MIN);
+  Serial.printf("Seguridad: corte fuera de %+.0f° / %+.0f° del cero, si avanza menos de %ld cuentas\n",
+                J1_LIMITE_POS_GRADOS, J1_LIMITE_NEG_GRADOS, (long)J1_AVANCE_MIN);
   Serial.printf("en %lu ms o con cualquier Enter. Duty máximo %.0f %%.\n", (unsigned long)J1_SIN_CUENTAS_MS,
                 J1_DUTY_MAX_PCT);
   Serial.println();
@@ -152,12 +168,12 @@ struct Movimiento {
 Movimiento mover(float pct, uint32_t msMax, bool conObjetivo, int64_t objetivo) {
   Movimiento m{Corte::Tiempo, cuentas(), 0, 0, 0};
   const int dir = pct > 0 ? 1 : -1;
-  if (llabs(m.c0) >= LIMITE_CUENTAS && (m.c0 > 0) == (dir > 0)) {
+  if (haciaAfuera(m.c0, dir)) {
     m.corte = Corte::HaciaAfuera;  // sin energizar el motor
     m.cFin = m.c1 = m.c0;
     return m;
   }
-  bool dentro = llabs(m.c0) <= LIMITE_CUENTAS;
+  bool dentro = excesoLimite(m.c0) == 0;
   const uint32_t t0 = millis();
   // Ventana de avance: cada J1_SIN_CUENTAS_MS la base tiene que haber avanzado J1_AVANCE_MIN cuentas
   // en el sentido pedido. Cuentas que van y vuelven (una fase del encoder suelta) no alcanzan.
@@ -178,8 +194,9 @@ Movimiento mover(float pct, uint32_t msMax, bool conObjetivo, int64_t objetivo) 
       m.corte = Corte::Objetivo;
       break;
     }
-    if (llabs(c) <= LIMITE_CUENTAS) dentro = true;
-    if (llabs(c) > LIMITE_CUENTAS && (dentro || llabs(c) > llabs(m.c0))) {
+    // Fuera del rango solo se permite volver: corta si ya había entrado o si se aleja más
+    if (excesoLimite(c) == 0) dentro = true;
+    if (excesoLimite(c) > 0 && (dentro || excesoLimite(c) > excesoLimite(m.c0))) {
       m.corte = Corte::Limite;
       break;
     }
@@ -221,12 +238,12 @@ bool informarCorte(const Movimiento &m) {
       Serial.println("   Revisar el encoder con \"e\" (12 V apagados) antes de subir el duty.");
       return true;
     case Corte::HaciaAfuera:
-      Serial.printf("   RECHAZADO: está en el límite de ±%.0f° y eso la alejaría más. Solo hacia el cero.\n",
-                    J1_LIMITE_GRADOS);
+      Serial.printf("   RECHAZADO: está en el límite (%+.0f° / %+.0f°) y eso la alejaría más. Solo hacia el cero.\n",
+                    J1_LIMITE_POS_GRADOS, J1_LIMITE_NEG_GRADOS);
       return true;
     case Corte::Limite:
-      Serial.printf("   CORTADO por el límite de ±%.0f° a los %lu ms. Volver hacia el cero.\n", J1_LIMITE_GRADOS,
-                    (unsigned long)m.ms);
+      Serial.printf("   CORTADO por el límite (%+.0f° / %+.0f°) a los %lu ms. Volver hacia el cero.\n",
+                    J1_LIMITE_POS_GRADOS, J1_LIMITE_NEG_GRADOS, (unsigned long)m.ms);
       return true;
     case Corte::Enter:
       Serial.printf("   CORTADO con Enter a los %lu ms.\n", (unsigned long)m.ms);
@@ -250,10 +267,10 @@ void pulso(float pct, uint32_t ms) {
   if (llabs(d) < J1_CUENTAS_SIN_GIRO) {
     Serial.println("   Casi no giró: resultado no concluyente. Probar con un poco más de duty o de tiempo.");
   } else if ((d > 0) != (pct > 0)) {
-    Serial.println("   Las cuentas van al REVÉS del duty: escribir \"ie\" y repetir el pulso.");
+    Serial.println("   Las cuentas van al REVÉS del duty: revisar J1_ENCODER_INVERTIDO en config.h y el cableado.");
   } else {
     Serial.println("   OK: motor y encoder de acuerdo.");
-    Serial.printf("   ¿La base giró %s visto desde arriba? Si fue al revés, escribir \"is\".\n",
+    Serial.printf("   ¿La base giró %s visto desde arriba? Si fue al revés, revisar J1_SENTIDO_INVERTIDO.\n",
                   pct > 0 ? "ANTIHORARIO" : "HORARIO");
   }
 }
@@ -281,6 +298,113 @@ void irA(float objetivoGrados, float pct) {
   Serial.printf("   Llegó en %.2f s (%.1f °/s). Al frenar quedó en %+.2f° (se pasó %.2f°).\n", m.ms / 1000.0f,
                 fabsf(vel), grados(m.c1), fabsf(grados(m.c1 - objetivo)));
   Serial.printf("   cuentas %+lld. Comparar con el transportador.\n", (long long)m.c1);
+}
+
+// ---------- Paso 2: PI de velocidad ----------
+
+// Un paso del PI (cada J1_TS_VEL_US). Con velocidad pedida 0 devuelve 0 (freno) y borra la integral.
+// Feedforward: suma la zona muerta en el sentido pedido. Anti-windup: no integra si está saturado y el
+// error lo empujaría más hacia la saturación.
+float pasoPI(float wRef, float wMed, float &integral) {
+  if (wRef == 0.0f) {
+    integral = 0.0f;
+    return 0.0f;
+  }
+  const float e = wRef - wMed;
+  const float ff = wRef > 0 ? J1_ZONA_MUERTA_PCT : -J1_ZONA_MUERTA_PCT;
+  const float uLibre = ff + kpVel * e + integral;
+  const float u = constrain(uLibre, -J1_DUTY_MAX_PCT, J1_DUTY_MAX_PCT);
+  if (u == uLibre || (e > 0) != (uLibre > 0)) integral += kiVel * (J1_TS_VEL_US / 1e6f) * e;
+  return u;
+}
+
+// Escalón de ida y vuelta: +v durante ms, -v durante ms y 0 durante 300 ms, con el PI de velocidad.
+// Manda una línea de CSV por periodo. Protecciones: límite de ángulo, atasco y Enter.
+void escalonVelocidad(float v, uint32_t ms) {
+  const int64_t c0 = cuentas();
+  const float g0 = grados(c0), fin1 = g0 + v * ms / 1000.0f;  // donde termina la ida
+  const float maxG = J1_LIMITE_POS_GRADOS - 5.0f, minG = J1_LIMITE_NEG_GRADOS + 5.0f;
+  if (fin1 > maxG || fin1 < minG || g0 > maxG || g0 < minG) {
+    Serial.printf("La ida iría de %+.1f° a %+.1f°, fuera de %+.0f° / %+.0f° (límites con margen). "
+                  "Volver con \"m 0\" o usar menos v o ms.\n", g0, fin1, maxG, minG);
+    return;
+  }
+  if (!listaParaMover()) return;
+
+  const uint32_t nIda = ms * 1000 / J1_TS_VEL_US, nTotal = 2 * nIda + 300000 / J1_TS_VEL_US;
+  const float ts = J1_TS_VEL_US / 1e6f;
+  int64_t hist[J1_VENTANA_VEL + 1];
+  for (auto &h : hist) h = c0;
+  float integral = 0.0f;
+  uint32_t atascoTicks = 0, contrarioTicks = 0, sinCuentasTicks = 0, perdidos = 0;
+  const uint32_t tsMs = J1_TS_VEL_US / 1000;
+  const char *corte = nullptr;
+
+  Serial.printf("# escalon_vel v=%.1f ms=%lu kp=%.4f ki=%.4f zm=%.1f ts_ms=%.0f ventana=%d cuentas_por_grado=%.4f\n", v,
+                (unsigned long)ms, kpVel, kiVel, J1_ZONA_MUERTA_PCT, ts * 1000, J1_VENTANA_VEL, J1_CUENTAS_POR_GRADO);
+  Serial.println("t_ms,w_ref,w_med,duty,pos");
+  uint32_t tick = micros();
+  const uint32_t t0 = tick;
+  for (uint32_t k = 0; k < nTotal; k++) {
+    while (micros() - tick < J1_TS_VEL_US) {
+    }
+    if (micros() - tick >= 2 * J1_TS_VEL_US) perdidos++;
+    tick += J1_TS_VEL_US;
+
+    const int64_t c = cuentas();
+    for (int i = 0; i < J1_VENTANA_VEL; i++) hist[i] = hist[i + 1];
+    hist[J1_VENTANA_VEL] = c;
+    const float wMed = grados(hist[J1_VENTANA_VEL] - hist[0]) / (J1_VENTANA_VEL * ts);
+    const float wRef = k < nIda ? v : (k < 2 * nIda ? -v : 0.0f);
+    const float u = pasoPI(wRef, wMed, integral);
+    aplicarDuty(u);
+    Serial.printf("%lu,%.1f,%.2f,%.1f,%.2f\n", (unsigned long)((tick - t0) / 1000), wRef, wMed, u, grados(c));
+
+    // Protecciones. Fuera del rango corta siempre, vaya hacia donde vaya: si el signo del encoder
+    // estuviera mal, "hacia afuera" según la consigna no sería hacia afuera de verdad.
+    if (excesoLimite(c) > 0) {
+      corte = "límite de ángulo";
+      break;
+    }
+    // Sin ninguna cuenta con el motor empujando más que la zona muerta: encoder suelto o motor trabado
+    sinCuentasTicks = (wRef != 0.0f && fabsf(u) > J1_ZONA_MUERTA_PCT && c == hist[J1_VENTANA_VEL - 1])
+                          ? sinCuentasTicks + 1 : 0;
+    if (sinCuentasTicks * tsMs >= J1_SIN_CUENTAS_MS) {
+      corte = "sin cuentas del encoder (¿encoder suelto o motor trabado?)";
+      break;
+    }
+    // Se mueve al revés de lo pedido: signo del encoder o del motor mal (¿se usó "ie" o "is"?)
+    contrarioTicks = (wRef != 0.0f && wMed * (wRef > 0 ? 1.0f : -1.0f) < -J1_CONTRARIO_VEL) ? contrarioTicks + 1 : 0;
+    if (contrarioTicks * tsMs >= J1_CONTRARIO_MS) {
+      corte = "se mueve al revés de lo pedido (¿signos mal?)";
+      break;
+    }
+    atascoTicks = (fabsf(wMed) < J1_ATASCO_VEL && fabsf(u) >= J1_ATASCO_DUTY_PCT) ? atascoTicks + 1 : 0;
+    if (atascoTicks * tsMs >= J1_ATASCO_MS) {
+      corte = "atasco (duty alto sin velocidad: ¿trabado o encoder suelto?)";
+      break;
+    }
+    if (hayEntrada()) {
+      corte = "Enter";
+      break;
+    }
+  }
+  aplicarDuty(0.0f);
+  delay(FRENO_MS);
+  motorJ1.coast();
+  if (corte) {
+    Serial.printf("# cortado %s\n", corte);
+    Serial.printf(">> CORTADO por %s.\n", corte);
+  } else {
+    Serial.println("# fin ok");
+  }
+  if (perdidos) Serial.printf(">> Aviso: %lu periodos atrasados.\n", (unsigned long)perdidos);
+  Serial.printf(">> Escalón terminado. Base en %+.2f°.\n", grados(cuentas()));
+}
+
+void mostrarGanancias() {
+  Serial.printf("PI de velocidad: kp = %.4f %%/(°/s), ki = %.4f %%/° | zona muerta %.1f %% | %d muestras de %lu ms\n",
+                kpVel, kiVel, J1_ZONA_MUERTA_PCT, J1_VENTANA_VEL, (unsigned long)(J1_TS_VEL_US / 1000));
 }
 
 // Lee un número que ocupe toda la cadena (se admiten espacios al final). Rechaza NaN e infinito.
@@ -320,13 +444,51 @@ void comandoPulso(const char *args) {
   pulso(pct, ms);
 }
 
+// "ev <°/s> [ms]"
+void comandoEscalon(const char *args) {
+  float v;
+  const char *resto;
+  if (!leerNumero(args, &resto, v) || fabsf(v) < J1_VEL_MIN || fabsf(v) > J1_VEL_MAX) {
+    Serial.printf("Uso: ev <°/s> [ms], con %.0f <= |°/s| <= %.0f\n", J1_VEL_MIN, J1_VEL_MAX);
+    return;
+  }
+  uint32_t ms = 1000;
+  if (*resto != '\0') {
+    char *fin2 = nullptr;
+    const long x = strtol(resto, &fin2, 10);
+    while (*fin2 == ' ') fin2++;
+    if (fin2 == resto || *fin2 != '\0' || x < 200 || x > (long)J1_ESCALON_MAX_MS) {
+      Serial.printf("Tiempo inválido: entre 200 y %lu ms\n", (unsigned long)J1_ESCALON_MAX_MS);
+      return;
+    }
+    ms = (uint32_t)x;
+  }
+  if (!ceroFijado) {
+    Serial.println("Primero llevar la base a su marca y escribir \"z\".");
+    return;
+  }
+  escalonVelocidad(v, ms);
+}
+
+// "kp <x>" / "ki <x>"
+void comandoGanancia(const char *args, float &g, const char *nombre) {
+  float x;
+  const char *resto;
+  if (!leerNumero(args, &resto, x) || *resto != '\0' || x < 0.0f || x > 50.0f) {
+    Serial.printf("Uso: %s <valor>, entre 0 y 50\n", nombre);
+    return;
+  }
+  g = x;
+  mostrarGanancias();
+}
+
 // "m <grados> [pct]"
 void comandoMover(const char *args) {
   float g;
   const char *resto;
-  const float maxG = J1_LIMITE_GRADOS - 3.0f;  // margen para lo que se pasa al frenar
-  if (!leerNumero(args, &resto, g) || fabsf(g) > maxG) {
-    Serial.printf("Uso: m <grados> [%%], con |grados| <= %.0f\n", maxG);
+  const float maxG = J1_LIMITE_POS_GRADOS - 3.0f, minG = J1_LIMITE_NEG_GRADOS + 3.0f;  // margen de frenado
+  if (!leerNumero(args, &resto, g) || g > maxG || g < minG) {
+    Serial.printf("Uso: m <grados> [%%], con %+.0f <= grados <= %+.0f\n", minG, maxG);
     return;
   }
   float pct = J1_DUTY_MOVER_PCT;
@@ -362,20 +524,23 @@ void ejecutar(char *l) {
     encJ1.reset();
     ceroFijado = true;
     Serial.println(">> Cero fijado en la marca. Movimientos habilitados.");
-  } else if (strcmp(l, "ie") == 0) {
-    encInvertido = !encInvertido;
+  } else if (strcmp(l, "ie") == 0 || strcmp(l, "is") == 0) {
+    // Deshabilitados: con límites asimétricos (+135° / -45°), invertir el sentido daría vuelta los
+    // límites físicos sin que el firmware lo note. Los signos ya quedaron fijos en config.h (paso 0).
     mostrarSignos();
-    Serial.printf("   Para dejarlo fijo: J1_ENCODER_INVERTIDO = %s en include/config.h\n",
-                  encInvertido ? "true" : "false");
-  } else if (strcmp(l, "is") == 0) {
-    sentidoInvertido = !sentidoInvertido;
-    mostrarSignos();
-    Serial.printf("   Para dejarlo fijo: J1_SENTIDO_INVERTIDO = %s en include/config.h\n",
-                  sentidoInvertido ? "true" : "false");
+    Serial.println("   Deshabilitado: los signos están fijos en include/config.h desde el paso 0.");
   } else if (l[0] == 'p' && (l[1] == ' ' || l[1] == '\0')) {
     comandoPulso(l + 1);
   } else if (l[0] == 'm' && (l[1] == ' ' || l[1] == '\0')) {
     comandoMover(l + 1);
+  } else if (strncmp(l, "ev", 2) == 0 && (l[2] == ' ' || l[2] == '\0')) {
+    comandoEscalon(l + 2);
+  } else if (strncmp(l, "kp", 2) == 0 && (l[2] == ' ' || l[2] == '\0')) {
+    comandoGanancia(l + 2, kpVel, "kp");
+  } else if (strncmp(l, "ki", 2) == 0 && (l[2] == ' ' || l[2] == '\0')) {
+    comandoGanancia(l + 2, kiVel, "ki");
+  } else if (strcmp(l, "g") == 0) {
+    mostrarGanancias();
   } else {
     Serial.printf("Comando desconocido: \"%s\" (? para la ayuda)\n", l);
   }
@@ -444,12 +609,13 @@ void setup() {
   delay(1500);
 
   Serial.println();
-  Serial.println("== 10 · Pasos 0 y 1 de J1: signo y transmisión (36GP-555 + IBT-2, ESP32-WROOM-32D) ==");
+  Serial.println("== 10 · J1: pasos 0-1 (signo, transmisión) y 2 (PI de velocidad) · 36GP-555 + IBT-2, WROOM ==");
   Serial.printf("IBT-2: RPWM=GPIO%d, LPWM=GPIO%d, EN=GPIO%d | PWM %lu Hz\n", PIN_J1_RPWM, PIN_J1_LPWM, PIN_J1_EN,
                 (unsigned long)J1_PWM_FREQ_HZ);
   Serial.printf("Encoder: A=GPIO%d, B=GPIO%d | reductora 50:1 x correa %.0f:1 = %.2f cuentas por grado de la base\n",
                 PIN_J1_ENC_A, PIN_J1_ENC_B, J1_RELACION_CORREA, J1_CUENTAS_POR_GRADO);
   mostrarSignos();
+  mostrarGanancias();
   if (!okDriver) Serial.println("ERROR: no se pudo configurar el PWM (LEDC).");
   if (!okEnc) Serial.println("ERROR: no se pudo configurar el PCNT del encoder.");
   Serial.printf("Niveles del encoder en reposo: A=%d B=%d (con los pull-up, quieto puede ser 0 o 1)\n",
