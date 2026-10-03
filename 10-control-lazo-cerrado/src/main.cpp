@@ -6,6 +6,8 @@
 //    las cuentas por grado (transmisión 50:1 x correa 90/18). Hecho: 44,44 cuentas por grado.
 //  - Paso 2: PI de velocidad a 100 Hz con compensación de la zona muerta. "ev <°/s> [ms] [ciclos]" repite
 //    +v, pausa, -v, pausa y manda un CSV que tools/escalon_velocidad.py compara con la simulación.
+//  - Paso 3: P de posición a 50 Hz encima del PI de velocidad (cascada). "a <grados>" va a un ángulo;
+//    "ep <A> [ms] [ciclos]" hace escalones 0, +A, 0, -A con CSV para tools/escalon_posicion.py.
 #include <Arduino.h>
 
 #include "BTS7960.h"
@@ -34,6 +36,9 @@ const bool sentidoInvertido = J1_SENTIDO_INVERTIDO;
 // Ganancias del PI de velocidad: arrancan con las de config.h y se cambian con "kp" y "ki"
 float kpVel = J1_KP_VEL;
 float kiVel = J1_KI_VEL;
+float kpp = J1_KPP;  // P de posición, se cambia con "kpp"
+
+void irAControlado(float g, bool informar);  // paso 3, la usa también "ev" al terminar
 
 char linea[48];
 size_t lineaLen = 0;
@@ -97,6 +102,9 @@ void ayuda() {
   Serial.printf("  ev <°/s> [ms] [ciclos]  escalones de velocidad: +v ms, 0 %lu ms, -v ms, 0 %lu ms, repetido (CSV).\n"
                 "               Ej: ev 20 1000 40 (2 min)\n", (unsigned long)J1_PAUSA_MS, (unsigned long)J1_PAUSA_MS);
   Serial.println("  kp <x>, ki <x>  cambiar las ganancias del PI de velocidad · g  mostrarlas");
+  Serial.println("  a <°>        ir a un ángulo con el control de posición (cascada). Ej: a 30, a 0");
+  Serial.println("  ep <A> [ms] [ciclos]  escalones de posición: A, 0, -A, 0 desde donde está (CSV). Ej: ep 20 2500 4");
+  Serial.println("  kpp <x>      cambiar el P de posición");
   Serial.println("  c            mostrar cuentas y grados");
   Serial.println("  x            rueda libre (driver deshabilitado)");
   Serial.println("  ?            esta ayuda");
@@ -416,12 +424,134 @@ void escalonVelocidad(float v, uint32_t ms, uint32_t ciclos) {
     Serial.println("# fin ok");
   }
   if (perdidos) Serial.printf(">> Aviso: %lu periodos atrasados.\n", (unsigned long)perdidos);
+  // Volver al ángulo de inicio, así la deriva no se acumula entre pruebas. Solo si terminó bien: si se cortó
+  // (Enter, Ctrl+C del script o una protección), frenar significa quedarse quieta.
+  if (!corte) {
+    Serial.printf(">> Volviendo a %+.2f°...\n", g0);
+    irAControlado(g0, true);
+  }
   Serial.printf(">> Escalón terminado. Base en %+.2f°.\n", grados(cuentas()));
 }
 
 void mostrarGanancias() {
   Serial.printf("PI de velocidad: kp = %.4f %%/(°/s), ki = %.4f %%/° | zona muerta %.1f %% | %d muestras de %lu ms\n",
                 kpVel, kiVel, J1_ZONA_MUERTA_PCT, J1_VENTANA_VEL, (unsigned long)(J1_TS_VEL_US / 1000));
+  Serial.printf("P de posición: kpp = %.3f 1/s | v_max %.0f °/s, a_max %.0f °/s², tolerancia ±%.2f° | %lu ms\n", kpp,
+                J1_VMAX_POS, J1_AMAX_POS, J1_TOL_POS, (unsigned long)(J1_TS_POS_US / 1000));
+}
+
+// ---------- Paso 3: P de posición (cascada) ----------
+
+// Ángulo pedido en cada periodo del lazo de velocidad (k = número de periodo)
+typedef float (*Referencia)(uint32_t k);
+
+float refFija = 0.0f;  // "a <grados>"
+float refConstante(uint32_t) { return refFija; }
+
+// "ep": tramos de nSeg periodos: base + A, base, base - A, base, repetido; después, base
+float epBase = 0.0f, epAmp = 0.0f;
+uint32_t epNSeg = 1, epCiclos = 1;
+float refEscalones(uint32_t k) {
+  const uint32_t seg = k / epNSeg;
+  if (seg >= 4 * epCiclos) return epBase;
+  const uint32_t r = seg % 4;
+  return r == 0 ? epBase + epAmp : (r == 2 ? epBase - epAmp : epBase);
+}
+
+// Lazo en cascada durante como mucho nTotal periodos de 10 ms. Cada J1_TS_POS_US, el P de posición
+// calcula la velocidad pedida (limitada a v_max, con su cambio limitado a a_max, y 0 dentro de la
+// tolerancia); cada 10 ms, el PI de velocidad la cumple. Con salirAlLlegar, termina cuando está dentro de
+// la tolerancia y quieta durante J1_LLEGADA_MS. Con csv, manda una línea por periodo.
+// Devuelve nullptr si terminó bien, o la causa del corte. Al salir, frena y deja el driver apagado.
+const char *cascada(Referencia ref, uint32_t nTotal, bool salirAlLlegar, bool csv, uint32_t &msUsados) {
+  const float ts = J1_TS_VEL_US / 1e6f;
+  const uint32_t nPos = J1_TS_POS_US / J1_TS_VEL_US, tsMs = J1_TS_VEL_US / 1000;
+  const uint32_t nLlegada = J1_LLEGADA_MS / tsMs;
+  int64_t hist[J1_VENTANA_VEL + 1];
+  const int64_t c0 = cuentas();
+  for (auto &h : hist) h = c0;
+  float integral = 0.0f, wRef = 0.0f, e = 0.0f;
+  uint32_t atascoTicks = 0, contrarioTicks = 0, sinCuentasTicks = 0, quietoTicks = 0;
+  const char *corte = salirAlLlegar ? "no llegó a tiempo" : nullptr;
+  uint32_t tick = micros();
+  const uint32_t t0 = tick;
+  for (uint32_t k = 0; k < nTotal; k++) {
+    while (micros() - tick < J1_TS_VEL_US) {
+    }
+    tick += J1_TS_VEL_US;
+    const int64_t c = cuentas();
+    for (int i = 0; i < J1_VENTANA_VEL; i++) hist[i] = hist[i + 1];
+    hist[J1_VENTANA_VEL] = c;
+    const float wMed = grados(hist[J1_VENTANA_VEL] - hist[0]) / (J1_VENTANA_VEL * ts);
+    const float thRef = ref(k);
+
+    // Lazo de posición
+    if (k % nPos == 0) {
+      e = thRef - grados(c);
+      const float deseada = fabsf(e) < J1_TOL_POS ? 0.0f : constrain(kpp * e, -J1_VMAX_POS, J1_VMAX_POS);
+      const float dMax = J1_AMAX_POS * J1_TS_POS_US / 1e6f;
+      wRef = deseada == 0.0f ? 0.0f : constrain(deseada, wRef - dMax, wRef + dMax);
+    }
+    // Lazo de velocidad
+    const float u = pasoPI(wRef, wMed, integral);
+    aplicarDuty(u);
+    if (csv) {
+      Serial.printf("%lu,%.2f,%.2f,%.2f,%.2f,%.1f\n", (unsigned long)((tick - t0) / 1000), thRef, grados(c), wRef, wMed,
+                    u);
+    }
+
+    // Protecciones (las mismas que "ev")
+    if (excesoLimite(c) > 0) {
+      corte = "límite de ángulo";
+      break;
+    }
+    sinCuentasTicks = (wRef != 0.0f && fabsf(u) > J1_ZONA_MUERTA_PCT && c == hist[J1_VENTANA_VEL - 1])
+                          ? sinCuentasTicks + 1 : 0;
+    if (sinCuentasTicks * tsMs >= J1_SIN_CUENTAS_MS) {
+      corte = "sin cuentas del encoder (¿encoder suelto o motor trabado?)";
+      break;
+    }
+    // Al revés: con velocidad pedida chica (cerca del objetivo) la medición puede ir y venir; se exige
+    // ir al revés a más de J1_CONTRARIO_VEL
+    contrarioTicks = (wRef != 0.0f && wMed * (wRef > 0 ? 1.0f : -1.0f) < -J1_CONTRARIO_VEL) ? contrarioTicks + 1 : 0;
+    if (contrarioTicks * tsMs >= J1_CONTRARIO_MS) {
+      corte = "se mueve al revés de lo pedido (¿signos mal?)";
+      break;
+    }
+    atascoTicks = (fabsf(wMed) < J1_ATASCO_VEL && fabsf(u) >= J1_ATASCO_DUTY_PCT) ? atascoTicks + 1 : 0;
+    if (atascoTicks * tsMs >= J1_ATASCO_MS) {
+      corte = "atasco (duty alto sin velocidad: ¿trabado o encoder suelto?)";
+      break;
+    }
+    if (hayEntrada()) {
+      corte = "Enter";
+      break;
+    }
+    // Llegada
+    quietoTicks = (wRef == 0.0f && fabsf(wMed) < 1.0f && fabsf(e) < J1_TOL_POS) ? quietoTicks + 1 : 0;
+    if (salirAlLlegar && quietoTicks >= nLlegada) {
+      corte = nullptr;
+      break;
+    }
+  }
+  aplicarDuty(0.0f);
+  msUsados = (micros() - t0) / 1000;
+  delay(FRENO_MS);
+  motorJ1.coast();
+  return corte;
+}
+
+// "a <grados>": ir a un ángulo con el control de posición
+void irAControlado(float g, bool informar) {
+  refFija = g;
+  uint32_t ms = 0;
+  const char *corte = cascada(refConstante, J1_IR_MAX_MS * 1000 / J1_TS_VEL_US, true, false, ms);
+  const float fin = grados(cuentas());
+  if (corte) {
+    Serial.printf(">> CORTADO por %s. Base en %+.2f°.\n", corte, fin);
+  } else if (informar) {
+    Serial.printf(">> Llegó a %+.2f° en %.2f s (error %+.2f°).\n", fin, ms / 1000.0f, g - fin);
+  }
 }
 
 // Lee un número que ocupe toda la cadena (se admiten espacios al final). Rechaza NaN e infinito.
@@ -485,8 +615,9 @@ void comandoEscalon(const char *args) {
     Serial.println("Uso: ev <°/s> [ms] [ciclos]");
     return;
   }
-  if (enteros[0] < 200 || enteros[0] > (long)J1_ESCALON_MAX_MS) {
-    Serial.printf("Tiempo inválido: entre 200 y %lu ms\n", (unsigned long)J1_ESCALON_MAX_MS);
+  if (enteros[0] < 200 || enteros[0] > (long)J1_ESCALON_MAX_MS || enteros[0] % (J1_TS_VEL_US / 1000) != 0) {
+    Serial.printf("Tiempo inválido: entre 200 y %lu ms, múltiplo de %lu\n", (unsigned long)J1_ESCALON_MAX_MS,
+                  (unsigned long)(J1_TS_VEL_US / 1000));
     return;
   }
   if (enteros[1] < 1 || enteros[1] > (long)J1_CICLOS_MAX) {
@@ -498,6 +629,83 @@ void comandoEscalon(const char *args) {
     return;
   }
   escalonVelocidad(v, (uint32_t)enteros[0], (uint32_t)enteros[1]);
+}
+
+// "a <grados>"
+void comandoIrA(const char *args) {
+  float g;
+  const char *resto;
+  const float maxG = J1_LIMITE_POS_GRADOS - 3.0f, minG = J1_LIMITE_NEG_GRADOS + 3.0f;
+  if (!leerNumero(args, &resto, g) || *resto != '\0' || g > maxG || g < minG) {
+    Serial.printf("Uso: a <grados>, con %+.0f <= grados <= %+.0f\n", minG, maxG);
+    return;
+  }
+  if (!ceroFijado) {
+    Serial.println("Primero llevar la base a su marca y escribir \"z\".");
+    return;
+  }
+  if (!listaParaMover()) return;
+  Serial.printf(">> Ir a %+.1f° desde %+.2f° (control de posición)\n", g, grados(cuentas()));
+  irAControlado(g, true);
+}
+
+// "ep <A> [ms] [ciclos]": escalones de posición desde donde está la base
+void comandoEscalonPos(const char *args) {
+  float amp;
+  const char *resto;
+  if (!leerNumero(args, &resto, amp) || amp < 2.0f || amp > 40.0f) {
+    Serial.println("Uso: ep <A> [ms] [ciclos], con 2 <= A <= 40 grados");
+    return;
+  }
+  long enteros[2] = {2500, 1};
+  for (int i = 0; i < 2 && *resto != '\0'; i++) {
+    char *fin2 = nullptr;
+    enteros[i] = strtol(resto, &fin2, 10);
+    if (fin2 == resto || (*fin2 != ' ' && *fin2 != '\0')) {
+      Serial.println("Uso: ep <A> [ms] [ciclos]");
+      return;
+    }
+    while (*fin2 == ' ') fin2++;
+    resto = fin2;
+  }
+  if (*resto != '\0' || enteros[0] < 1000 || enteros[0] > (long)J1_EP_SEG_MAX_MS ||
+      enteros[0] % (J1_TS_VEL_US / 1000) != 0 || enteros[1] < 1 || enteros[1] > (long)J1_EP_CICLOS_MAX) {
+    Serial.printf("Uso: ep <A> [ms] [ciclos], ms entre 1000 y %lu (múltiplo de %lu), ciclos entre 1 y %lu\n",
+                  (unsigned long)J1_EP_SEG_MAX_MS, (unsigned long)(J1_TS_VEL_US / 1000),
+                  (unsigned long)J1_EP_CICLOS_MAX);
+    return;
+  }
+  if (!ceroFijado) {
+    Serial.println("Primero llevar la base a su marca y escribir \"z\".");
+    return;
+  }
+  const float base = grados(cuentas());
+  const float maxG = J1_LIMITE_POS_GRADOS - 5.0f, minG = J1_LIMITE_NEG_GRADOS + 5.0f;
+  if (base + amp > maxG || base - amp < minG) {
+    Serial.printf("Desde %+.1f°, ±%.0f° sale de %+.0f° / %+.0f°. Usar menos amplitud o \"a 0\" antes.\n", base, amp,
+                  maxG, minG);
+    return;
+  }
+  if (!listaParaMover()) return;
+  epBase = base;
+  epAmp = amp;
+  epNSeg = (uint32_t)enteros[0] * 1000 / J1_TS_VEL_US;
+  epCiclos = (uint32_t)enteros[1];
+  Serial.printf("# escalon_pos A=%.1f seg_ms=%ld ciclos=%ld base=%.2f kpp=%.4f vmax=%.1f amax=%.1f tol=%.2f kp=%.4f "
+                "ki=%.4f zm=%.1f ts_ms=%lu tpos_ms=%lu\n", amp, enteros[0], enteros[1], base, kpp, J1_VMAX_POS,
+                J1_AMAX_POS, J1_TOL_POS, kpVel, kiVel, J1_ZONA_MUERTA_PCT, (unsigned long)(J1_TS_VEL_US / 1000),
+                (unsigned long)(J1_TS_POS_US / 1000));
+  Serial.println("t_ms,th_ref,th,w_ref,w_med,duty");
+  uint32_t ms = 0;
+  const uint32_t nTotal = 4 * epCiclos * epNSeg + 1000000 / J1_TS_VEL_US;  // + 1 s quieto al final
+  const char *corte = cascada(refEscalones, nTotal, false, true, ms);
+  if (corte) {
+    Serial.printf("# cortado %s\n", corte);
+    Serial.printf(">> CORTADO por %s.\n", corte);
+  } else {
+    Serial.println("# fin ok");
+  }
+  Serial.printf(">> Escalones de posición terminados. Base en %+.2f°.\n", grados(cuentas()));
 }
 
 // "kp <x>" / "ki <x>"
@@ -571,6 +779,12 @@ void ejecutar(char *l) {
     comandoGanancia(l + 2, kiVel, "ki");
   } else if (strcmp(l, "g") == 0) {
     mostrarGanancias();
+  } else if (strncmp(l, "kpp", 3) == 0 && (l[3] == ' ' || l[3] == '\0')) {
+    comandoGanancia(l + 3, kpp, "kpp");
+  } else if (l[0] == 'a' && (l[1] == ' ' || l[1] == '\0')) {
+    comandoIrA(l + 1);
+  } else if (strncmp(l, "ep", 2) == 0 && (l[2] == ' ' || l[2] == '\0')) {
+    comandoEscalonPos(l + 2);
   } else {
     Serial.printf("Comando desconocido: \"%s\" (? para la ayuda)\n", l);
   }

@@ -57,3 +57,16 @@ constexpr uint32_t J1_CICLOS_MAX = 60;        // ciclos +v, 0, -v, 0 por prueba 
 constexpr float J1_ATASCO_VEL = 2.0f;         // atasco: menos de esto (°/s) ...
 constexpr float J1_ATASCO_DUTY_PCT = 35.0f;   // ... con este duty o más ...
 constexpr uint32_t J1_ATASCO_MS = 300;        // ... durante este tiempo
+
+// Paso 3: P de posición encima del PI de velocidad (tools/diseno_posicion.py). Lazo de velocidad cerrado
+// ~ 1/(0,09 s + 1) (medido en el paso 2): sin sobrepico hace falta Kpp <= 1/(4*0,09) = 2,78. Elegido 2
+// (margen por el juego de la correa; igual que brazo_config.h). Simulado: 0 -> 20° en 1,7 s, sin sobrepico.
+constexpr float J1_KPP = 2.0f;                // (°/s) de velocidad pedida por ° de error
+constexpr uint32_t J1_TS_POS_US = 20000;      // lazo de posición a 50 Hz
+constexpr float J1_VMAX_POS = 30.0f;          // °/s, velocidad máxima de los movimientos
+constexpr float J1_AMAX_POS = 60.0f;          // °/s², cambio máximo de la velocidad pedida (sin golpes)
+constexpr float J1_TOL_POS = 0.3f;            // °, a menos de esto del objetivo: velocidad 0 (freno)
+constexpr uint32_t J1_LLEGADA_MS = 200;       // llegó: dentro de la tolerancia y quieta durante esto
+constexpr uint32_t J1_IR_MAX_MS = 15000;      // "a <grados>": tiempo máximo para llegar
+constexpr uint32_t J1_EP_SEG_MAX_MS = 5000;   // "ep": duración máxima de cada tramo
+constexpr uint32_t J1_EP_CICLOS_MAX = 20;
