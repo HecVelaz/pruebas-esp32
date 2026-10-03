@@ -4,8 +4,8 @@
 //    el encoder y la articulación (q1 positivo = antihorario visto desde arriba). Hecho: ver config.h.
 //  - Paso 1: "m <grados>" lleva la base a un ángulo con duty fijo y frena al llegar, para verificar
 //    las cuentas por grado (transmisión 50:1 x correa 90/18). Hecho: 44,44 cuentas por grado.
-//  - Paso 2: PI de velocidad a 100 Hz con compensación de la zona muerta. "ev <°/s> [ms]" hace un
-//    escalón de ida y vuelta y manda un CSV que tools/escalon_velocidad.py compara con la simulación.
+//  - Paso 2: PI de velocidad a 100 Hz con compensación de la zona muerta. "ev <°/s> [ms] [ciclos]" repite
+//    +v, pausa, -v, pausa y manda un CSV que tools/escalon_velocidad.py compara con la simulación.
 #include <Arduino.h>
 
 #include "BTS7960.h"
@@ -94,7 +94,8 @@ void ayuda() {
                 J1_DUTY_MOVER_PCT);
   Serial.printf("  p <%%> [ms]   pulso de duty fijo, |%%| <= %.0f, por defecto %lu ms (máx %lu). Ej: p 30 300\n",
                 J1_DUTY_MAX_PCT, (unsigned long)PULSO_MS_DEF, (unsigned long)J1_PULSO_MAX_MS);
-  Serial.printf("  ev <°/s> [ms] escalón de velocidad: +v durante ms, -v durante ms y 0 (CSV). Ej: ev 20 1000\n");
+  Serial.printf("  ev <°/s> [ms] [ciclos]  escalones de velocidad: +v ms, 0 %lu ms, -v ms, 0 %lu ms, repetido (CSV).\n"
+                "               Ej: ev 20 1000 40 (2 min)\n", (unsigned long)J1_PAUSA_MS, (unsigned long)J1_PAUSA_MS);
   Serial.println("  kp <x>, ki <x>  cambiar las ganancias del PI de velocidad · g  mostrarlas");
   Serial.println("  c            mostrar cuentas y grados");
   Serial.println("  x            rueda libre (driver deshabilitado)");
@@ -318,9 +319,11 @@ float pasoPI(float wRef, float wMed, float &integral) {
   return u;
 }
 
-// Escalón de ida y vuelta: +v durante ms, -v durante ms y 0 durante 300 ms, con el PI de velocidad.
-// Manda una línea de CSV por periodo. Protecciones: límite de ángulo, atasco y Enter.
-void escalonVelocidad(float v, uint32_t ms) {
+// Escalones de velocidad con el PI: cada ciclo es +v durante ms, 0 durante J1_PAUSA_MS, -v durante ms y
+// 0 durante J1_PAUSA_MS (pasar por cero con pausa evita invertir de golpe contra el juego de la correa).
+// Al final, 0 durante 300 ms. Manda una línea de CSV por periodo.
+// Protecciones: límite de ángulo, deriva, sin cuentas, sentido contrario, atasco y Enter.
+void escalonVelocidad(float v, uint32_t ms, uint32_t ciclos) {
   const int64_t c0 = cuentas();
   const float g0 = grados(c0), fin1 = g0 + v * ms / 1000.0f;  // donde termina la ida
   const float maxG = J1_LIMITE_POS_GRADOS - 5.0f, minG = J1_LIMITE_NEG_GRADOS + 5.0f;
@@ -331,7 +334,8 @@ void escalonVelocidad(float v, uint32_t ms) {
   }
   if (!listaParaMover()) return;
 
-  const uint32_t nIda = ms * 1000 / J1_TS_VEL_US, nTotal = 2 * nIda + 300000 / J1_TS_VEL_US;
+  const uint32_t nIda = ms * 1000 / J1_TS_VEL_US, nPausa = J1_PAUSA_MS * 1000 / J1_TS_VEL_US;
+  const uint32_t nCiclo = 2 * (nIda + nPausa), nTotal = ciclos * nCiclo + 300000 / J1_TS_VEL_US;
   const float ts = J1_TS_VEL_US / 1e6f;
   int64_t hist[J1_VENTANA_VEL + 1];
   for (auto &h : hist) h = c0;
@@ -340,8 +344,9 @@ void escalonVelocidad(float v, uint32_t ms) {
   const uint32_t tsMs = J1_TS_VEL_US / 1000;
   const char *corte = nullptr;
 
-  Serial.printf("# escalon_vel v=%.1f ms=%lu kp=%.4f ki=%.4f zm=%.1f ts_ms=%.0f ventana=%d cuentas_por_grado=%.4f\n", v,
-                (unsigned long)ms, kpVel, kiVel, J1_ZONA_MUERTA_PCT, ts * 1000, J1_VENTANA_VEL, J1_CUENTAS_POR_GRADO);
+  Serial.printf("# escalon_vel v=%.1f ms=%lu pausa_ms=%lu ciclos=%lu kp=%.4f ki=%.4f zm=%.1f ts_ms=%.0f ventana=%d "
+                "cuentas_por_grado=%.4f\n", v, (unsigned long)ms, (unsigned long)J1_PAUSA_MS, (unsigned long)ciclos, kpVel,
+                kiVel, J1_ZONA_MUERTA_PCT, ts * 1000, J1_VENTANA_VEL, J1_CUENTAS_POR_GRADO);
   Serial.println("t_ms,w_ref,w_med,duty,pos");
   uint32_t tick = micros();
   const uint32_t t0 = tick;
@@ -355,7 +360,19 @@ void escalonVelocidad(float v, uint32_t ms) {
     for (int i = 0; i < J1_VENTANA_VEL; i++) hist[i] = hist[i + 1];
     hist[J1_VENTANA_VEL] = c;
     const float wMed = grados(hist[J1_VENTANA_VEL] - hist[0]) / (J1_VENTANA_VEL * ts);
-    const float wRef = k < nIda ? v : (k < 2 * nIda ? -v : 0.0f);
+    float wRef = 0.0f;
+    if (k < ciclos * nCiclo) {
+      const uint32_t r = k % nCiclo;
+      wRef = r < nIda ? v : (r < nIda + nPausa ? 0.0f : (r < 2 * nIda + nPausa ? -v : 0.0f));
+      // Deriva: al empezar cada ciclo, la ida tiene que entrar en el rango (con margen)
+      if (r == 0 && k > 0) {
+        const float fin = grados(c) + v * ms / 1000.0f;
+        if (fin > maxG || fin < minG || grados(c) > maxG || grados(c) < minG) {
+          corte = "deriva: el próximo ciclo saldría del rango";
+          break;
+        }
+      }
+    }
     const float u = pasoPI(wRef, wMed, integral);
     aplicarDuty(u);
     Serial.printf("%lu,%.1f,%.2f,%.1f,%.2f\n", (unsigned long)((tick - t0) / 1000), wRef, wMed, u, grados(c));
@@ -444,7 +461,7 @@ void comandoPulso(const char *args) {
   pulso(pct, ms);
 }
 
-// "ev <°/s> [ms]"
+// "ev <°/s> [ms] [ciclos]"
 void comandoEscalon(const char *args) {
   float v;
   const char *resto;
@@ -452,22 +469,35 @@ void comandoEscalon(const char *args) {
     Serial.printf("Uso: ev <°/s> [ms], con %.0f <= |°/s| <= %.0f\n", J1_VEL_MIN, J1_VEL_MAX);
     return;
   }
-  uint32_t ms = 1000;
-  if (*resto != '\0') {
+  // Enteros opcionales: ms y ciclos, separados por espacios
+  long enteros[2] = {1000, 1};
+  for (int i = 0; i < 2 && *resto != '\0'; i++) {
     char *fin2 = nullptr;
-    const long x = strtol(resto, &fin2, 10);
-    while (*fin2 == ' ') fin2++;
-    if (fin2 == resto || *fin2 != '\0' || x < 200 || x > (long)J1_ESCALON_MAX_MS) {
-      Serial.printf("Tiempo inválido: entre 200 y %lu ms\n", (unsigned long)J1_ESCALON_MAX_MS);
+    enteros[i] = strtol(resto, &fin2, 10);
+    if (fin2 == resto || (*fin2 != ' ' && *fin2 != '\0')) {
+      Serial.println("Uso: ev <°/s> [ms] [ciclos]");
       return;
     }
-    ms = (uint32_t)x;
+    while (*fin2 == ' ') fin2++;
+    resto = fin2;
+  }
+  if (*resto != '\0') {
+    Serial.println("Uso: ev <°/s> [ms] [ciclos]");
+    return;
+  }
+  if (enteros[0] < 200 || enteros[0] > (long)J1_ESCALON_MAX_MS) {
+    Serial.printf("Tiempo inválido: entre 200 y %lu ms\n", (unsigned long)J1_ESCALON_MAX_MS);
+    return;
+  }
+  if (enteros[1] < 1 || enteros[1] > (long)J1_CICLOS_MAX) {
+    Serial.printf("Ciclos inválidos: entre 1 y %lu\n", (unsigned long)J1_CICLOS_MAX);
+    return;
   }
   if (!ceroFijado) {
     Serial.println("Primero llevar la base a su marca y escribir \"z\".");
     return;
   }
-  escalonVelocidad(v, ms);
+  escalonVelocidad(v, (uint32_t)enteros[0], (uint32_t)enteros[1]);
 }
 
 // "kp <x>" / "ki <x>"

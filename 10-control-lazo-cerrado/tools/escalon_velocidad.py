@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
-"""Paso 2 de J1: escalón de velocidad en la placa (comando "ev" del firmware), comparado con la simulación.
+"""Paso 2 de J1: escalones de velocidad en la placa (comando "ev" del firmware), comparados con la simulación.
 
-Manda "ev <v> <ms>" (+v durante ms, -v durante ms y 0), guarda el CSV en resultados/ y grafica la
-velocidad real junto con la simulada con las mismas ganancias (tools/diseno_velocidad.py).
-Imprime tiempo de establecimiento, sobrepico y error final de la ida, real y simulado.
+Manda "ev <v> <ms> <ciclos>": cada ciclo es +v durante ms, pausa en 0, -v durante ms y pausa en 0 (la
+pausa evita invertir de golpe contra el juego de la correa). Guarda el CSV en resultados/ y calcula,
+para cada escalón, tiempo de establecimiento, sobrepico y error final: promedio, dispersión y peor caso,
+separados en ida (+v) y vuelta (-v), junto con los de la simulación con las mismas ganancias.
 
 Antes: cerrar el monitor de PlatformIO, base en su marca, "z" hecho en esta sesión de la placa
 (o usar --cero para mandarlo), 12 V encendidos.
 
 Uso:
-    python3 tools/escalon_velocidad.py 20                  # ev 20 1000
-    python3 tools/escalon_velocidad.py 20 --ms 1500 --kp 0.5 --ki 8
-    python3 tools/escalon_velocidad.py --archivo resultados/escalon_vel_....csv   # volver a graficar
-Opciones: --puerto (por defecto /dev/ttyUSB0), --cero (manda "z" antes), --sin-ventana.
+    python3 tools/escalon_velocidad.py 20                       # ev 20 1000 1 (un ciclo, ~3 s)
+    python3 tools/escalon_velocidad.py 20 --ciclos 40 --ki 4    # 2 minutos, 80 escalones
+    python3 tools/escalon_velocidad.py --archivo resultados/escalon_vel_....csv   # volver a analizar
+Opciones: --ms, --kp, --ki, --puerto (por defecto /dev/ttyUSB0), --cero (manda "z" antes), --sin-ventana.
 Ctrl+C durante la prueba manda Enter (el firmware frena).
 """
 import argparse
@@ -60,8 +61,9 @@ def correr_en_placa(args):
         if args.cero:
             mandar("z")
         s.reset_input_buffer()
-        s.write(f"ev {args.v} {args.ms}\n".encode())
-        t_lim = time.time() + 2 * args.ms / 1000 + 5
+        s.write(f"ev {args.v} {args.ms} {args.ciclos}\n".encode())
+        t_lim = time.time() + args.ciclos * (2 * args.ms + 1000) / 1000 + 5
+        print(f"Prueba de ~{args.ciclos * (2 * args.ms + 1000) / 1000:.0f} s. Ctrl+C frena.")
         while time.time() < t_lim:
             l = s.readline().decode(errors="replace").strip()
             if not l:
@@ -134,15 +136,42 @@ def cargar(archivo):
     return meta, np.array(filas)
 
 
+def escalones(meta):
+    """Lista de (inicio, signo) de cada escalón, en s, según el perfil del firmware."""
+    v, ms = meta["v"], meta["ms"] / 1000
+    pausa, ciclos = meta.get("pausa_ms", 0) / 1000, int(meta.get("ciclos", 1))
+    periodo = 2 * (ms + pausa)
+    lista = []
+    for i in range(ciclos):
+        lista += [(i * periodo, 1), (i * periodo + ms + pausa, -1)]
+    return lista, (lambda tt: perfil(tt, v, ms, pausa, ciclos, periodo))
+
+
+def perfil(tt, v, ms, pausa, ciclos, periodo):
+    if tt >= ciclos * periodo:
+        return 0.0
+    r = tt % periodo
+    return v if r < ms else (0.0 if r < ms + pausa else (-v if r < 2 * ms + pausa else 0.0))
+
+
+def resumir(nombre, valores):
+    a = np.array(valores, dtype=float)
+    a = a[np.isfinite(a)]
+    if not len(a):
+        return f"{nombre}: sin datos"
+    return f"{np.mean(a):7.3f} ± {np.std(a):5.3f}  (peor {a[np.argmax(np.abs(a))]:+7.3f})"
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("v", type=float, nargs="?", default=20.0, help="°/s de la base (def. 20)")
-    ap.add_argument("--ms", type=int, default=1000, help="duración de la ida y de la vuelta (def. 1000)")
+    ap.add_argument("--ms", type=int, default=1000, help="duración de cada escalón (def. 1000)")
+    ap.add_argument("--ciclos", type=int, default=1, help="ciclos +v, 0, -v, 0 (def. 1; 40 = 2 min a 1000 ms)")
     ap.add_argument("--kp", type=float, help="cambiar kp antes del escalón")
     ap.add_argument("--ki", type=float, help="cambiar ki antes del escalón")
     ap.add_argument("--cero", action="store_true", help='mandar "z" antes (la base tiene que estar en su marca)')
     ap.add_argument("--puerto", default="/dev/ttyUSB0")
-    ap.add_argument("--archivo", help="volver a graficar un CSV guardado, sin tocar la placa")
+    ap.add_argument("--archivo", help="volver a analizar un CSV guardado, sin tocar la placa")
     ap.add_argument("--sin-ventana", action="store_true", help="solo guarda el PNG")
     args = ap.parse_args()
 
@@ -150,43 +179,83 @@ def main():
     meta, d = cargar(archivo)
     t = (d[:, 0] - 10) / 1000.0  # la primera muestra sale al final del primer periodo
     w_ref, w_med, duty, pos = d[:, 1], d[:, 2], d[:, 3], d[:, 4]
-    v, ms, kp, ki = meta["v"], meta["ms"], meta["kp"], meta["ki"]
+    v, ms, kp, ki = meta["v"], meta["ms"] / 1000, meta["kp"], meta["ki"]
+    if "pausa_ms" not in meta:  # archivos viejos: +v, -v sin pausa
+        meta["pausa_ms"], meta["ciclos"] = 0, 1
+    lista, f_perfil = escalones(meta)
 
-    # Simulación con las mismas ganancias y el mismo perfil
-    perfil = lambda tt: v if tt < ms / 1000 else (-v if tt < 2 * ms / 1000 else 0.0)
+    # Simulación con las mismas ganancias y el mismo perfil (todos los escalones salen iguales: basta uno
+    # de ida y uno de vuelta)
     dv.ZONA_MUERTA = meta["zm"]
-    ts_sim, _, w_sim, wm_sim, u_sim = dv.simular(kp, ki, perfil, t[-1] + 0.01, realista=True,
+    t_sim_fin = min(t[-1], lista[1][0] + ms) + 0.01
+    ts_sim, _, w_sim, wm_sim, u_sim = dv.simular(kp, ki, f_perfil, t_sim_fin, realista=True,
                                                  ventana=int(meta["ventana"]))
 
-    print(f"\nkp = {kp:.4f}, ki = {ki:.4f}, escalón ±{v:.0f} °/s, {ms:.0f} ms")
-    print("Ida 0 -> +%.0f °/s     ts(2 %%)    sobrepico   error final" % v)
-    fin_ida = ms / 1000
-    for nombre, tt, ww in (("real (medida)", t, w_med), ("simulada", ts_sim, wm_sim)):
-        ts_, mp, ess = dv.medir_escalon(tt, ww, v, 0.0, fin_ida)
-        print(f"  {nombre:14s}      {ts_:6.3f} s   {mp:6.1f} %    {ess:+6.2f} °/s")
+    res = {1: [], -1: []}
+    for t0, sg in lista:
+        if t0 + ms > t[-1]:
+            break  # prueba cortada antes de este escalón
+        res[sg].append(dv.medir_escalon(t, sg * w_med, v, t0, t0 + ms))
+    sim = {sg: dv.medir_escalon(ts_sim, sg * wm_sim, v, t0, t0 + ms) for t0, sg in lista[:2]}
+
+    print(f"\nkp = {kp:.4f}, ki = {ki:.4f} · ±{v:.0f} °/s, {ms*1000:.0f} ms, pausa {meta['pausa_ms']:.0f} ms · "
+          f"{len(res[1])} idas y {len(res[-1])} vueltas")
+    for sg, nombre in ((1, "Ida (+v)"), (-1, "Vuelta (-v)")):
+        if not res[sg]:
+            continue
+        a = np.array(res[sg])
+        print(f"{nombre}:")
+        print(f"  tiempo de establecimiento [s]  real {resumir('ts', a[:, 0])}   simulado {sim[sg][0]:6.3f}")
+        print(f"  sobrepico [%]                  real {resumir('mp', a[:, 1])}   simulado {sim[sg][1]:6.1f}")
+        print(f"  error final [°/s]              real {resumir('e', a[:, 2])}   simulado {sim[sg][2]:+6.2f}")
+    print(f"Posición: de {pos.min():+.1f}° a {pos.max():+.1f}°, final {pos[-1]:+.2f}° (deriva)")
 
     import matplotlib
     if args.sin_ventana:
         matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 7), sharex=True, height_ratios=[2, 1])
-    ax1.plot(t, w_ref, "k--", lw=1.2, label="pedida")
-    ax1.plot(ts_sim, wm_sim, color="#1d64c8", lw=1.6, label="simulada (medida, 40 ms)")
-    ax1.plot(t, w_med, color="#c2410c", lw=1.6, label="real (medida por el encoder)")
-    ax1.set_ylabel("velocidad de la base [°/s]")
-    ax1.set_title(f"J1 · escalón de velocidad real vs. simulado (Kp = {kp:.3f}, Ki = {ki:.2f})")
-    ax1.grid(alpha=0.3)
-    ax1.legend(loc="upper right", fontsize=9)
-    ax2.plot(ts_sim, u_sim, color="#1d64c8", lw=1.4, label="simulado")
-    ax2.plot(t, duty, color="#c2410c", lw=1.4, label="real")
-    ax2.set_ylabel("duty [%]")
-    ax2.set_xlabel("tiempo [s]")
-    ax2.grid(alpha=0.3)
-    ax2.legend(loc="upper right", fontsize=9)
+    fig, ax = plt.subplots(2, 2, figsize=(13, 8))
+    paso = t[1] - t[0]
+    n = int(round((ms + 0.3) / paso))
+    tt_rel = np.arange(n) * paso - 0.0
+    for col, sg, nombre in ((0, 1, "ida (+v)"), (1, -1, "vuelta (-v)")):
+        a = ax[0, col]
+        curvas = []
+        for t0, s_ in lista:
+            if s_ != sg:
+                continue
+            k0 = int(np.searchsorted(t, t0))
+            if k0 + n > len(t):
+                break
+            curvas.append(w_med[k0:k0 + n])
+            a.plot(tt_rel, w_med[k0:k0 + n], color="#c2410c", lw=0.6, alpha=0.25)
+        if curvas:
+            a.plot(tt_rel, np.mean(curvas, axis=0), color="#c2410c", lw=2, label=f"real: promedio de {len(curvas)}")
+        t0s = lista[0][0] if sg > 0 else lista[1][0]
+        ks = int(np.searchsorted(ts_sim, t0s))
+        a.plot(tt_rel[:len(wm_sim[ks:ks + n])], wm_sim[ks:ks + n], color="#1d64c8", lw=2, label="simulada")
+        a.plot(tt_rel, [sg * v if x < ms else 0 for x in tt_rel], "k--", lw=1, label="pedida")
+        a.set_title(f"Escalones de {nombre} superpuestos")
+        a.set_xlabel("tiempo desde el escalón [s]")
+        a.set_ylabel("velocidad [°/s]")
+        a.grid(alpha=0.3)
+        a.legend(fontsize=8, loc="center right")
+    ax[1, 0].plot(t, w_ref, "k--", lw=0.8)
+    ax[1, 0].plot(t, w_med, color="#c2410c", lw=0.7)
+    ax[1, 0].set_title("Velocidad real, toda la prueba")
+    ax[1, 0].set_xlabel("tiempo [s]")
+    ax[1, 0].set_ylabel("°/s")
+    ax[1, 0].grid(alpha=0.3)
+    ax[1, 1].plot(t, pos, color="#0e7f74", lw=1)
+    ax[1, 1].set_title("Posición de la base (deriva)")
+    ax[1, 1].set_xlabel("tiempo [s]")
+    ax[1, 1].set_ylabel("°")
+    ax[1, 1].grid(alpha=0.3)
+    fig.suptitle(f"J1 · PI de velocidad: Kp = {kp:.3f}, Ki = {ki:.2f}")
     fig.tight_layout()
     png = archivo.with_suffix(".png")
-    fig.savefig(png, dpi=120)
+    fig.savefig(png, dpi=110)
     print(f"Gráfica: {png}")
     if not args.sin_ventana:
         plt.show()

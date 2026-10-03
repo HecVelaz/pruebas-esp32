@@ -97,12 +97,18 @@ def simular(kp, ki, perfil, t_fin, realista, ventana):
     return np.array(T), np.array(WREF), np.array(W), np.array(WMED), np.array(U)
 
 
+# La velocidad medida va de a saltos de una cuenta en la ventana (0,56 °/s con 4 muestras): una banda
+# del 2 % de 20 °/s (0,4 °/s) es más chica que un salto y el tiempo de establecimiento saldría absurdo.
+# Por eso la banda es el 2 % o dos saltos de medición, lo que sea mayor.
+BANDA_MIN = 2.0 / CUENTAS_POR_GRADO / (4 * TS)
+
+
 def medir_escalon(t, w, w_ref_val, t0, t1):
-    """Tiempo de establecimiento (2 %), sobrepico y error final del escalón entre t0 y t1."""
+    """Tiempo de establecimiento, sobrepico y error final del escalón entre t0 y t1."""
     m = (t >= t0) & (t < t1)
     tt, ww = t[m] - t0, w[m]
     final = ww[-int(0.1 / TS):].mean()
-    banda = 0.02 * abs(w_ref_val)
+    banda = max(0.02 * abs(w_ref_val), BANDA_MIN)
     fuera = np.where(np.abs(ww - w_ref_val) > banda)[0]
     ts = tt[fuera[-1] + 1] if len(fuera) and fuera[-1] + 1 < len(tt) else (0.0 if not len(fuera) else float("nan"))
     sobrepico = max(0.0, (ww.max() - w_ref_val) / abs(w_ref_val) * 100) if w_ref_val > 0 else 0.0

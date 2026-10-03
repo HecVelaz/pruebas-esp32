@@ -26,3 +26,4 @@ graphify-out/
 
 # Documentos del robot copiados solo para lectura (viven en recolector_de_frutas)
 docs/
+__pycache__/
