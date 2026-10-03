@@ -45,7 +45,7 @@ CONTRARIO_VEL, CONTRARIO_S = 5.0, 0.10
 ATASCO_VEL, ATASCO_DUTY, ATASCO_S = 2.0, 35.0, 0.30
 
 
-def simular(kpp, vmax, amax, tol, perfil, t_fin):
+def simular(kpp, vmax, amax, tol, perfil, t_fin, tol_salida=None):
     """Cascada completa con las protecciones del firmware.
     Devuelve t, theta_ref, theta (base), w_ref, w, duty y la causa del corte (None si no cortó).
     Si corta, desde ahí el duty es 0, como en la placa."""
@@ -60,6 +60,8 @@ def simular(kpp, vmax, amax, tol, perfil, t_fin):
     T, TR, TH, WR, W, U = [], [], [], [], [], []
     corte = None
     sin_c = contra = atasco = 0
+    tol_salida = 2 * tol if tol_salida is None else tol_salida
+    llegado, ref_ant = False, None   # histéresis, igual que el firmware
     for k in range(pasos):
         t = k * dv.TS
         cuentas = int(np.floor(pos * dv.CUENTAS_POR_GRADO))
@@ -70,7 +72,13 @@ def simular(kpp, vmax, amax, tol, perfil, t_fin):
         # Lazo de posición (cada n_pos periodos del de velocidad)
         if k % n_pos == 0:
             e = th_ref - theta_med
-            deseada = 0.0 if abs(e) < tol else float(np.clip(kpp * e, -vmax, vmax))
+            if th_ref != ref_ant:
+                llegado, ref_ant = False, th_ref
+            if llegado:
+                llegado = abs(e) <= tol_salida
+            elif abs(e) < tol:
+                llegado = True
+            deseada = 0.0 if llegado else float(np.clip(kpp * e, -vmax, vmax))
             dmax = amax * TS_POS
             w_ref = deseada if deseada == 0.0 else float(np.clip(deseada, w_ref - dmax, w_ref + dmax))
         # Lazo de velocidad: el mismo PI del firmware
@@ -122,6 +130,7 @@ def main():
     ap.add_argument("--vmax", type=float, default=30.0, help="velocidad máxima, °/s (def. 30)")
     ap.add_argument("--amax", type=float, default=60.0, help="aceleración máxima, °/s² (def. 60)")
     ap.add_argument("--tol", type=float, default=0.3, help="tolerancia de llegada, ° (def. 0,3)")
+    ap.add_argument("--tol-salida", type=float, default=0.6, help="se vuelve a mover a más de esto, ° (def. 0,6)")
     ap.add_argument("--sin-ventana", action="store_true", help="solo guarda el PNG")
     args = ap.parse_args()
 
@@ -138,7 +147,7 @@ def main():
 
     saltos = [(0.2, 20.0), (3.2, -20.0), (6.2, 0.0), (9.2, 5.0), (11.2, 0.0)]
     perfil = lambda t: next((v for t0, v in reversed(saltos) if t >= t0), 0.0)
-    t, tr, th, wr, w, u, corte = simular(args.kpp, args.vmax, args.amax, args.tol, perfil, 13.2)
+    t, tr, th, wr, w, u, corte = simular(args.kpp, args.vmax, args.amax, args.tol, perfil, 13.2, args.tol_salida)
     if corte:
         print(f"\n*** La placa CORTARÍA por {corte}: estos parámetros no sirven así. ***")
 

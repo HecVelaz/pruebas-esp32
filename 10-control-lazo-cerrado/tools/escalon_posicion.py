@@ -159,7 +159,8 @@ def main():
     perfil = lambda tt: (amp if (int(tt // seg) % 4 == 0) else (-amp if int(tt // seg) % 4 == 2 else 0.0)) \
         if tt < 4 * seg else 0.0
     ts_, tr_s, th_s, wr_s, w_s, u_s, corte_sim = dp.simular(meta["kpp"], meta["vmax"], meta["amax"], meta["tol"],
-                                                             perfil, 4 * seg + 1.0)
+                                                             perfil, 4 * seg + 1.0,
+                                                             meta.get("tol_salida", meta["tol"]))
     if corte_sim:
         print(f"Aviso: con estos parámetros la simulación corta por {corte_sim}.")
 
@@ -181,6 +182,10 @@ def main():
               f"  sim {rs_sim[0]:4.2f}   real {np.mean(r[:,1]):4.2f} (peor {np.max(r[:,1]):4.2f})  sim {rs_sim[1]:4.2f}"
               f"   real {np.mean(r[:,2]):+5.2f} (peor {r[np.argmax(np.abs(r[:,2])),2]:+5.2f})  sim {rs_sim[2]:+5.2f}")
     print(f"Posición final {th[-1]:+.2f}° (base {base:+.2f}°)")
+    # Zumbido: arranques del motor (duty de 0 a distinto de 0) con el ángulo pedido sin cambiar
+    arranques = np.sum((duty[1:] != 0) & (duty[:-1] == 0) & (th_ref[1:] == th_ref[:-1]))
+    print(f"Arranques del motor sin cambio del ángulo pedido (zumbido): {arranques} "
+          f"({arranques / max(1, len(lista)):.1f} por escalón)")
 
     import matplotlib
     if args.sin_ventana:

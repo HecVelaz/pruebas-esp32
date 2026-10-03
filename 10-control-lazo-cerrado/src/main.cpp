@@ -436,8 +436,9 @@ void escalonVelocidad(float v, uint32_t ms, uint32_t ciclos) {
 void mostrarGanancias() {
   Serial.printf("PI de velocidad: kp = %.4f %%/(°/s), ki = %.4f %%/° | zona muerta %.1f %% | %d muestras de %lu ms\n",
                 kpVel, kiVel, J1_ZONA_MUERTA_PCT, J1_VENTANA_VEL, (unsigned long)(J1_TS_VEL_US / 1000));
-  Serial.printf("P de posición: kpp = %.3f 1/s | v_max %.0f °/s, a_max %.0f °/s², tolerancia ±%.2f° | %lu ms\n", kpp,
-                J1_VMAX_POS, J1_AMAX_POS, J1_TOL_POS, (unsigned long)(J1_TS_POS_US / 1000));
+  Serial.printf("P de posición: kpp = %.3f 1/s | v_max %.0f °/s, a_max %.0f °/s², llega a ±%.2f°, se despierta a "
+                "±%.2f° | %lu ms\n", kpp, J1_VMAX_POS, J1_AMAX_POS, J1_TOL_POS, J1_TOL_SALIDA,
+                (unsigned long)(J1_TS_POS_US / 1000));
 }
 
 // ---------- Paso 3: P de posición (cascada) ----------
@@ -470,7 +471,8 @@ const char *cascada(Referencia ref, uint32_t nTotal, bool salirAlLlegar, bool cs
   int64_t hist[J1_VENTANA_VEL + 1];
   const int64_t c0 = cuentas();
   for (auto &h : hist) h = c0;
-  float integral = 0.0f, wRef = 0.0f, e = 0.0f;
+  float integral = 0.0f, wRef = 0.0f, e = 0.0f, thRefAnt = NAN;
+  bool llegado = false;  // histéresis: llega a menos de J1_TOL_POS, se despierta a más de J1_TOL_SALIDA
   uint32_t atascoTicks = 0, contrarioTicks = 0, sinCuentasTicks = 0, quietoTicks = 0;
   const char *corte = salirAlLlegar ? "no llegó a tiempo" : nullptr;
   uint32_t tick = micros();
@@ -488,7 +490,16 @@ const char *cascada(Referencia ref, uint32_t nTotal, bool salirAlLlegar, bool cs
     // Lazo de posición
     if (k % nPos == 0) {
       e = thRef - grados(c);
-      const float deseada = fabsf(e) < J1_TOL_POS ? 0.0f : constrain(kpp * e, -J1_VMAX_POS, J1_VMAX_POS);
+      if (thRef != thRefAnt) {  // ángulo pedido nuevo: hay que ir
+        llegado = false;
+        thRefAnt = thRef;
+      }
+      if (llegado) {
+        if (fabsf(e) > J1_TOL_SALIDA) llegado = false;  // la alejaron (o se fue): volver
+      } else if (fabsf(e) < J1_TOL_POS) {
+        llegado = true;
+      }
+      const float deseada = llegado ? 0.0f : constrain(kpp * e, -J1_VMAX_POS, J1_VMAX_POS);
       const float dMax = J1_AMAX_POS * J1_TS_POS_US / 1e6f;
       wRef = deseada == 0.0f ? 0.0f : constrain(deseada, wRef - dMax, wRef + dMax);
     }
@@ -528,7 +539,7 @@ const char *cascada(Referencia ref, uint32_t nTotal, bool salirAlLlegar, bool cs
       break;
     }
     // Llegada
-    quietoTicks = (wRef == 0.0f && fabsf(wMed) < 1.0f && fabsf(e) < J1_TOL_POS) ? quietoTicks + 1 : 0;
+    quietoTicks = (llegado && wRef == 0.0f && fabsf(wMed) < 1.0f) ? quietoTicks + 1 : 0;
     if (salirAlLlegar && quietoTicks >= nLlegada) {
       corte = nullptr;
       break;
@@ -691,10 +702,10 @@ void comandoEscalonPos(const char *args) {
   epAmp = amp;
   epNSeg = (uint32_t)enteros[0] * 1000 / J1_TS_VEL_US;
   epCiclos = (uint32_t)enteros[1];
-  Serial.printf("# escalon_pos A=%.1f seg_ms=%ld ciclos=%ld base=%.2f kpp=%.4f vmax=%.1f amax=%.1f tol=%.2f kp=%.4f "
-                "ki=%.4f zm=%.1f ts_ms=%lu tpos_ms=%lu\n", amp, enteros[0], enteros[1], base, kpp, J1_VMAX_POS,
-                J1_AMAX_POS, J1_TOL_POS, kpVel, kiVel, J1_ZONA_MUERTA_PCT, (unsigned long)(J1_TS_VEL_US / 1000),
-                (unsigned long)(J1_TS_POS_US / 1000));
+  Serial.printf("# escalon_pos A=%.1f seg_ms=%ld ciclos=%ld base=%.2f kpp=%.4f vmax=%.1f amax=%.1f tol=%.2f "
+                "tol_salida=%.2f kp=%.4f ki=%.4f zm=%.1f ts_ms=%lu tpos_ms=%lu\n", amp, enteros[0], enteros[1], base, kpp,
+                J1_VMAX_POS, J1_AMAX_POS, J1_TOL_POS, J1_TOL_SALIDA, kpVel, kiVel, J1_ZONA_MUERTA_PCT,
+                (unsigned long)(J1_TS_VEL_US / 1000), (unsigned long)(J1_TS_POS_US / 1000));
   Serial.println("t_ms,th_ref,th,w_ref,w_med,duty");
   uint32_t ms = 0;
   const uint32_t nTotal = 4 * epCiclos * epNSeg + 1000000 / J1_TS_VEL_US;  // + 1 s quieto al final

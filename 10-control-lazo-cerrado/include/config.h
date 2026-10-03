@@ -65,7 +65,9 @@ constexpr float J1_KPP = 2.0f;                // (°/s) de velocidad pedida por 
 constexpr uint32_t J1_TS_POS_US = 20000;      // lazo de posición a 50 Hz
 constexpr float J1_VMAX_POS = 30.0f;          // °/s, velocidad máxima de los movimientos
 constexpr float J1_AMAX_POS = 60.0f;          // °/s², cambio máximo de la velocidad pedida (sin golpes)
-constexpr float J1_TOL_POS = 0.3f;            // °, a menos de esto del objetivo: velocidad 0 (freno)
+constexpr float J1_TOL_POS = 0.3f;            // °, a menos de esto del objetivo: llegó, velocidad 0 (freno)
+constexpr float J1_TOL_SALIDA = 0.6f;         // °, una vez que llegó, solo vuelve a moverse si se aleja más que
+                                              // esto (histéresis: sin ella zumbaba en el borde de la tolerancia)
 constexpr uint32_t J1_LLEGADA_MS = 200;       // llegó: dentro de la tolerancia y quieta durante esto
 constexpr uint32_t J1_IR_MAX_MS = 15000;      // "a <grados>": tiempo máximo para llegar
 constexpr uint32_t J1_EP_SEG_MAX_MS = 5000;   // "ep": duración máxima de cada tramo
