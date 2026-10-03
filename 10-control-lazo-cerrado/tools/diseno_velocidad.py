@@ -33,6 +33,7 @@ RELACION_CORREA = 90 / 18
 K = K_RPM * 6.0 / RELACION_CORREA  # (°/s de la base) por %
 TAU = 0.065                       # s
 ZONA_MUERTA = 17.0                # %, en marcha (paso 1: 30 % -> ~25 °/s)
+ARRANQUE = 25.0                   # %, para arrancar desde quieta (fricción de arranque, pasos 0-3)
 CUENTAS_POR_GRADO = 16.0 * 4 * 50 * RELACION_CORREA / 360.0
 
 # Firmware
@@ -89,10 +90,15 @@ def simular(kp, ki, perfil, t_fin, realista, ventana):
         # Motor durante un periodo de muestreo (el duty queda fijo)
         if realista:
             u_ef = 0.0 if abs(u) <= ZONA_MUERTA else u - np.sign(u) * ZONA_MUERTA
+            if abs(w) < 0.05 and abs(u) < ARRANQUE:   # quieta: hace falta ARRANQUE para despegar
+                w, u_ef = 0.0, 0.0
         else:
             u_ef = u
         for _ in range(n_sub):
+            w_ant = w
             w += dt * (-w + K * u_ef) / TAU
+            if realista and u_ef == 0.0 and w_ant * w < 0:  # frenando sin empuje: se detiene, no invierte
+                w = 0.0
             pos += dt * w
     return np.array(T), np.array(WREF), np.array(W), np.array(WMED), np.array(U)
 

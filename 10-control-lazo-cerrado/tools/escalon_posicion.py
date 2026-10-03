@@ -160,7 +160,8 @@ def main():
         if tt < 4 * seg else 0.0
     ts_, tr_s, th_s, wr_s, w_s, u_s, corte_sim = dp.simular(meta["kpp"], meta["vmax"], meta["amax"], meta["tol"],
                                                              perfil, 4 * seg + 1.0,
-                                                             meta.get("tol_salida", meta["tol"]))
+                                                             meta.get("tol_salida", meta["tol"]),
+                                                             meta.get("vmin", 0.0))
     if corte_sim:
         print(f"Aviso: con estos parámetros la simulación corta por {corte_sim}.")
 

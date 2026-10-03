@@ -45,6 +45,8 @@ constexpr uint32_t J1_MOVER_MAX_MS = 15000;   // a 30 % la base va a ~10-15 °/s
 constexpr float J1_KP_VEL = 0.549f;           // % de duty por °/s de error
 constexpr float J1_KI_VEL = 4.0f;             // % de duty por ° de error acumulado
 constexpr float J1_ZONA_MUERTA_PCT = 17.0f;   // feedforward: duty con el que la base apenas se mueve
+constexpr float J1_ARRANQUE_PCT = 25.0f;      // duty para arrancar desde quieta (fricción de arranque, pasos 0-3).
+                                              // Debajo de esto el motor no la mueve: el corte "sin cuentas" no actúa
 constexpr uint32_t J1_TS_VEL_US = 10000;      // lazo de velocidad a 100 Hz
 constexpr int J1_VENTANA_VEL = 4;             // la velocidad se mide en 4 muestras (40 ms): 0,56 °/s por cuenta
 constexpr float J1_VEL_MAX = 40.0f;           // °/s de la base, máximo que acepta el escalón
@@ -65,6 +67,7 @@ constexpr float J1_KPP = 2.0f;                // (°/s) de velocidad pedida por 
 constexpr uint32_t J1_TS_POS_US = 20000;      // lazo de posición a 50 Hz
 constexpr float J1_VMAX_POS = 30.0f;          // °/s, velocidad máxima de los movimientos
 constexpr float J1_AMAX_POS = 60.0f;          // °/s², cambio máximo de la velocidad pedida (sin golpes)
+constexpr float J1_VMIN_POS = 3.0f;           // °/s, mínimo mientras no llegó: más lento se traba antes de llegar
 constexpr float J1_TOL_POS = 0.3f;            // °, a menos de esto del objetivo: llegó, velocidad 0 (freno)
 constexpr float J1_TOL_SALIDA = 0.6f;         // °, una vez que llegó, solo vuelve a moverse si se aleja más que
                                               // esto (histéresis: sin ella zumbaba en el borde de la tolerancia)

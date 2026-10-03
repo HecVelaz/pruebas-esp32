@@ -392,7 +392,9 @@ void escalonVelocidad(float v, uint32_t ms, uint32_t ciclos) {
       break;
     }
     // Sin ninguna cuenta con el motor empujando más que la zona muerta: encoder suelto o motor trabado
-    sinCuentasTicks = (wRef != 0.0f && fabsf(u) > J1_ZONA_MUERTA_PCT && c == hist[J1_VENTANA_VEL - 1])
+    // (con menos de J1_ARRANQUE_PCT el motor no mueve la base aunque el encoder esté suelto: no hay peligro, y
+    // cerca del objetivo es normal quedar un instante trabada por la fricción)
+    sinCuentasTicks = (wRef != 0.0f && fabsf(u) >= J1_ARRANQUE_PCT && c == hist[J1_VENTANA_VEL - 1])
                           ? sinCuentasTicks + 1 : 0;
     if (sinCuentasTicks * tsMs >= J1_SIN_CUENTAS_MS) {
       corte = "sin cuentas del encoder (¿encoder suelto o motor trabado?)";
@@ -499,7 +501,9 @@ const char *cascada(Referencia ref, uint32_t nTotal, bool salirAlLlegar, bool cs
       } else if (fabsf(e) < J1_TOL_POS) {
         llegado = true;
       }
-      const float deseada = llegado ? 0.0f : constrain(kpp * e, -J1_VMAX_POS, J1_VMAX_POS);
+      // Mientras no llegó, al menos J1_VMIN_POS hacia el objetivo: más despacio la fricción la traba antes
+      const float vP = fmaxf(fabsf(kpp * e), J1_VMIN_POS);
+      const float deseada = llegado ? 0.0f : (e > 0 ? 1.0f : -1.0f) * fminf(vP, J1_VMAX_POS);
       const float dMax = J1_AMAX_POS * J1_TS_POS_US / 1e6f;
       wRef = deseada == 0.0f ? 0.0f : constrain(deseada, wRef - dMax, wRef + dMax);
     }
@@ -516,7 +520,9 @@ const char *cascada(Referencia ref, uint32_t nTotal, bool salirAlLlegar, bool cs
       corte = "límite de ángulo";
       break;
     }
-    sinCuentasTicks = (wRef != 0.0f && fabsf(u) > J1_ZONA_MUERTA_PCT && c == hist[J1_VENTANA_VEL - 1])
+    // (con menos de J1_ARRANQUE_PCT el motor no mueve la base aunque el encoder esté suelto: no hay peligro, y
+    // cerca del objetivo es normal quedar un instante trabada por la fricción)
+    sinCuentasTicks = (wRef != 0.0f && fabsf(u) >= J1_ARRANQUE_PCT && c == hist[J1_VENTANA_VEL - 1])
                           ? sinCuentasTicks + 1 : 0;
     if (sinCuentasTicks * tsMs >= J1_SIN_CUENTAS_MS) {
       corte = "sin cuentas del encoder (¿encoder suelto o motor trabado?)";
@@ -703,8 +709,8 @@ void comandoEscalonPos(const char *args) {
   epNSeg = (uint32_t)enteros[0] * 1000 / J1_TS_VEL_US;
   epCiclos = (uint32_t)enteros[1];
   Serial.printf("# escalon_pos A=%.1f seg_ms=%ld ciclos=%ld base=%.2f kpp=%.4f vmax=%.1f amax=%.1f tol=%.2f "
-                "tol_salida=%.2f kp=%.4f ki=%.4f zm=%.1f ts_ms=%lu tpos_ms=%lu\n", amp, enteros[0], enteros[1], base, kpp,
-                J1_VMAX_POS, J1_AMAX_POS, J1_TOL_POS, J1_TOL_SALIDA, kpVel, kiVel, J1_ZONA_MUERTA_PCT,
+                "tol_salida=%.2f vmin=%.1f kp=%.4f ki=%.4f zm=%.1f ts_ms=%lu tpos_ms=%lu\n", amp, enteros[0], enteros[1], base, kpp,
+                J1_VMAX_POS, J1_AMAX_POS, J1_TOL_POS, J1_TOL_SALIDA, J1_VMIN_POS, kpVel, kiVel, J1_ZONA_MUERTA_PCT,
                 (unsigned long)(J1_TS_VEL_US / 1000), (unsigned long)(J1_TS_POS_US / 1000));
   Serial.println("t_ms,th_ref,th,w_ref,w_med,duty");
   uint32_t ms = 0;
