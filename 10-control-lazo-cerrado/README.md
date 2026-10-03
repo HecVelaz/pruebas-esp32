@@ -59,6 +59,17 @@ Cada paso se prueba en la placa antes de pasar al siguiente. Hoja de ruta con la
 | 5 | Perturbación y carga (frenar con la mano, peso en el brazo) | Ver que el lazo corrige |
 | 6 | Pasar las ganancias a `firmware/brazo/include/brazo_config.h` | Integración |
 
+La numeración de esta tabla es la del plan de J1 y J2 juntos. En `plan_j1.html` (solo J1) los pasos son
+A (preparar), 0 (signo), 1 (transmisión), 2 (velocidad), **3 (posición = paso 4 de acá)**, **4 (perturbación =
+paso 5 de acá)** y 5 (al robot).
+
+**Comandos del firmware (J1):** `z` cero en la marca · `c` posición · `e` encoder a mano · `p <%> [ms]` pulso ·
+`m <°> [%]` ir con duty fijo · `ev <°/s> [ms] [ciclos]` escalones de velocidad (CSV) · `a <°>` ir con el control de
+posición · `ep <A> [ms] [ciclos]` escalones de posición (CSV) · `kp`, `ki`, `kpp` ganancias · `g` mostrarlas ·
+`x` rueda libre · `?` ayuda. Rango permitido **−45° / +135°** desde el cero (brazo al costado). Scripts en `tools/`:
+`diseno_velocidad.py`, `diseno_posicion.py` (diseño y simulación), `escalon_velocidad.py`, `escalon_posicion.py`
+(prueba en placa contra la simulación).
+
 **Cero de posición:** el encoder es incremental, así que al encender la placa la posición arranca en 0 donde
 esté el brazo. Hasta que haya finales de carrera, el cero se fija a mano: llevar la articulación a una marca
 conocida y mandar un comando de cero.
@@ -69,7 +80,7 @@ conocida y mandar un comando de cero.
 - [x] Paso 1 J1 (2026-10-02): reductora 50:1 × correa 90/18 = **44,44 cuentas por grado de la base** (16 000 por vuelta), confirmado a ojo con un doblez de 45°. J2: pendiente
 - [x] Paso 2 J1 (2026-10-02): PI de velocidad **Kp = 0,549, Ki = 4** (diseño Ki = 8,44 daba 18 % de sobrepico por el juego de la correa); ts 0,33–0,38 s, sobrepico 4–7 %. Kalman descartado (no mejora la medición). J2: pendiente
 - [ ] Paso 3: PI de velocidad J2 (Kp = ?, Ki = ?, zona muerta = ?)
-- [ ] Paso 4: P de posición J1 / J2
+- [x] Paso 4 J1 (2026-10-02): P de posición **Kpp = 2** (v_max 30 °/s, a_max 60 °/s², llega a ±0,3°, se despierta a ±0,6°, velocidad mínima 3 °/s): 20 escalones de ±20° → **llegada 1,71–1,77 s, sobrepico 0, error 0,27–0,31°, sin zumbido**. J2: pendiente
 - [ ] Paso 5: pruebas con perturbación y carga
 - [ ] Paso 6: ganancias pasadas al firmware del brazo
 - [ ] Finales de carrera de J1 y J2 (GPIO 36 y 39, pull-up externo)
@@ -84,3 +95,7 @@ conocida y mandar un comando de cero.
 | 2026-10-02 | 2 (J1) | Diseño por cancelación de polo para ts 0,25 s: Kp 0,549, Ki 8,44 (`tools/diseno_velocidad.py`). En placa (`ev`, `tools/escalon_velocidad.py`): un escalón con Ki 8,44 → ts 0,47 s y **18 % de sobrepico**; la meseta al arrancar y el golpe al invertir son el **juego de la correa** (el encoder está en el motor). Con pausa en 0 entre +v y −v y 40 ciclos (80 escalones): **Ki 4 → ts 0,33/0,38 s, sobrepico 3,9/7,1 % (ida/vuelta), ±0,9 %**; Ki 6 → ts 0,37/0,42 s, sobrepico 9,8/12,4 %. Elegido Ki 4. Para 20 °/s hace falta 26 % (+) y 24 % (−). Con los 12 V apagados, `ev` cortó a los 150 ms por "sin cuentas" (protección verificada) |
 | 2026-10-02 | 2 (J1) | **Kalman descartado** con los datos de la prueba de Ki 4 (`resultados/escalon_vel_20261002_215350.csv`), contra una derivada centrada sin atraso: ventana de 40 ms → error 1,6 °/s, atraso 20 ms, ruido 0,36 °/s; ventana de 20 ms → 1,2 °/s, 10 ms, 0,56 °/s; Kalman de velocidad constante (mejor q) → 1,2 °/s, 10 ms, 0,49 °/s (igual que una ventana más corta); Kalman con el modelo del motor → 1,3 °/s, ruido 1,29 °/s (peor: el modelo no tiene el juego ni la asimetría). El límite es la resolución del encoder (1 cuenta en 10 ms = 2,25 °/s). Se sigue con la ventana de 40 ms |
 | 2026-10-02 | 2 (J1) | Deriva: el lazo de velocidad no controla posición; en 40 ciclos la base se corrió hasta −4° (Ki 6) y usar `--cero` lejos de la marca corrió el cero ~20°. Hay que volver a fijar el cero en la marca |
+| 2026-10-02 | 4 (J1) | Diseño (`tools/diseno_posicion.py`): lazo de velocidad cerrado ≈ 1/(0,09 s + 1) → sin sobrepico con Kpp ≤ 1/(4·0,09) = 2,78; elegido **Kpp = 2** (margen por el juego; igual que `brazo_config.h`). Velocidad pedida limitada a 30 °/s y su cambio a 60 °/s² (perfil trapezoidal, sin golpes); simulado 0 → 20° en 1,7 s sin sobrepico |
+| 2026-10-02 | 4 (J1) | `ep 20 2500 5` (20 escalones ±20°, `tools/escalon_posicion.py`): llegada 1,83–2,00 s, **sobrepico 0**, error 0,25–0,31°, coincide con la simulación (~0,15 s más lento: juego). **Zumbido** al llegar: 67 arranques del motor (el error iba y venía en el borde de la tolerancia de 0,3°); el usuario sentía un golpe leve al frenar |
+| 2026-10-02 | 4 (J1) | Con **histéresis** (llega a 0,3°, se despierta a más de 0,6°): zumbido 0, pero se cortó por "sin cuentas": a 0,81° del objetivo pedía 1,6 °/s → 17 % de duty y la fricción de arranque (~25 %) la trabó |
+| 2026-10-02 | 4 (J1) | Con **velocidad mínima de 3 °/s** mientras no llegó y el corte "sin cuentas" solo con duty ≥ 25 %: **llegada 1,71–1,77 s (±0,01), sobrepico 0 en los 20, error 0,27–0,31°, zumbido 0, sin cortes** (`resultados/escalon_pos_20261002_223821.*`). El error queda en el borde de la tolerancia porque la fricción y el freno la detienen en el acto (la simulación, sin esa fricción al frenar, da 0,06°): para menos error, bajar la tolerancia (p. ej. 0,1° / 0,3°). Cumple la especificación (sobrepico 0, llegada ≤ 2 s, error ≤ 0,5°) |
