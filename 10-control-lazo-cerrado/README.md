@@ -82,7 +82,7 @@ conocida y mandar un comando de cero.
 - [ ] Paso 3: PI de velocidad J2 (Kp = ?, Ki = ?, zona muerta = ?)
 - [x] Paso 4 J1 (2026-10-02): P de posición **Kpp = 2** (v_max 30 °/s, a_max 60 °/s², llega a ±0,3°, se despierta a ±0,6°, velocidad mínima 3 °/s): 20 escalones de ±20° → **llegada 1,71–1,77 s, sobrepico 0, error 0,27–0,31°, sin zumbido**. J2: pendiente
 - [x] Paso 5 J1 (2026-10-02): la base **no se mueve a mano** (250:1, la mecánica la sostiene quieta); frenada con la mano en movimiento → el PI subió el duty de 22 a 26 % y recuperó 15 °/s en ~0,8 s; con un limón en la pinza, los escalones de posición dan lo mismo que sin carga. Falta el video. J2: pendiente
-- [ ] Paso 6: ganancias pasadas al firmware del brazo
+- [~] Paso 6 J1 (2026-10-02): parámetros pasados a `recolector_de_frutas/firmware/brazo/include/brazo_config.h` (commit `836cf95` de ese repo; en rpm de la reductora: kpVel 0,659, kiVel 4,8), con `velMin`, `ffSoloZonaMuerta` y `MOTOR_INVERTIDO` nuevos. **Falta:** decidir cómo se traduce el cero al costado y el rango −45/+135 al marco de `brazo_ik`, y probar ese firmware en la placa
 - [ ] Finales de carrera de J1 y J2 (GPIO 36 y 39, pull-up externo)
 - [ ] Pull-down de 10 kΩ en los EN (GPIO 23 y 25)
 
