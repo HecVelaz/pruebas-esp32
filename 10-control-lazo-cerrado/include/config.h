@@ -13,6 +13,7 @@ constexpr const char *SENTIDO_POS = "ANTIHORARIO visto desde arriba";
 constexpr const char *SENTIDO_NEG = "HORARIO visto desde arriba";
 constexpr const char *MARCA = "brazo al costado del robot";
 constexpr bool SIGNOS_EN_VIVO = false;  // "ie"/"is" deshabilitados: los límites son asimétricos
+constexpr bool FRENO_EN_REPOSO = false;  // rueda libre al terminar (la base no carga peso)
 
 // Encoder Hall 16 PPR x4 en el eje del motor, reductora 50:1 -> 3200 cuentas por vuelta de la salida
 // de la reductora. De ahí a la base: correa GT2, polea de 18 dientes en el motor y 90 en la base (5:1).
@@ -111,28 +112,34 @@ constexpr const char *SENTIDO_POS = "HACIA ARRIBA";
 constexpr const char *SENTIDO_NEG = "HACIA ABAJO";
 constexpr const char *MARCA = "barra verde en su marca";
 constexpr bool SIGNOS_EN_VIVO = true;  // "ie"/"is" habilitados: los límites provisorios son simétricos
+constexpr bool FRENO_EN_REPOSO = true;  // freno al terminar: con el brazo completo el sin fin se iba cayendo en rueda libre
 
 // Encoder 38S6G5 (1000 PPR x4) acoplado al eje de SALIDA del sin fin: 4000 cuentas por vuelta de esa salida.
 // De ahí al hombro: piñón -> engranaje grande. MEDIR en el paso 1 (dientes del grande / dientes del piñón).
 // Mientras valga 1, los "grados" del firmware son de la salida del sin fin: el brazo se mueve MENOS que eso
 // (si el engranaje reduce), así que los límites provisorios quedan del lado seguro.
 constexpr float CUENTAS_POR_VUELTA_SALIDA = 1000.0f * 4.0f;
-constexpr float RELACION_ENGRANAJE = 1.0f;  // MEDIR
+constexpr float RELACION_ENGRANAJE = 56.0f / 18.0f;  // piñón 18, engranaje 56 (2026-10-03, igual que J3)
 constexpr float CUENTAS_POR_GRADO = CUENTAS_POR_VUELTA_SALIDA * RELACION_ENGRANAJE / 360.0f;
 
 // Paso 0: signos (positivo = el brazo sube). En 08, con este acople, las cuentas iban al revés.
 constexpr bool ENCODER_INVERTIDO = true;   // paso 0 (2026-10-03): con duty + las cuentas subían (OK)
 constexpr bool SENTIDO_INVERTIDO = true;   // paso 0 (2026-10-03): con duty + el brazo bajaba
 
-// PWM del L298N en modo freno (igual que en 08: lineal a 1 kHz)
+// PWM del L298N en modo freno (igual que en 08: lineal a 1 kHz). Con el IBT-2 (-e j2ibt) también 1 kHz: a 20 kHz el
+// BTS7960 perdía parte de cada pulso (visto en J3). Con el IBT-2 el motor recibe ~12 V en lugar de 9,6 V: los duty
+// de arranque del L298N sobran un ~25 % y el sentido depende de M+/M-: repetir el paso 0 ("ie"/"is" en vivo).
 constexpr uint32_t PWM_FREQ_HZ = 1000;
 constexpr uint8_t PWM_BITS = 10;
 
 // Límites PROVISORIOS desde la marca, hasta medir la postura (ángulos de la verde y de la roja) y calcular la
 // ventana del cuatro barras con tools/cuatro_barras.py.
-constexpr float LIMITE_POS_GRADOS = 15.0f;
-constexpr float LIMITE_NEG_GRADOS = -15.0f;
-constexpr float DUTY_MAX_PCT = 55.0f;      // bajando arrancó con 35 %; subiendo (contra la gravedad) hace falta más
+// 2026-10-03: el cero (barra verde en su marca) está a 30° de la horizontal; con la roja en su marca (112°),
+// tools/cuatro_barras.py --q2 30 --theta 112: con J3 quieto, J2 puede ir de -19,9° a +42,3° con 10° de margen.
+// Si J3 se mueve de su marca, recalcular.
+constexpr float LIMITE_POS_GRADOS = 40.0f;
+constexpr float LIMITE_NEG_GRADOS = -18.0f;
+constexpr float DUTY_MAX_PCT = 80.0f;      // TEMPORAL (2026-10-03, IBT-2): con 30-40 % no se movía. L298N: 55 %
 constexpr uint32_t PULSO_MAX_MS = 200;     // el sin fin va rápido: a 40 % la salida gira a ~350 °/s
 constexpr uint32_t PULSO_DEF_MS = 100;
 constexpr int32_t CUENTAS_SIN_GIRO = 5;
@@ -148,14 +155,18 @@ constexpr uint32_t MOVER_MAX_MS = 10000;
 // Ki = Kp/tau. Se rehacen con tools/diseno_velocidad.py cuando se conozcan la transmisión y la zona muerta.
 constexpr float K_VEL = 1.33f * 6.0f / RELACION_ENGRANAJE;  // (°/s del brazo) por %
 constexpr float TAU_VEL = 0.059f;
-constexpr float KP_VEL = TAU_VEL / (K_VEL * 0.25f / 4.0f);
-constexpr float KI_VEL = KP_VEL / TAU_VEL;
-constexpr float ZONA_MUERTA_PCT = 30.0f;   // MEDIR en el paso 0 (subiendo y bajando: la gravedad cambia)
-constexpr float ZONA_MUERTA_NEG_PCT = ZONA_MUERTA_PCT;  // feedforward con velocidad negativa (simétrico)
-constexpr float DESPEGUE_PCT = ZONA_MUERTA_PCT;          // feedforward con la articulación quieta (igual)
-constexpr float DESPEGUE_NEG_PCT = ZONA_MUERTA_NEG_PCT;
-constexpr float FF_PENDIENTE_POS = 0.0f;  // sin compensación de gravedad
-constexpr float ARRANQUE_PCT = 40.0f;      // MEDIR en el paso 0
+constexpr float KP_VEL = 0.35f;  // como J3 (diseño: TAU_VEL / (K_VEL * 0.25f / 4.0f) = 0,37)
+constexpr float KI_VEL = 5.0f;   // como J3 (diseño: 6,2)
+// Paso 0 con el IBT-2 y el resorte (2026-10-03): desde quieta sube con 60-70 % y baja con -30/-40 %.
+// Barrido de carga -10 -> +20 -> -10° a 4 °/s (resultados/barrido_20261003_225314): subiendo ~59 % a -10°, ~55 % en
+// 0°, ~48 % a +20° (baja ~0,35 %/°: el brazo se acerca a la vertical y el resorte ayuda más); bajando ~-9/-10 %
+// en todo el rango, con traba-suelta (0 a -20 °/s, como J3).
+constexpr float FF_PENDIENTE_POS = -0.35f;    // %/° subiendo (negativa: cuanto más arriba, menos esfuerzo)
+constexpr float ZONA_MUERTA_PCT = 52.0f;      // en marcha, subiendo, en 0° (barrido: 55 % a 4 °/s)
+constexpr float ZONA_MUERTA_NEG_PCT = 9.0f;   // en marcha, bajando
+constexpr float DESPEGUE_PCT = 62.0f;         // quieta, para subir, en 0°
+constexpr float DESPEGUE_NEG_PCT = 30.0f;     // quieta, para bajar
+constexpr float ARRANQUE_PCT = 30.0f;      // con menos no se mueve en ningún sentido (paso 0)
 constexpr uint32_t TS_VEL_US = 10000;
 constexpr int VENTANA_VEL = 4;
 constexpr float VEL_MAX = 30.0f;
@@ -166,7 +177,7 @@ constexpr uint32_t ESCALON_MAX_MS = 3000;
 constexpr uint32_t PAUSA_MS = 500;
 constexpr uint32_t CICLOS_MAX = 60;
 constexpr float ATASCO_VEL = 2.0f;
-constexpr float ATASCO_DUTY_PCT = 50.0f;   // por encima de la zona muerta y debajo de DUTY_MAX_PCT
+constexpr float ATASCO_DUTY_PCT = 75.0f;   // por encima de la zona muerta y debajo de DUTY_MAX_PCT
 constexpr uint32_t ATASCO_MS = 300;
 
 // Paso 3: P de posición (provisorio, como J1)
@@ -175,9 +186,10 @@ constexpr uint32_t TS_POS_US = 20000;
 constexpr float VMAX_POS = 15.0f;
 constexpr float AMAX_POS = 60.0f;
 constexpr float VMIN_POS = 3.0f;
-constexpr float VMIN_BAJA_POS = VMIN_POS;  // °/s, mínimo bajando (velocidad negativa); se cambia con "bj"
-constexpr uint32_t TRABADA_MS = 100;       // en marcha pero quieta este tiempo: vuelve a la rampa de despegue ("bj")
-constexpr float DITHER_PCT = 0.0f;         // ± % de vibración en el duty mientras se mueve ("bj")
+constexpr float VMIN_BAJA_POS = 6.0f;      // °/s, mínimo bajando (como J3: con 3 se traba al final) ("bj")
+constexpr uint32_t TRABADA_MS = 40;        // trabada este tiempo: vuelve a la rampa de despegue (como J3) ("bj")
+constexpr float DITHER_PCT = 3.0f;         // ± % a 25 Hz mientras se mueve ("bj"). 2026-10-03: de las tres pruebas
+                                           // de J2, la mejor (bajando: picos 30 -> 23 °/s, paradas 4,3 -> 3,5)
 constexpr float TOL_POS = 0.3f;
 constexpr float TOL_SALIDA = 0.6f;
 constexpr uint32_t LLEGADA_MS = 200;
@@ -204,6 +216,7 @@ constexpr const char *SENTIDO_POS = "PINZA HACIA ARRIBA";
 constexpr const char *SENTIDO_NEG = "PINZA HACIA ABAJO";
 constexpr const char *MARCA = "barra roja en su marca";
 constexpr bool SIGNOS_EN_VIVO = true;
+constexpr bool FRENO_EN_REPOSO = false;  // rueda libre al terminar: el sin fin sostiene el antebrazo
 
 // Encoder 38S6G5 (1000 PPR x4) acoplado al eje de SALIDA del sin fin: 4000 cuentas por vuelta de esa salida.
 // De ahí al hombro: piñón -> engranaje grande. MEDIR en el paso 1 (dientes del grande / dientes del piñón).

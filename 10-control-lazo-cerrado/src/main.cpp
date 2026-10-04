@@ -1,5 +1,5 @@
 // Lazo cerrado de una articulación del brazo en la ESP32-WROOM-32D: J1 (36GP-555 + IBT-2, base giratoria,
-// -e j1), J2 (5840-31ZY + L298N, hombro, -e j2) o J3 (5840-31ZY + IBT-2, codo, -e j3). Los parámetros de cada una están en include/config.h
+// -e j1), J2 (5840-31ZY + L298N, hombro, -e j2; o con el IBT-2 de J3, -e j2ibt) o J3 (5840-31ZY + IBT-2, codo, -e j3). Los parámetros de cada una están en include/config.h
 // (espacio de nombres "art"). Pasos:
 //  - Paso 0: pulsos cortos de duty fijo para comprobar que "positivo" es lo mismo para el motor,
 //    el encoder y la articulación (J1: antihorario visto desde arriba; J2: el brazo sube). Ver config.h.
@@ -10,6 +10,11 @@
 //  - Paso 3: P de posición a 50 Hz encima del PI de velocidad (cascada). "a <grados>" va a un ángulo;
 //    "ep <A> [ms] [ciclos]" hace escalones 0, +A, 0, -A con CSV para tools/escalon_posicion.py.
 #include <Arduino.h>
+
+// IBT-2 en los pines de J3 (RPWM 16, LPWM 17, EN 13, encoder 18/19): J3, o J2 cableado en el lugar de J3 (-e j2ibt)
+#if defined(ARTICULACION_J3) || defined(J2_IBT2)
+#define IBT2_EN_PINES_J3
+#endif
 
 #if defined(ARTICULACION_L298N)
 #include "L298N.h"
@@ -86,6 +91,16 @@ int64_t excesoLimite(int64_t c) {
 // En el límite o fuera, y moverse en el sentido dir (+1/-1) la alejaría más
 bool haciaAfuera(int64_t c, int dir) { return (c >= LIM_POS_C && dir > 0) || (c <= LIM_NEG_C && dir < 0); }
 
+// Al terminar un movimiento: freno (bornes del motor en corto) o rueda libre, según la articulación. J2 carga todo
+// el brazo y el sin fin no lo sostiene solo: en rueda libre se iba cayendo despacio; en corto el motor lo frena.
+void reposo() {
+  if (art::FRENO_EN_REPOSO) {
+    motor.brake();
+  } else {
+    motor.coast();
+  }
+}
+
 void aplicarDuty(float pct) {
   float d = pct / 100.0f;
   if (sentidoInvertido) d = -d;
@@ -133,7 +148,7 @@ void ayuda() {
   Serial.println("  x            rueda libre (driver deshabilitado)");
 #if defined(ARTICULACION_L298N)
   Serial.println("  dg           diagnóstico del cableado al L298N: un pin en alto por vez (el motor no se mueve)");
-#elif defined(ARTICULACION_J3)
+#elif defined(IBT2_EN_PINES_J3)
   Serial.println("  dg           diagnóstico del cableado al IBT-2: EN, RPWM y LPWM de a uno, y la salida M+/M-");
 #endif
   Serial.println("  ?            esta ayuda");
@@ -267,7 +282,7 @@ Movimiento mover(float pct, uint32_t msMax, bool conObjetivo, int64_t objetivo) 
   m.ms = millis() - t0;
   m.cFin = cuentas();
   delay(FRENO_MS);
-  motor.coast();
+  reposo();
   m.c1 = cuentas();
   return m;
 }
@@ -494,7 +509,7 @@ void escalonVelocidad(float v, uint32_t ms, uint32_t ciclos) {
   }
   aplicarDuty(0.0f);
   delay(FRENO_MS);
-  motor.coast();
+  reposo();
   if (corte) {
     Serial.printf("# cortado %s\n", corte);
     Serial.printf(">> CORTADO por %s.\n", corte);
@@ -514,7 +529,7 @@ void escalonVelocidad(float v, uint32_t ms, uint32_t ciclos) {
 void mostrarGanancias() {
   Serial.printf("PI de velocidad: kp = %.4f %%/(°/s), ki = %.4f %%/° | %d muestras de %lu ms\n", kpVel, kiVel,
                 art::VENTANA_VEL, (unsigned long)(art::TS_VEL_US / 1000));
-  Serial.printf("Feedforward (ff): despegue %+.1f / -%.1f %%, marcha %+.1f / -%.1f %% (en 0°), subiendo +%.2f %%/°\n",
+  Serial.printf("Feedforward (ff): despegue %+.1f / -%.1f %%, marcha %+.1f / -%.1f %% (en 0°), subiendo %+.2f %%/°\n",
                 ffDespPos, ffDespNeg, ffMarchaPos, ffMarchaNeg, ffPendPos);
   Serial.printf("Bajada (bj): vmin %.1f °/s, trabada %lu ms, dither ±%.1f %%\n", vminBaja, (unsigned long)trabadaMs,
                 ditherPct);
@@ -634,7 +649,7 @@ const char *cascada(Referencia ref, uint32_t nTotal, bool salirAlLlegar, bool cs
   aplicarDuty(0.0f);
   msUsados = (micros() - t0) / 1000;
   delay(FRENO_MS);
-  motor.coast();
+  reposo();
   return corte;
 }
 
@@ -696,7 +711,7 @@ void diagnostico() {
   if (movio) Serial.println("   CORTADO: el encoder contó movimiento.");
   Serial.println(">> Diagnóstico terminado: todo en bajo.");
 }
-#elif defined(ARTICULACION_J3)
+#elif defined(IBT2_EN_PINES_J3)
 // "dg": diagnóstico del cableado WROOM -> IBT-2 de J3. Etapas 1-3: nunca EN junto con un PWM, así el puente no
 // entrega tensión y el motor no se mueve. Con el multímetro se mide cada pin del conector del IBT-2 contra su GND.
 void esperarEnter(uint32_t maxMs) {
@@ -977,7 +992,7 @@ void barridoCarga(float desde, float hasta, float v) {
   }
   aplicarDuty(0.0f);
   delay(FRENO_MS);
-  motor.coast();
+  reposo();
   if (corte) {
     Serial.printf("# cortado %s\n", corte);
     Serial.printf(">> CORTADO por %s.\n", corte);
@@ -1016,8 +1031,8 @@ void comandoFF(const char *args) {
     }
   }
   float pend = ffPendPos;
-  if (*p != '\0' && (!leerNumero(p, &p, pend) || pend < 0.0f || pend > 5.0f || *p != '\0')) {
-    Serial.println("Uso: ff <desp+> <marcha+> <desp-> <marcha-> [%/° subiendo, 0-5]");
+  if (*p != '\0' && (!leerNumero(p, &p, pend) || pend < -5.0f || pend > 5.0f || *p != '\0')) {
+    Serial.println("Uso: ff <desp+> <marcha+> <desp-> <marcha-> [%/° subiendo, -5 a 5]");
     return;
   }
   ffPendPos = pend;
@@ -1117,7 +1132,7 @@ void ejecutar(char *l) {
       mostrarSignos();
       Serial.printf("   Volver a la marca (%s) y escribir \"z\". Pasar el valor a config.h.\n", art::MARCA);
     }
-#if defined(ARTICULACION_L298N) || defined(ARTICULACION_J3)
+#if defined(ARTICULACION_L298N) || defined(IBT2_EN_PINES_J3)
   } else if (strcmp(l, "dg") == 0) {
     diagnostico();
 #endif
@@ -1209,7 +1224,7 @@ void apagarPin(int pin) {
 
 void setup() {
   // Driver primero y deshabilitado: hasta acá el EN/ENA depende del pull-down de 10 kΩ
-#if defined(ARTICULACION_J3)
+#if defined(IBT2_EN_PINES_J3)
   for (int p : {PIN_J1_EN, PIN_J1_RPWM, PIN_J1_LPWM, PIN_J2_ENA, PIN_J2_IN1, PIN_J2_IN2}) apagarPin(p);
 #elif defined(ARTICULACION_L298N)
   for (int p : {PIN_J1_EN, PIN_J1_RPWM, PIN_J1_LPWM, PIN_J3_EN, PIN_J3_RPWM, PIN_J3_LPWM}) apagarPin(p);
@@ -1221,7 +1236,7 @@ void setup() {
                                     art::PWM_FREQ_HZ, art::PWM_BITS);
   motor.coast();
   const bool okEnc = enc.begin(PIN_J2_ENC_A, PIN_J2_ENC_B);  // pull-up interno (NPN colector abierto)
-#elif defined(ARTICULACION_J3)
+#elif defined(IBT2_EN_PINES_J3)
   const bool okDriver = motor.begin(PIN_J3_RPWM, PIN_J3_LPWM, PIN_J3_EN, PIN_J3_EN, LEDC_CH_R, LEDC_CH_L,
                                     art::PWM_FREQ_HZ, art::PWM_BITS);
   motor.coast();
@@ -1247,13 +1262,18 @@ void setup() {
                 "por grado%s\n", PIN_J2_ENC_A, PIN_J2_ENC_B, art::RELACION_ENGRANAJE, art::CUENTAS_POR_GRADO,
                 art::RELACION_ENGRANAJE == 1.0f ? " (engranaje SIN MEDIR: grados de la salida del sin fin)" : "");
   Serial.println("Cuatro barras: el otro motor (J2 o J3) queda quieto, no salir de los límites (tools/cuatro_barras.py).");
-#elif defined(ARTICULACION_J3)
+#elif defined(IBT2_EN_PINES_J3)
   Serial.printf("== 10 · %s (%s): 5840-31ZY + IBT-2, WROOM ==\n", art::NOMBRE, art::PIEZA);
   Serial.printf("IBT-2: RPWM=GPIO%d, LPWM=GPIO%d, EN=GPIO%d | PWM %lu Hz\n", PIN_J3_RPWM, PIN_J3_LPWM, PIN_J3_EN,
                 (unsigned long)art::PWM_FREQ_HZ);
   Serial.printf("Encoder: A=GPIO%d, B=GPIO%d | 4000 cuentas por vuelta del sin fin x engranaje %.2f:1 = %.2f cuentas "
-                "por grado\n", PIN_J3_ENC_A, PIN_J3_ENC_B, art::RELACION_ENGRANAJE, art::CUENTAS_POR_GRADO);
+                "por grado%s\n", PIN_J3_ENC_A, PIN_J3_ENC_B, art::RELACION_ENGRANAJE, art::CUENTAS_POR_GRADO,
+                art::RELACION_ENGRANAJE == 1.0f ? " (engranaje SIN MEDIR: grados de la salida del sin fin)" : "");
+#if defined(J2_IBT2)
+  Serial.println("J2 en el lugar de J3 (J3 desconectado). Cuatro barras: J3 queda quieto, no salir de los límites.");
+#else
   Serial.println("Cuatro barras: J2 queda quieto, no salir de los límites (tools/cuatro_barras.py).");
+#endif
 #else
   Serial.println("== 10 · J1 (base): 36GP-555 + IBT-2, WROOM ==");
   Serial.printf("IBT-2: RPWM=GPIO%d, LPWM=GPIO%d, EN=GPIO%d | PWM %lu Hz\n", PIN_J1_RPWM, PIN_J1_LPWM, PIN_J1_EN,

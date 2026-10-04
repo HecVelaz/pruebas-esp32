@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""J3: barrido de carga. Mide cuánto duty hace falta en cada ángulo, subiendo y bajando (comando "bc").
+"""Barrido de carga (J3, J2). Mide cuánto duty hace falta en cada ángulo, subiendo y bajando (comando "bc").
 
 Manda "bc <desde> <hasta> <v>" y después "bc <hasta> <desde> <v>": el firmware va a <desde> con el control de
 posición y recorre el rango a velocidad constante y baja con el PI de velocidad. Con la velocidad constante, el
@@ -68,6 +68,9 @@ def correr_en_placa(args):
         time.sleep(0.2)
         if args.cero:
             s.write(b"z\n")
+            time.sleep(0.3)
+        if args.ff is not None:
+            s.write(("ff " + " ".join(f"{x:g}" for x in args.ff) + "\n").encode())
             time.sleep(0.3)
         print(f"Barrido {args.desde:+.0f}° -> {args.hasta:+.0f}° -> {args.desde:+.0f}° a {args.v:g} °/s. Ctrl+C frena.")
         for a, b in ((args.desde, args.hasta), (args.hasta, args.desde)):
@@ -156,10 +159,10 @@ def analizar(ruta, paso, sin_ventana):
     ax[0].legend()
     ax[0].grid(alpha=0.3)
     ax[1].set_ylabel("velocidad [°/s]")
-    ax[1].set_xlabel("ángulo de J3 desde la marca [°]")
+    ax[1].set_xlabel("ángulo desde la marca [°]")
     ax[1].legend()
     ax[1].grid(alpha=0.3)
-    fig.suptitle("J3 · duty necesario según el ángulo (barrido a velocidad constante)")
+    fig.suptitle("Duty necesario según el ángulo (barrido a velocidad constante)")
     fig.tight_layout()
     png = Path(ruta).with_suffix(".png")
     fig.savefig(png, dpi=110)
@@ -180,11 +183,15 @@ def main():
     ap.add_argument("--hasta", type=float, default=45.0, help="ángulo final (def. +45)")
     ap.add_argument("--v", type=float, default=4.0, help="°/s del barrido (def. 4)")
     ap.add_argument("--paso", type=float, default=3.0, help="ancho de los tramos de la tabla, ° (def. 3)")
-    ap.add_argument("--cero", action="store_true", help='mandar "z" antes (barra roja en su marca)')
+    ap.add_argument("--cero", action="store_true", help='mandar "z" antes (articulación en su marca)')
+    ap.add_argument("--ff", type=float, nargs="+", metavar="X",
+                    help="feedforward en %% antes: despegue+ marcha+ despegue- marcha- [%%/° subiendo]")
     ap.add_argument("--puerto", default="/dev/ttyUSB0")
     ap.add_argument("--archivo", help="volver a analizar un CSV guardado, sin tocar la placa")
     ap.add_argument("--sin-ventana", action="store_true", help="solo guarda el PNG")
     args = ap.parse_args()
+    if args.ff is not None and len(args.ff) not in (4, 5):
+        ap.error("--ff lleva 4 o 5 números")
     ruta = args.archivo or correr_en_placa(args)
     analizar(ruta, args.paso, args.sin_ventana)
 
