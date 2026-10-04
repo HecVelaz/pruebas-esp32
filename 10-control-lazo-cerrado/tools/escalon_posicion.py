@@ -12,7 +12,7 @@ Uso:
     python3 tools/escalon_posicion.py 20 --ciclos 10         # ~1 min 40 s, 40 escalones
     python3 tools/escalon_posicion.py 20 --kpp 2.5
     python3 tools/escalon_posicion.py --archivo resultados/escalon_pos_....csv
-Opciones: --ms (duración de cada tramo, def. 2500), --puerto, --sin-ventana.
+Opciones: --ms (duración de cada tramo, def. 2500), --kp, --ki, --ff (J3), --bj (J3), --cero, --puerto, --sin-ventana.
 Ctrl+C durante la prueba manda Enter (el firmware frena).
 """
 import argparse
@@ -49,8 +49,21 @@ def correr_en_placa(args):
         s.reset_input_buffer()
         s.write(b"\n")
         time.sleep(0.2)
+        previos = []
+        if args.cero:
+            previos.append("z")
+        if args.kp is not None:
+            previos.append(f"kp {args.kp}")
+        if args.ki is not None:
+            previos.append(f"ki {args.ki}")
+        if args.ff is not None:
+            previos.append("ff " + " ".join(f"{x:g}" for x in args.ff))
         if args.kpp is not None:
-            s.write(f"kpp {args.kpp}\n".encode())
+            previos.append(f"kpp {args.kpp}")
+        if args.bj is not None:
+            previos.append("bj " + " ".join(f"{x:g}" for x in args.bj))
+        for c in previos:
+            s.write(f"{c}\n".encode())
             time.sleep(0.3)
         s.reset_input_buffer()
         s.write(f"ep {args.a} {args.ms} {args.ciclos}\n".encode())
@@ -134,10 +147,19 @@ def main():
     ap.add_argument("--ms", type=int, default=2500, help="duración de cada tramo (def. 2500)")
     ap.add_argument("--ciclos", type=int, default=1, help="ciclos +A, 0, -A, 0 (def. 1)")
     ap.add_argument("--kpp", type=float, help="cambiar el P de posición antes")
+    ap.add_argument("--kp", type=float, help="cambiar kp del PI de velocidad antes")
+    ap.add_argument("--ki", type=float, help="cambiar ki del PI de velocidad antes")
+    ap.add_argument("--ff", type=float, nargs="+", metavar="X",
+                    help="feedforward en %% antes (J3): despegue+ marcha+ despegue- marcha- [%%/° subiendo]")
+    ap.add_argument("--bj", type=float, nargs=3, metavar=("VMIN-", "TRABADA_MS", "DITHER"),
+                    help="ajustes contra el traba-suelta al bajar (J3): vmin bajando °/s, ms trabada, dither %%")
+    ap.add_argument("--cero", action="store_true", help='mandar "z" antes (la articulación tiene que estar en su marca)')
     ap.add_argument("--puerto", default="/dev/ttyUSB0")
     ap.add_argument("--archivo", help="volver a analizar un CSV guardado, sin tocar la placa")
     ap.add_argument("--sin-ventana", action="store_true", help="solo guarda el PNG")
     args = ap.parse_args()
+    if args.ff is not None and len(args.ff) not in (4, 5):
+        ap.error("--ff lleva 4 o 5 números")
 
     archivo = Path(args.archivo) if args.archivo else correr_en_placa(args)
     meta, d = cargar(archivo)
@@ -198,8 +220,8 @@ def main():
     ax[0].plot(t, th_ref, "k--", lw=1.1, label="pedido")
     ax[0].plot(t, th, color="#c2410c", lw=1.6, label="real (encoder)")
     ax[0].plot(ts_, th_s + base, color="#1d64c8", lw=1.4, ls="-", alpha=0.8, label="simulado (primer ciclo)")
-    ax[0].set_ylabel("ángulo de la base [°]")
-    ax[0].set_title(f"J1 · posición: Kpp = {meta['kpp']:.2f}, v_max {meta['vmax']:.0f} °/s, "
+    ax[0].set_ylabel("ángulo de la articulación [°]")
+    ax[0].set_title(f"Posición: Kpp = {meta['kpp']:.2f}, v_max {meta['vmax']:.0f} °/s, "
                     f"a_max {meta['amax']:.0f} °/s², tol ±{meta['tol']}°")
     ax[0].grid(alpha=0.3)
     ax[0].legend(fontsize=9)

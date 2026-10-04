@@ -47,7 +47,7 @@ laboratorio a 12 V: límite de 3 A con J1, 2 A con J2 sola y fusible de 2 A en e
 
 ## Plan paso a paso
 
-Cada paso se prueba en la placa antes de pasar al siguiente. Hoja de ruta con las tareas de cada paso, para tildar: [`plan.html`](plan.html). Plan **solo de J1**, más simple y para seguir paso a paso: [`plan_j1.html`](plan_j1.html).
+Cada paso se prueba en la placa antes de pasar al siguiente. Hoja de ruta con las tareas de cada paso, para tildar: [`plan.html`](plan.html). Plan **solo de J1**, más simple y para seguir paso a paso: [`plan_j1.html`](plan_j1.html). Plan **solo de J2** (hombro, con los límites del cuatro barras): [`plan_j2.html`](plan_j2.html); `tools/cuatro_barras.py` calcula cuánto puede girar J2 con J3 quieto (balancín rojo de 60 mm: Grashof, γ₄ entre −112° y −30°). Plan **solo de J3** (codo): [`plan_j3.html`](plan_j3.html). **J3 pasó al IBT-2 (2026-10-03):** RPWM 16, LPWM 17, EN 13 (+10 kΩ a GND), encoder en 18/19; cableado en [`conexiones_j3.html`](conexiones_j3.html). Los duty de `cfg_j3` son los del L298N × 0,8, **provisorios** hasta repetir el paso 0.
 
 | Paso | Qué | Para qué |
 |------|-----|----------|
@@ -63,7 +63,9 @@ La numeración de esta tabla es la del plan de J1 y J2 juntos. En `plan_j1.html`
 A (preparar), 0 (signo), 1 (transmisión), 2 (velocidad), **3 (posición = paso 4 de acá)**, **4 (perturbación =
 paso 5 de acá)** y 5 (al robot).
 
-**Comandos del firmware (J1):** `z` cero en la marca · `c` posición · `e` encoder a mano · `p <%> [ms]` pulso ·
+**Firmware por articulación:** `pio run -e j1 -t upload` (base), `pio run -e j2 -t upload` (hombro) o `pio run -e j3 -t upload` (codo, por defecto). Los parámetros de cada una están en `include/config.h` (`cfg_j1`, `cfg_j2`). J2 arranca con valores **provisorios**: límites ±15° desde la marca, engranaje sin medir (grados de la salida del sin fin), `ie`/`is` habilitados en vivo.
+
+**Comandos del firmware (los dos):** `z` cero en la marca · `c` posición · `e` encoder a mano · `p <%> [ms]` pulso ·
 `m <°> [%]` ir con duty fijo · `ev <°/s> [ms] [ciclos]` escalones de velocidad (CSV) · `a <°>` ir con el control de
 posición · `ep <A> [ms] [ciclos]` escalones de posición (CSV) · `kp`, `ki`, `kpp` ganancias · `g` mostrarlas ·
 `x` rueda libre · `?` ayuda. Rango permitido **−45° / +135°** desde el cero (brazo al costado). Scripts en `tools/`:

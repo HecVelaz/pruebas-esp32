@@ -21,7 +21,13 @@ constexpr int PIN_J2_IN2 = 27;
 constexpr int PIN_J2_ENC_A = 32;  // blanco (encoder 38S6G5, NPN colector abierto: pull-up interno)
 constexpr int PIN_J2_ENC_B = 33;  // verde
 
-// J3 (codo) queda cableado en 13/16/17 y 18/19, pero estas pruebas no lo usan.
+// J3 (codo, barra roja): motor 5840-31ZY + IBT-2 (BTS7960), VCC del IBT-2 a 3V3. Antes iba en el canal B del
+// L298N de J2 (ENB/IN3/IN4 en estos mismos pines); se pasó al IBT-2 el 2026-10-03 (conexiones_j3.html).
+constexpr int PIN_J3_RPWM = 16;
+constexpr int PIN_J3_LPWM = 17;
+constexpr int PIN_J3_EN = 13;     // R_EN y L_EN juntos (+ pull-down 10 kΩ a GND)
+constexpr int PIN_J3_ENC_A = 18;  // blanco (encoder 38S6G5, NPN colector abierto: pull-up interno)
+constexpr int PIN_J3_ENC_B = 19;  // verde
 
 // Finales de carrera (NA a GND, pull-up EXTERNO de 10 kΩ). Todavía no instalados.
 constexpr int PIN_FC_J1 = 36;  // VP

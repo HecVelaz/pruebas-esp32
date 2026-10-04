@@ -13,7 +13,7 @@ Uso:
     python3 tools/escalon_velocidad.py 20                       # ev 20 1000 1 (un ciclo, ~3 s)
     python3 tools/escalon_velocidad.py 20 --ciclos 40 --ki 4    # 2 minutos, 80 escalones
     python3 tools/escalon_velocidad.py --archivo resultados/escalon_vel_....csv   # volver a analizar
-Opciones: --ms, --kp, --ki, --puerto (por defecto /dev/ttyUSB0), --cero (manda "z" antes), --sin-ventana.
+Opciones: --ms, --kp, --ki, --ff (J3), --puerto (por defecto /dev/ttyUSB0), --cero (manda "z" antes), --sin-ventana.
 Ctrl+C durante la prueba manda Enter (el firmware frena).
 """
 import argparse
@@ -58,6 +58,8 @@ def correr_en_placa(args):
             mandar(f"kp {args.kp}")
         if args.ki is not None:
             mandar(f"ki {args.ki}")
+        if args.ff is not None:
+            mandar("ff " + " ".join(f"{x:g}" for x in args.ff))
         if args.cero:
             mandar("z")
         s.reset_input_buffer()
@@ -164,16 +166,20 @@ def resumir(nombre, valores):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("v", type=float, nargs="?", default=20.0, help="°/s de la base (def. 20)")
+    ap.add_argument("v", type=float, nargs="?", default=20.0, help="°/s de la articulación (def. 20)")
     ap.add_argument("--ms", type=int, default=1000, help="duración de cada escalón (def. 1000)")
     ap.add_argument("--ciclos", type=int, default=1, help="ciclos +v, 0, -v, 0 (def. 1; 40 = 2 min a 1000 ms)")
     ap.add_argument("--kp", type=float, help="cambiar kp antes del escalón")
     ap.add_argument("--ki", type=float, help="cambiar ki antes del escalón")
+    ap.add_argument("--ff", type=float, nargs="+", metavar="X",
+                    help="feedforward en %% antes (J3): despegue+ marcha+ despegue- marcha- [%%/° subiendo]")
     ap.add_argument("--cero", action="store_true", help='mandar "z" antes (la base tiene que estar en su marca)')
     ap.add_argument("--puerto", default="/dev/ttyUSB0")
     ap.add_argument("--archivo", help="volver a analizar un CSV guardado, sin tocar la placa")
     ap.add_argument("--sin-ventana", action="store_true", help="solo guarda el PNG")
     args = ap.parse_args()
+    if args.ff is not None and len(args.ff) not in (4, 5):
+        ap.error("--ff lleva 4 o 5 números")
 
     archivo = Path(args.archivo) if args.archivo else correr_en_placa(args)
     meta, d = cargar(archivo)
@@ -248,11 +254,11 @@ def main():
     ax[1, 0].set_ylabel("°/s")
     ax[1, 0].grid(alpha=0.3)
     ax[1, 1].plot(t, pos, color="#0e7f74", lw=1)
-    ax[1, 1].set_title("Posición de la base (deriva)")
+    ax[1, 1].set_title("Posición (deriva)")
     ax[1, 1].set_xlabel("tiempo [s]")
     ax[1, 1].set_ylabel("°")
     ax[1, 1].grid(alpha=0.3)
-    fig.suptitle(f"J1 · PI de velocidad: Kp = {kp:.3f}, Ki = {ki:.2f}")
+    fig.suptitle(f"PI de velocidad: Kp = {kp:.3f}, Ki = {ki:.2f}")
     fig.tight_layout()
     png = archivo.with_suffix(".png")
     fig.savefig(png, dpi=110)

@@ -44,11 +44,14 @@ void L298N::fijar(int pin, uint8_t ch, bool &conPwm, int nivel) {
 }
 
 void L298N::pwm(int pin, uint8_t ch, bool &conPwm, uint32_t cuenta) {
-  ledcWrite(ch, cuenta);
+  // Primero conectar y después escribir: en el core 2.0.x, ledcAttachPin() configura el canal con duty 0 y
+  // pisaba el ledcWrite() anterior. Un solo setDuty() (un pulso) dejaba el motor sin tensión; con la rampa de
+  // 08 no se notaba porque la segunda escritura ya funcionaba.
   if (!conPwm) {
     ledcAttachPin(pin, ch);
     conPwm = true;
   }
+  ledcWrite(ch, cuenta);
 }
 
 bool L298N::setDuty(float duty) {

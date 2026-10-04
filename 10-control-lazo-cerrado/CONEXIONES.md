@@ -84,19 +84,28 @@ medir de negro a verde y de rojo a verde: unos 5 kΩ.
 El encoder es NPN de colector abierto: aunque se alimenta a 5 V, solo baja la señal a GND; el alto lo pone el
 pull-up a 3,3 V. **Nunca poner el pull-up a 5 V.**
 
-### A3. J3 codo: 5840-31ZY + L298N canal B (mismo módulo que J2)
+### A3. J3 codo: 5840-31ZY + IBT-2 (desde el 2026-10-03; antes, canal B del L298N)
+
+Esquema, mapa de la placa y listas para tildar: [`conexiones_j3.html`](conexiones_j3.html). Firmware: `pio run -e j3`.
+Fuente con límite de **2 A** (el IBT-2 no limita nada; directo a 12 V, subir el brazo pidió 1,1 A). Mientras se prueba J3, sin 12 V en el L298N de J2 y en el
+IBT-2 de J1.
 
 ```
- Motor J3 (2 cables) ─────────► OUT3 y OUT4
+ Fuente 12 V (+/−) ───────────► IBT-2 B+ / B−
+ Motor J3 (2 cables) ─────────► M+ y M−   (el orden solo cambia el sentido)
 
- L298N                            ESP32-WROOM
-   ENB (pin de señal) ◄─┬──────── GPIO13    ← SACAR el jumper de ENB
-                        └ 10 kΩ ─ GND        (pull-down)
-   IN3  ◄──────────────────────── GPIO16
-   IN4  ◄──────────────────────── GPIO17
+ IBT-2 (conector de 8 pines)       ESP32-WROOM
+   VCC   ◄────────────────────── 3V3
+   GND   ◄────────────────────── GND
+   RPWM  ◄────────────────────── GPIO16
+   LPWM  ◄────────────────────── GPIO17
+   R_EN ─┬─ L_EN (puenteados) ◄─┬─ GPIO13
+                                └─ 10 kΩ ─ GND          (pull-down)
+   R_IS, L_IS                     sin conectar
 
  Encoder 38S6G5 (J3)              ESP32-WROOM
-   rojo 5V · negro GND · blanco (A) → GPIO18 · verde (B) → GPIO19   (pull-up interno, como J2)
+   rojo 5V (VIN) · negro GND · malla GND
+   blanco (A) → GPIO18 · verde (B) → GPIO19   (pull-up interno, como J2)
 ```
 
 ### A4. Finales de carrera de J1 y J2 (cuando se instalen)
@@ -174,7 +183,7 @@ bumper.
 
 | Valor | Cant. | Dónde | Función |
 |-------|-------|-------|---------|
-| 10 kΩ | 3 | WROOM GPIO 23, 25, 13 → GND | Pull-down de EN de J1, ENA de J2 y ENB de J3 |
+| 10 kΩ | 3 | WROOM GPIO 23, 25, 13 → GND | Pull-down de EN de J1, ENA de J2 y EN de J3 (IBT-2) |
 | 10 kΩ | 4 | WROOM GPIO 34, 35, 36, 39 → 3V3 | Pull-up del encoder de J1 (recomendado) y de los finales de carrera (obligatorio) |
 | 10 kΩ | 1 | S3 GPIO 38 → GND | Pull-down de los EN de tracción |
 | 20 kΩ | 4 | Señales A y B de los 2 encoders de tracción → GND | Bajar 5 V a 3,3 V |

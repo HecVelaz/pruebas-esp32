@@ -1,9 +1,10 @@
-<title>Cableado J1 · J2</title>
+<title>Cableado J3 codo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@600;700&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@500;600&display=swap">
 <style>
-/* Layout: una columna de banco de trabajo; mapa de la placa arriba, luego un esquema + lista por articulación. */
+/* Cableado de J3 con el IBT-2: mapa de la placa, esquema, listas para tildar y lo que cambia en la calibración. */
 :root {
   --bg: #f2f4f1; --surface: #ffffff; --surface-2: #f7f9f6; --ink: #1b2420; --muted: #5a6760;
   --line: #d6ddd7; --line-strong: #9aa7a0;
@@ -96,6 +97,8 @@ table { border-collapse: collapse; width: 100%; font-size: .95rem; }
 th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
 th { font: 600 .78rem var(--f-mono); letter-spacing: .05em; text-transform: uppercase; color: var(--muted); background: var(--surface-2); }
 tr:last-child td { border-bottom: 0; }
+kbd { font-family: var(--f-mono); font-size: .86em; background: var(--surface-2); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; }
+pre { margin: 0; overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font: 500 .85rem/1.5 var(--f-mono); }
 td.n { font-family: var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .bands { display: inline-flex; gap: 3px; vertical-align: middle; padding: 3px 6px; background: #e8d6af; border-radius: 6px; }
 .bands i { width: 6px; height: 16px; border-radius: 1px; }
@@ -135,69 +138,55 @@ svg text { font-family: var(--f-body); }
 <div class="wrap">
 
 <header>
-  <span class="eyebrow">10-control-lazo-cerrado · banco de pruebas</span>
-  <h1>Cableado del brazo: J1 y J2 en la ESP32-WROOM-32D</h1>
-  <p class="lead">J1 (base giratoria) con el IBT-2 y J2 (hombro) con el L298N. Son los mismos pines que el firmware del brazo del robot, así lo que se ajuste acá pasa tal cual.</p>
+  <span class="eyebrow">10-control-lazo-cerrado · solo J3</span>
+  <h1>Cableado de J3 (codo): motor 5840-31ZY con IBT-2</h1>
+  <p class="lead">J3 deja el L298N y pasa a un IBT-2 (BTS7960), como J1. El motor es el 5840-31ZY (sin fin, 12 V, 160 rpm, 100 kg·cm) y el encoder es el 38S6G5 acoplado a la salida del sin fin. Se usan los pines que el robot ya tiene reservados para J3: <b>13, 16 y 17</b> para el driver y <b>18 y 19</b> para el encoder.</p>
   <div class="chips">
-    <span class="chip">Fuente de laboratorio <b>12,0 V</b> · límite <b>2 A</b> si está J2</span>
+    <span class="chip">Fuente de laboratorio <b>12,0 V</b> · límite <b>2 A</b></span>
     <span class="chip warn">Apagá los 12 V antes de flashear o pulsar EN</span>
-    <span class="chip">DevKit de <b>30 pines</b> con CH340 · <b>/dev/ttyUSB0</b></span>
+    <span class="chip">ESP32-WROOM-32D · <b>/dev/ttyUSB0</b> · <b>pio run -e j3</b></span>
   </div>
 </header>
 
 <section>
   <div class="sec-head">
-    <h2>Antes de empezar</h2>
+    <h2>Por qué cambia</h2>
   </div>
   <div class="rules">
-    <div class="rule"><strong>Dos rieles en la protoboard</strong><span>Uno de <b>3V3</b> (desde el pin 3V3 del ESP32) y uno de <b>GND</b> (desde un pin GND). En los esquemas, la etiqueta 3V3 y el símbolo ⏚ significan "al riel".</span></div>
-    <div class="rule"><strong>GND común</strong><span>El negativo de la fuente también va al riel GND. Sin eso, el ESP32 y los drivers no comparten referencia y nada funciona bien.</span></div>
-    <div class="rule"><strong>Ni 5 V ni 12 V a un GPIO</strong><span>Los GPIO son de 3,3 V. El único 5 V que se usa es VIN, y solo para el + de los encoders ópticos.</span></div>
-    <div class="rule"><strong>Cables firmes</strong><span>La protoboard ya dio falsos contactos con el GPS. Apretá bien los cables o usá borneras para los de potencia.</span></div>
+    <div class="rule"><strong>Más tensión en el motor</strong><span>El L298N pierde unos 2,4 V: con 12 V el motor recibía 9,6 V al 100 %. El IBT-2 casi no pierde nada. Subiendo hacía falta 40 % y un empujón de 75 % para despegar; con el IBT-2 debería alcanzar con menos.</span></div>
+    <div class="rule"><strong>Sin el límite de 2 A</strong><span>El L298N aguanta 2 A por canal y no tiene protección. El IBT-2 aguanta mucho más, así que <b>lo único que limita la corriente es la fuente</b>. Con la fuente directo al motor, subir el brazo pidió <b>1,1 A</b> (2026-10-03): límite en <b>2 A</b> (margen para el arranque; si se traba, corta antes de forzar el engranaje).</span></div>
+    <div class="rule"><strong>Hay que calibrar de nuevo</strong><span>Con otro driver cambian el sentido (según cómo se conecten M+ y M−), el duty de arranque y la ganancia del motor. Las cuentas por grado no cambian (piñón 18, engranaje 56).</span></div>
+    <div class="rule"><strong>Mismos pines que el robot</strong><span>Antes, en el banco, J3 usaba el cableado de J2 (25/26/27 y 32/33). Ahora va en sus propios pines, así J2 puede quedar cableado al L298N.</span></div>
   </div>
 </section>
 
 <section>
   <div class="sec-head">
     <h2>Mapa de la placa</h2>
-    <p>Vista de arriba, con el USB abajo. Cada pin dice a dónde va y si lleva resistencia.</p>
+    <p>Vista de arriba, con el USB abajo. En violeta lo que se cablea ahora. J1 y J2 aparecen en línea punteada: pueden quedar conectados, pero sin 12 V.</p>
   </div>
   <div class="legend">
-    <span><i style="background:var(--j1)"></i>J1 · IBT-2</span>
-    <span><i style="background:var(--j2)"></i>J2 · L298N</span>
-    <span><i class="dash"></i>Para después (J3, finales de carrera, servos)</span>
+    <span><i style="background:var(--j3)"></i>J3 · IBT-2 (ahora)</span>
+    <span><i class="dash"></i>J1, J2 y lo demás (sin tocar)</span>
     <span><i style="background:var(--v33)"></i>3V3</span>
     <span><i style="background:var(--gnd)"></i>GND</span>
     <span><i style="background:var(--v5)"></i>5 V (VIN)</span>
   </div>
-  <div class="fig"><svg id="d-placa" viewBox="0 0 1000 715" role="img" aria-label="Mapa de pines de la ESP32 DevKit de 30 pines con sus conexiones"></svg></div>
-  <div class="warnbox">El orden de los pines es el de la DevKit de 30 pines más común (DOIT). Si tu placa tiene 38 pines o es de otra marca, el orden cambia: guiate por el número impreso al lado de cada pin (D34, D25…), no por la posición.</div>
+  <div class="fig"><svg id="d-placa" viewBox="0 0 1000 715" role="img" aria-label="Mapa de pines de la ESP32 DevKit de 30 pines con las conexiones de J3"></svg></div>
+  <div class="warnbox">El orden de los pines es el de la DevKit de 30 pines más común (DOIT). Si tu placa es de otra marca, guiate por el número impreso al lado de cada pin (D13, D16…), no por la posición.</div>
 </section>
 
-<section class="joint" style="--jc: var(--j1)">
+<section class="joint" style="--jc: var(--j3)">
   <div class="sec-head">
-    <span class="tag">J1 · base giratoria</span>
-    <h2>Motor 36GP-555 con IBT-2</h2>
-    <p>Los colores de los cables del motor y del encoder son los de la placa SCX-555. Si invertís blanco y amarillo, solo cambia el sentido de giro.</p>
+    <span class="tag">J3 · codo (barra roja)</span>
+    <h2>Motor 5840-31ZY con IBT-2</h2>
+    <p>Es el mismo esquema de J1, con otros pines y otro encoder. Los dos cables del motor van a M+ y M−: si los invertís, solo cambia el sentido, y eso se corrige en la calibración.</p>
   </div>
-  <div class="fig"><svg id="d-j1" viewBox="0 0 960 530" role="img" aria-label="Esquema de J1: fuente, motor, IBT-2, encoder y ESP32"></svg></div>
-  <div class="warnbox">Los GPIO 34 y 35 no tienen pull-up interno. La placa SCX-555 parece traer los suyos (R1 y R2, código 512 = 5,1 kΩ, de A y B a Encoder+), pero poné igual las dos de 10 kΩ a 3V3: no molestan y así no dependés de la placa. Para confirmarlo, sin alimentar, medí de negro a verde y de rojo a verde: unos 5 kΩ. El encoder va a <b>3V3, no a 5 V</b>: con 5 V sus salidas quedarían a 5 V.</div>
-  <div class="progress"><span id="p-j1">0 / 0</span><div class="bar"><div id="b-j1"></div></div></div>
-  <ul class="check" id="c-j1"></ul>
-</section>
-
-<section class="joint" style="--jc: var(--j2)">
-  <div class="sec-head">
-    <span class="tag">J2 · hombro</span>
-    <h2>Motor 5840-31ZY con L298N (canal A)</h2>
-    <p>Es el mismo cableado de la prueba 08, con los mismos pines. El encoder es de colector abierto: aunque se alimenta con 5 V, la señal nunca pasa de 3,3 V porque solo la baja a GND.</p>
-  </div>
-  <div class="fig"><svg id="d-j2" viewBox="0 0 960 500" role="img" aria-label="Esquema de J2: fuente, motor, L298N, encoder y ESP32"></svg></div>
-  <div class="warnbox">Sacá el jumper de <b>ENA</b> y conectá el GPIO25 al pin de señal (el de adentro), no al de 5 V. El jumper <b>5V-EN</b> queda puesto y el borne de 5 V queda libre.</div>
-  <div class="warnbox"><b>J3 tiene su propio IBT-2</b> (13/16/17 y encoder en 18/19, ver <code>conexiones_j3.html</code>). El firmware de J2 deja sus pines en bajo, pero sin pull-down en GPIO13 su EN flota hasta que arranca: mientras probás J2, <b>desconectá el +12 V de los IBT-2 de J1 y J3</b>.</div>
-  <div class="warnbox">El L298N aguanta <b>2 A continuos por canal</b> (3 A solo como pico de 100 ms) y no tiene protección propia. Probando solo J2: límite de la fuente en <b>2 A</b>. Con J1 y J2 en la misma fuente, el límite es para la suma: poné un <b>fusible rápido de 2 A</b> en el cable de +12 V del L298N.</div>
-  <div class="progress"><span id="p-j2">0 / 0</span><div class="bar"><div id="b-j2"></div></div></div>
-  <ul class="check" id="c-j2"></ul>
+  <div class="fig"><svg id="d-j3" viewBox="0 0 960 530" role="img" aria-label="Esquema de J3: fuente, motor 5840-31ZY, IBT-2, encoder 38S6G5 y ESP32"></svg></div>
+  <div class="warnbox"><b>R_EN y L_EN van juntos al GPIO13, con 10 kΩ a GND.</b> Esa resistencia mantiene el puente apagado mientras el ESP32 arranca o se flashea. Sin ella, el EN flota y el motor puede moverse solo. Si todavía no la ponés, <b>apagá los 12 V siempre</b> antes de flashear o pulsar EN.</div>
+  <div class="warnbox">El encoder es NPN de colector abierto. Se alimenta con <b>5 V (VIN)</b>, pero la señal solo baja a GND: el alto lo pone el pull-up interno a 3,3 V. <b>Nunca pongas un pull-up a 5 V.</b> La malla del cable (屏蔽) va a GND.</div>
+  <div class="progress"><span id="p-j3">0 / 0</span><div class="bar"><div id="b-j3"></div></div></div>
+  <ul class="check" id="c-j3"></ul>
 </section>
 
 <section>
@@ -207,51 +196,59 @@ svg text { font-family: var(--f-body); }
   </div>
   <div class="progress"><span id="p-pre">0 / 0</span><div class="bar"><div id="b-pre"></div></div></div>
   <ul class="check" id="c-pre"></ul>
-  <button class="reset" id="reset" type="button">Desmarcar todo</button>
 </section>
 
 <section>
   <div class="sec-head">
-    <h2>Resistencias</h2>
-    <p>Las primeras dos filas son las que hacen falta ahora. El resto, cuando se agreguen J3, los finales de carrera y la base.</p>
+    <h2>Tabla de conexiones</h2>
   </div>
   <div class="tbl"><table>
-    <thead><tr><th>Valor</th><th>Colores</th><th>Cant.</th><th>Dónde</th><th>Para qué</th></tr></thead>
+    <thead><tr><th>Componente</th><th>Terminal</th><th>Va a</th><th>Nota</th></tr></thead>
     <tbody>
-      <tr><td class="n">10 kΩ</td><td><span class="bands"><i style="background:#7b4a2a"></i><i style="background:#111"></i><i style="background:#e8730c"></i></span></td><td class="n">2</td><td>GPIO23 → GND · GPIO25 → GND</td><td>Pull-down: los drivers quedan apagados mientras el ESP32 arranca o se flashea</td></tr>
-      <tr><td class="n">10 kΩ</td><td><span class="bands"><i style="background:#7b4a2a"></i><i style="background:#111"></i><i style="background:#e8730c"></i></span></td><td class="n">2</td><td>GPIO34 → 3V3 · GPIO35 → 3V3</td><td>Pull-up del encoder de J1 (recomendado: la SCX-555 parece traer 5,1 kΩ propios)</td></tr>
-      <tr><td class="n">10 kΩ</td><td><span class="bands"><i style="background:#7b4a2a"></i><i style="background:#111"></i><i style="background:#e8730c"></i></span></td><td class="n">1</td><td>GPIO13 → GND</td><td>Pull-down del EN del IBT-2 de J3 (<code>conexiones_j3.html</code>)</td></tr>
-      <tr><td class="n">10 kΩ</td><td><span class="bands"><i style="background:#7b4a2a"></i><i style="background:#111"></i><i style="background:#e8730c"></i></span></td><td class="n">2</td><td>GPIO36 → 3V3 · GPIO39 → 3V3</td><td>Pull-up de los finales de carrera (después)</td></tr>
-      <tr><td class="n">4,7 kΩ</td><td><span class="bands"><i style="background:#f2c200"></i><i style="background:#7a3fb0"></i><i style="background:#d22"></i></span></td><td class="n">0–4</td><td>GPIO32, 33, 18, 19 → 3V3</td><td>Opcional: pull-up más firme para los encoders de J2 y J3 si hay ruido</td></tr>
-      <tr><td class="n">10 kΩ</td><td><span class="bands"><i style="background:#7b4a2a"></i><i style="background:#111"></i><i style="background:#e8730c"></i></span></td><td class="n">1</td><td>ESP32-S3 GPIO38 → GND</td><td>Base: pull-down de los EN de tracción</td></tr>
-      <tr><td class="n">20 kΩ</td><td><span class="bands"><i style="background:#d22"></i><i style="background:#111"></i><i style="background:#e8730c"></i></span></td><td class="n">4</td><td>A y B de cada encoder de tracción → GND</td><td>Base: bajan la señal de 5 V a 3,3 V (medir antes de conectar a la S3)</td></tr>
+      <tr><td>Fuente</td><td class="n">+ / −</td><td>IBT-2 <b>B+</b> / <b>B−</b></td><td>12,0 V, límite 2 A. El − también al riel GND</td></tr>
+      <tr><td>Motor 5840-31ZY</td><td class="n">2 cables</td><td>IBT-2 <b>M+</b> / <b>M−</b></td><td>El orden solo cambia el sentido</td></tr>
+      <tr><td rowspan="5">IBT-2 (conector de 8 pines)</td><td class="n">RPWM</td><td class="n">GPIO16</td><td>PWM 20 kHz: duty positivo</td></tr>
+      <tr><td class="n">LPWM</td><td class="n">GPIO17</td><td>PWM 20 kHz: duty negativo</td></tr>
+      <tr><td class="n">R_EN + L_EN</td><td class="n">GPIO13</td><td>Puenteados · <b>10 kΩ a GND</b></td></tr>
+      <tr><td class="n">VCC · GND</td><td class="n">3V3 · GND</td><td>Lógica a 3,3 V, como J1</td></tr>
+      <tr><td class="n">R_IS · L_IS</td><td>—</td><td>Sin conectar</td></tr>
+      <tr><td rowspan="5">Encoder 38S6G5</td><td class="n">rojo (+)</td><td class="n">VIN (5 V)</td><td></td></tr>
+      <tr><td class="n">negro (0 V)</td><td class="n">GND</td><td></td></tr>
+      <tr><td class="n">blanco (A)</td><td class="n">GPIO18</td><td>Pull-up interno</td></tr>
+      <tr><td class="n">verde (B)</td><td class="n">GPIO19</td><td>Pull-up interno</td></tr>
+      <tr><td class="n">malla</td><td class="n">GND</td><td>Si el cable la tiene</td></tr>
     </tbody>
   </table></div>
-  <p class="fig-note"><b>Ahora alcanza con 4 de 10 kΩ</b> (marrón, negro, naranja). Pull-down = del pin a GND; pull-up = del pin a 3V3.</p>
+  <p class="fig-note">Resistencias: <b>una de 10 kΩ</b> (marrón, negro, naranja) de GPIO13 a GND. Opcional: 4,7 kΩ de GPIO18 y GPIO19 a 3V3 si el encoder cuenta saltos falsos con cables largos.</p>
 </section>
 
 <section>
   <div class="sec-head">
-    <h2>Para después</h2>
-    <p>Ya tienen pines reservados. No hace falta cablearlos para el control de J1 y J2.</p>
+    <h2>Después: calibración con el IBT-2</h2>
+    <p>Con el cableado listo, se repiten los pasos de <code>plan_j3.html</code> desde el paso 0. Esto es lo que cambia respecto del L298N.</p>
   </div>
   <div class="tbl"><table>
-    <thead><tr><th>Qué</th><th>Del componente</th><th>Al ESP32</th><th>Resistencia</th></tr></thead>
+    <thead><tr><th>Qué</th><th>Con el L298N</th><th>Con el IBT-2</th><th>Cómo se mide</th></tr></thead>
     <tbody>
-      <tr><td>J3 codo · IBT-2 (<code>conexiones_j3.html</code>)</td><td>Motor → M+ y M− · VCC → 3V3</td><td class="n">RPWM → 16 · LPWM → 17 · EN → 13</td><td>10 kΩ de GPIO13 a GND</td></tr>
-      <tr><td>J3 · encoder 38S6G5</td><td>rojo → VIN · negro → GND</td><td class="n">blanco (A) → 18 · verde (B) → 19</td><td>no (pull-up interno)</td></tr>
-      <tr><td>Final de carrera J1</td><td>COM → GND · NA → GPIO</td><td class="n">GPIO36 (VP)</td><td>10 kΩ de GPIO36 a 3V3</td></tr>
-      <tr><td>Final de carrera J2</td><td>COM → GND · NA → GPIO</td><td class="n">GPIO39 (VN)</td><td>10 kΩ de GPIO39 a 3V3</td></tr>
-      <tr><td>Servo de la pinza</td><td>Alimentación de 5–6 V aparte, GND común</td><td class="n">señal → 4</td><td>no</td></tr>
-      <tr><td>Servo de giro J4</td><td>Alimentación de 5–6 V aparte, GND común</td><td class="n">señal → 14</td><td>no</td></tr>
+      <tr><td>Signo del encoder</td><td>invertido</td><td>igual (mismos cables A y B)</td><td><kbd>p 25 100</kbd>: las cuentas tienen que subir con duty positivo</td></tr>
+      <tr><td>Sentido (positivo = la pinza sube)</td><td>normal</td><td><b>verificar</b>: depende de M+ / M−</td><td><kbd>p 25 100</kbd> sube, <kbd>p -25 100</kbd> baja. Si es al revés: <kbd>is</kbd></td></tr>
+      <tr><td>Arranque subiendo</td><td>40 % + empujón de 75 %</td><td>~25 % (estimado; empujón desactivado para medirlo)</td><td><kbd>p 20 200</kbd>, <kbd>p 25 200</kbd>, <kbd>p 30 200</kbd>…</td></tr>
+      <tr><td>Arranque bajando</td><td>30 %</td><td>~20–25 % (estimado)</td><td><kbd>p -15 200</kbd>, <kbd>p -20 200</kbd>, <kbd>p -25 200</kbd></td></tr>
+      <tr><td>Cuentas por grado</td><td>34,57 (4000 × 56/18 / 360)</td><td>igual</td><td><kbd>m 10</kbd> y el inclinómetro sobre la roja</td></tr>
+      <tr><td>Ganancia del motor (K, τ)</td><td>1,33 rpm/%, 59 ms (de 08)</td><td>K más alta</td><td>Escalones de velocidad: <kbd>ev 10 1000 5</kbd></td></tr>
+      <tr><td>PWM</td><td>1 kHz, modo freno</td><td>20 kHz, como J1</td><td>—</td></tr>
     </tbody>
   </table></div>
-  <p class="fig-note">Los bumpers y los motores de tracción van en la ESP32-S3 de la base: están en <code>CONEXIONES.md</code> de esta carpeta.</p>
+  <div class="warnbox">Con el IBT-2 el motor recibe 12 V en lugar de 9,6 V: <b>a igual duty va ~25 % más rápido</b>. Los límites de software de J3 (+35° / −8° desde la marca, por el cuatro barras) siguen activos. Empezá con pulsos cortos y duty bajo, con la mano en el botón de salida de la fuente.</div>
+  <pre>~/.platformio/penv/bin/pio run -e j3 -t upload    # con los 12 V apagados
+cd tools &amp;&amp; ./monitor.sh                            # roja en su marca, "z", y después los "p"</pre>
 </section>
+
+<button class="reset" id="reset" type="button">Desmarcar todo</button>
 
 <footer>
-  <span>Fuente de verdad de los pines: <code>10-control-lazo-cerrado/include/pins.h</code> (igual a <code>firmware/brazo/include/pins.h</code> del robot).</span>
-  <span>Versión del 01/10/2026. Nada de esto está probado en placa todavía.</span>
+  <span>Fotos: <code>docs/fotos/motor_articulacion</code> (5840-31ZY), <code>docs/fotos/encoder_articulacion</code> (38S6G5), <code>docs/fotos/brazo_motor_j3_20261003.jpeg</code>.</span>
+  <span>Pines: <code>10-control-lazo-cerrado/include/pins.h</code>. Versión del 03/10/2026. Sin probar en placa.</span>
 </footer>
 
 </div>
@@ -305,15 +302,14 @@ svg text { font-family: var(--f-body); }
       term(190, 40, '+', 'right') + term(190, 70, '−', 'right');
   }
 
-  // ---------- Esquema de J1 ----------
+  // ---------- Esquema de J3 ----------
   let s = '';
-  s += fuente('3 A');
+  s += fuente('2 A');
   s += wire([[190, 40], [360, 40]], 'pwr');
   s += wire([[190, 70], [360, 70]], 'gnd') + dot(230, 70, 'gnd') + wire([[230, 70], [230, 96]], 'gnd') + gnd(230, 96);
   s += txt(244, 112, 'GND común', 'ts');
-  s += motor(285, 175, '36GP-555', 'motor J1');
-  s += wire([[317, 163], [360, 163]], 'w-white', { real: true }) + txt(338, 154, 'blanco', 'wl', 'middle');
-  s += wire([[317, 187], [360, 187]], 'w-yellow', { real: true }) + txt(338, 206, 'amarillo', 'wl', 'middle');
+  s += motor(285, 175, '5840-31ZY', 'motor J3 · sin fin');
+  s += wire([[317, 163], [360, 163]], 'j3', { real: true }) + wire([[317, 187], [360, 187]], 'j3', { real: true });
   s += box(360, 20, 200, 270);
   s += txt(460, 150, 'IBT-2', 'tt', 'middle') + txt(460, 170, 'BTS7960', 'ts', 'middle');
   s += term(360, 40, 'B+', 'left') + term(360, 70, 'B−', 'left') + term(360, 163, 'M+', 'left') + term(360, 187, 'M−', 'left');
@@ -323,93 +319,61 @@ svg text { font-family: var(--f-body); }
   s += txt(586, 189, 'sin conectar', 'wl');
   s += wire([[560, 230], [600, 230]], 'v33') + flag(600, 230, '3V3', 'right');
   s += wire([[560, 260], [590, 260], [590, 268]], 'gnd') + gnd(590, 268);
-  s += wire([[560, 50], [780, 50]], 'j1') + wire([[560, 80], [780, 80]], 'j1');
-  s += wire([[560, 110], [610, 110], [610, 125]], 'j1') + wire([[560, 140], [610, 140], [610, 125]], 'j1') + dot(610, 125, 'j1');
-  s += wire([[610, 125], [780, 125]], 'j1') + txt(625, 145, 'R_EN y L_EN juntos', 'wl');
-  s += dot(720, 125, 'j1') + wire([[720, 125], [720, 152]], 'gnd') + res(720, 152, 44, '10 kΩ', 'right') + wire([[720, 196], [720, 206]], 'gnd') + gnd(720, 206);
+  s += wire([[560, 50], [780, 50]], 'j3') + wire([[560, 80], [780, 80]], 'j3');
+  s += wire([[560, 110], [610, 110], [610, 125]], 'j3') + wire([[560, 140], [610, 140], [610, 125]], 'j3') + dot(610, 125, 'j3');
+  s += wire([[610, 125], [780, 125]], 'j3') + txt(625, 145, 'R_EN y L_EN juntos', 'wl');
+  s += dot(720, 125, 'j3') + wire([[720, 125], [720, 152]], 'gnd') + res(720, 152, 44, '10 kΩ', 'right') + wire([[720, 196], [720, 206]], 'gnd') + gnd(720, 206);
   s += box(780, 20, 160, 480, 'bx-esp');
-  s += term(780, 50, 'GPIO21', 'left', true) + term(780, 80, 'GPIO22', 'left', true) + term(780, 125, 'GPIO23', 'left', true);
-  s += term(780, 385, 'GPIO34', 'left', true) + term(780, 425, 'GPIO35', 'left', true);
+  s += term(780, 50, 'GPIO16', 'left', true) + term(780, 80, 'GPIO17', 'left', true) + term(780, 125, 'GPIO13', 'left', true);
+  s += term(780, 390, 'GPIO18', 'left', true) + term(780, 425, 'GPIO19', 'left', true);
   s += txt(860, 465, 'ESP32-WROOM', 'tt-esp', 'middle') + txt(860, 485, '3V3 y GND a los rieles', 'tl-esp', 'middle');
-  s += box(360, 330, 200, 150);
-  s += txt(374, 402, 'Encoder Hall', 'tt') + txt(374, 422, 'placa SCX-555', 'ts');
-  s += term(560, 350, 'Enc+', 'right') + term(560, 385, 'A', 'right') + term(560, 425, 'B', 'right') + term(560, 460, 'Enc−', 'right');
-  s += wire([[560, 350], [600, 350]], 'w-green', { real: true }) + txt(582, 342, 'verde', 'wl', 'middle') + flag(600, 350, '3V3', 'right');
-  s += wire([[560, 385], [780, 385]], 'w-black', { real: true }) + txt(600, 377, 'negro', 'wl', 'middle');
-  s += dot(670, 385, 'w-black') + wire([[670, 385], [670, 372]], 'v33') + res(670, 328, 44, '', 'left') + flag(670, 328, '3V3', 'up');
-  s += wire([[560, 425], [780, 425]], 'w-red', { real: true }) + txt(600, 417, 'rojo', 'wl', 'middle');
-  // El pull-up de B también sube a 3V3: salta el cable de A (puente = sin conexión)
-  s += dot(730, 425, 'w-red') + '<path class="w" d="M730 425 V393 A8 8 0 0 1 730 377 V372" style="stroke:var(--v33);stroke-width:2.5"/>' +
-    res(730, 328, 44, '', 'right') + flag(730, 328, '3V3', 'up');
-  s += txt(700, 290, 'pull-up de 10 kΩ: A y B a 3V3', 'wl', 'middle');
-  s += wire([[560, 460], [600, 460], [600, 470]], 'w-blue', { real: true }) + txt(582, 452, 'azul', 'wl', 'middle') + gnd(600, 470);
-  document.getElementById('d-j1').innerHTML = s;
-
-  // ---------- Esquema de J2 ----------
-  s = '';
-  s += fuente('2 A');
-  s += wire([[190, 40], [360, 40]], 'pwr') + txt(275, 32, 'fusible 2 A si va con J1', 'wl', 'middle');
-  s += wire([[190, 70], [360, 70]], 'gnd') + dot(230, 70, 'gnd') + wire([[230, 70], [230, 96]], 'gnd') + gnd(230, 96);
-  s += txt(244, 112, 'GND común', 'ts');
-  s += wire([[360, 100], [340, 100]], 'pin-off', { dash: true }) + txt(334, 104, 'libre', 'wl', 'end');
-  s += motor(285, 175, '5840-31ZY', 'motor J2 · sin fin');
-  s += wire([[317, 163], [360, 163]], 'j2') + wire([[317, 187], [360, 187]], 'j2');
-  s += box(360, 20, 200, 270);
-  s += txt(460, 150, 'L298N', 'tt', 'middle') + txt(460, 170, 'canal A → J2', 'ts', 'middle');
-  s += txt(460, 240, 'jumper 5V-EN: puesto', 'tw', 'middle') + txt(460, 258, 'jumper de ENA: sacado', 'tw', 'middle');
-  s += term(360, 40, '12V', 'left') + term(360, 70, 'GND', 'left') + term(360, 100, '5V', 'left') + term(360, 163, 'OUT1', 'left') + term(360, 187, 'OUT2', 'left');
-  s += term(560, 50, 'IN1', 'right') + term(560, 80, 'IN2', 'right') + term(560, 120, 'ENA', 'right');
-  s += wire([[560, 50], [780, 50]], 'j2') + wire([[560, 80], [780, 80]], 'j2') + wire([[560, 120], [780, 120]], 'j2');
-  s += dot(700, 120, 'j2') + wire([[700, 120], [700, 135]], 'gnd') + res(700, 135, 44, '10 kΩ', 'right') + wire([[700, 179], [700, 190]], 'gnd') + gnd(700, 190);
-  s += box(780, 20, 160, 470, 'bx-esp');
-  s += term(780, 50, 'GPIO26', 'left', true) + term(780, 80, 'GPIO27', 'left', true) + term(780, 120, 'GPIO25', 'left', true);
-  s += term(780, 390, 'GPIO32', 'left', true) + term(780, 425, 'GPIO33', 'left', true);
-  s += txt(860, 455, 'ESP32-WROOM', 'tt-esp', 'middle') + txt(860, 475, '3V3 y GND a los rieles', 'tl-esp', 'middle');
-  s += box(360, 320, 200, 160);
-  s += txt(374, 398, 'Encoder óptico', 'tt') + txt(374, 418, '38S6G5 · 1000 PPR', 'ts');
-  s += term(560, 345, '+', 'right') + term(560, 390, 'A', 'right') + term(560, 425, 'B', 'right') + term(560, 460, '−', 'right');
+  s += box(360, 320, 200, 170);
+  s += txt(374, 398, 'Encoder óptico', 'tt') + txt(374, 418, '38S6G5 · 1000 PPR', 'ts') + txt(374, 436, 'NPN colector abierto', 'ts');
+  s += term(560, 345, '+', 'right') + term(560, 390, 'A', 'right') + term(560, 425, 'B', 'right') + term(560, 460, '0V', 'right') + term(560, 480, 'malla', 'right');
   s += wire([[560, 345], [600, 345]], 'w-red', { real: true }) + txt(582, 337, 'rojo', 'wl', 'middle') + flag(600, 345, '5V (VIN)', 'right', 'v5');
   s += wire([[560, 390], [780, 390]], 'w-white', { real: true }) + txt(600, 382, 'blanco', 'wl', 'middle');
   s += wire([[560, 425], [780, 425]], 'w-green', { real: true }) + txt(600, 417, 'verde', 'wl', 'middle');
   s += txt(690, 411, 'sin resistencias (pull-up interno)', 'wl', 'middle');
-  s += wire([[560, 460], [600, 460], [600, 468]], 'w-black', { real: true }) + txt(582, 452, 'negro', 'wl', 'middle') + gnd(600, 468);
-  document.getElementById('d-j2').innerHTML = s;
+  s += wire([[560, 460], [610, 460], [610, 488]], 'w-black', { real: true }) + txt(582, 452, 'negro', 'wl', 'middle');
+  s += wire([[560, 480], [610, 480]], 'gnd', { dash: true }) + dot(610, 480, 'gnd') + gnd(610, 488);
+  document.getElementById('d-j3').innerHTML = s;
 
   // ---------- Mapa de la placa (DevKit de 30 pines, USB abajo) ----------
+  // [pin, texto, grupo, resistencia, otro]: "otro" = conexión de J1/J2/futuro, punteada y sin tocar ahora
   const R10_33 = { t: ' · 10 kΩ a 3V3', c: 'v33' }, R10_G = { t: ' · 10 kΩ a GND', c: 'gnd' };
   const izq = [
     ['EN', 'botón de reset', 'na'],
     ['VP 36', 'Final de carrera J1', 'fc', R10_33, true],
     ['VN 39', 'Final de carrera J2', 'fc', R10_33, true],
-    ['D34', 'J1 encoder A (negro)', 'j1', R10_33],
-    ['D35', 'J1 encoder B (rojo)', 'j1', R10_33],
-    ['D32', 'J2 encoder A (blanco)', 'j2'],
-    ['D33', 'J2 encoder B (verde)', 'j2'],
-    ['D25', 'L298N ENA (J2)', 'j2', R10_G],
-    ['D26', 'L298N IN1 (J2)', 'j2'],
-    ['D27', 'L298N IN2 (J2)', 'j2'],
-    ['D14', 'Servo giro J4', 'j3', null, true],
+    ['D34', 'J1 encoder A', 'j1', null, true],
+    ['D35', 'J1 encoder B', 'j1', null, true],
+    ['D32', 'J2 encoder A', 'j2', null, true],
+    ['D33', 'J2 encoder B', 'j2', null, true],
+    ['D25', 'L298N ENA (J2)', 'j2', null, true],
+    ['D26', 'L298N IN1 (J2)', 'j2', null, true],
+    ['D27', 'L298N IN2 (J2)', 'j2', null, true],
+    ['D14', 'Servo giro J4', 'fc', null, true],
     ['D12', 'no usar (strapping)', 'na'],
-    ['D13', 'IBT-2 EN (J3)', 'j3', R10_G, true],
+    ['D13', 'IBT-2 R_EN + L_EN (J3)', 'j3', R10_G],
     ['GND', 'riel GND', 'gnd'],
-    ['VIN', '5 V → + de los encoders de J2 y J3', 'v5']
+    ['VIN', '5 V → + del encoder de J3', 'v5']
   ];
   const der = [
-    ['D23', 'IBT-2 R_EN + L_EN (J1)', 'j1', R10_G],
-    ['D22', 'IBT-2 LPWM (J1)', 'j1'],
+    ['D23', 'IBT-2 EN (J1)', 'j1', null, true],
+    ['D22', 'IBT-2 LPWM (J1)', 'j1', null, true],
     ['TX0', 'no usar (USB)', 'na'],
     ['RX0', 'no usar (USB)', 'na'],
-    ['D21', 'IBT-2 RPWM (J1)', 'j1'],
-    ['D19', 'J3 encoder B (verde)', 'j3', null, true],
-    ['D18', 'J3 encoder A (blanco)', 'j3', null, true],
+    ['D21', 'IBT-2 RPWM (J1)', 'j1', null, true],
+    ['D19', 'J3 encoder B (verde)', 'j3'],
+    ['D18', 'J3 encoder A (blanco)', 'j3'],
     ['D5', 'no usar (strapping)', 'na'],
-    ['D17', 'IBT-2 LPWM (J3)', 'j3', null, true],
-    ['D16', 'IBT-2 RPWM (J3)', 'j3', null, true],
-    ['D4', 'Servo de la pinza', 'j3', null, true],
+    ['D17', 'IBT-2 LPWM (J3)', 'j3'],
+    ['D16', 'IBT-2 RPWM (J3)', 'j3'],
+    ['D4', 'Servo de la pinza', 'fc', null, true],
     ['D2', 'no usar (LED de la placa)', 'na'],
     ['D15', 'no usar (strapping)', 'na'],
     ['GND', 'riel GND', 'gnd'],
-    ['3V3', 'riel 3V3: VCC del IBT-2, encoder J1, pull-ups', 'v33']
+    ['3V3', 'riel 3V3: VCC del IBT-2', 'v33']
   ];
   s = '';
   s += '<rect class="bx-esp" x="420" y="30" width="160" height="650" rx="12"/>';
@@ -418,17 +382,19 @@ svg text { font-family: var(--f-body); }
   s += '<rect x="472" y="672" width="56" height="26" rx="4" style="fill:var(--pin-off)"/>' + txt(500, 690, 'USB', 'flag-t', 'middle');
   const y0 = 225, dy = 30;
   function pinRow(p, i, side) {
-    const [name, label, g, rn, later] = p, y = y0 + i * dy, left = side === 'l';
-    const px = left ? 436 : 564, used = g !== 'na';
-    let r = '<circle cx="' + px + '" cy="' + y + '" r="6.5" style="fill:var(--' + (used ? 'copper' : 'pin-off') + ')"/>';
+    const [name, label, g, rn, otro] = p, y = y0 + i * dy, left = side === 'l';
+    const px = left ? 436 : 564, used = g !== 'na', activo = used && !otro;
+    let r = '<circle cx="' + px + '" cy="' + y + '" r="6.5" style="fill:var(--' + (activo ? 'copper' : 'pin-off') + ')"/>';
     r += '<text class="pin-in" x="' + (left ? 450 : 550) + '" y="' + (y + 4.5) + '" text-anchor="' + (left ? 'start' : 'end') + '">' + name + '</text>';
     const lx = left ? 342 : 658;
-    if (used) {
-      r += wire([[left ? 429 : 571, y], [left ? 350 : 650, y]], g, { dash: !!later });
+    if (activo) {
+      r += wire([[left ? 429 : 571, y], [left ? 350 : 650, y]], g);
       r += '<text class="pl" x="' + lx + '" y="' + (y + 4.5) + '" text-anchor="' + (left ? 'end' : 'start') + '">' +
         '<tspan style="fill:var(--' + g + ');font-weight:600">' + label + '</tspan>' +
-        (rn ? '<tspan style="fill:var(--' + rn.c + ');font-weight:700">' + rn.t + '</tspan>' : '') +
-        (later ? '<tspan style="fill:var(--muted)"> · después</tspan>' : '') + '</text>';
+        (rn ? '<tspan style="fill:var(--' + rn.c + ');font-weight:700">' + rn.t + '</tspan>' : '') + '</text>';
+    } else if (used) {
+      r += wire([[left ? 429 : 571, y], [left ? 350 : 650, y]], 'pin-off', { dash: true });
+      r += '<text class="pl-na" x="' + lx + '" y="' + (y + 4.5) + '" text-anchor="' + (left ? 'end' : 'start') + '">' + label + '</text>';
     } else {
       r += '<text class="pl-na" x="' + lx + '" y="' + (y + 4.5) + '" text-anchor="' + (left ? 'end' : 'start') + '">' + label + '</text>';
     }
@@ -441,42 +407,31 @@ svg text { font-family: var(--f-body); }
 
   // ---------- Listas para tildar ----------
   const listas = {
-    j1: [
+    j3: [
+      'Motor de J3 <b>desconectado del L298N</b> (OUT1/OUT2) y encoder de J3 <b>desconectado de 32/33</b>',
       'Fuente + → IBT-2 <b>B+</b> · fuente − → IBT-2 <b>B−</b>',
       'Fuente − también al <b>riel GND</b> (GND común)',
-      'Motor: blanco → <b>M+</b> · amarillo → <b>M−</b>',
+      'Motor 5840-31ZY: un cable → <b>M+</b>, el otro → <b>M−</b>',
       'IBT-2 <b>VCC → 3V3</b> · IBT-2 <b>GND → GND</b>',
-      'IBT-2 RPWM → <b>GPIO21</b> · LPWM → <b>GPIO22</b>',
-      'R_EN y L_EN puenteados → <b>GPIO23</b>',
-      'Resistencia de 10 kΩ de <b>GPIO23 a GND</b>',
-      'Encoder: verde (Enc+) → <b>3V3</b> · azul (Enc−) → <b>GND</b>',
-      'Encoder: negro (A) → <b>GPIO34</b> · rojo (B) → <b>GPIO35</b>',
-      'Resistencias de 10 kΩ de <b>GPIO34 a 3V3</b> y de <b>GPIO35 a 3V3</b>',
+      'IBT-2 RPWM → <b>GPIO16</b> · LPWM → <b>GPIO17</b>',
+      'R_EN y L_EN puenteados → <b>GPIO13</b>',
+      'Resistencia de 10 kΩ de <b>GPIO13 a GND</b>',
+      'Encoder: rojo (+) → <b>VIN (5 V)</b> · negro (0 V) → <b>GND</b> · malla → <b>GND</b>',
+      'Encoder: blanco (A) → <b>GPIO18</b> · verde (B) → <b>GPIO19</b>',
       'R_IS y L_IS sin conectar'
-    ],
-    j2: [
-      'Fuente + → L298N <b>12V</b> · fuente − → L298N <b>GND</b>',
-      'Jumper <b>5V-EN puesto</b> · borne 5V libre',
-      'Jumper de <b>ENA sacado</b>',
-      'Motor → <b>OUT1</b> y <b>OUT2</b>',
-      'IN1 → <b>GPIO26</b> · IN2 → <b>GPIO27</b> · ENA (pin de señal) → <b>GPIO25</b>',
-      'Resistencia de 10 kΩ de <b>GPIO25 a GND</b>',
-      'Encoder: rojo (+) → <b>VIN (5 V)</b> · negro (−) → <b>GND</b>',
-      'Encoder: blanco (A) → <b>GPIO32</b> · verde (B) → <b>GPIO33</b>',
-      'J3: <b>IBT-2 sin 12 V</b> mientras se prueba J2',
-      'J1: <b>IBT-2 desconectado</b> mientras se prueba J2 (o al menos su +12 V: sin pull-down en GPIO23)'
     ],
     pre: [
       'Pin <b>3V3</b> del ESP32 al riel 3V3 · pin <b>GND</b> al riel GND',
-      'Fuente en <b>12,0 V</b> y la salida apagada · límite <b>3 A</b> solo J1, <b>2 A</b> solo J2',
-      'Con J1 y J2 juntos: <b>fusible rápido de 2 A</b> en el +12 V del L298N (límite de la fuente en 3 A)',
-      'Multímetro en continuidad: <b>no hay corto</b> entre +12 V y GND',
-      'Multímetro en continuidad: el GND de la fuente, de los dos drivers y del ESP32 están unidos',
+      'Fuente en <b>12,0 V</b>, límite <b>2 A</b> y la salida apagada',
+      '<b>Sin 12 V</b> en el L298N de J2 y en el IBT-2 de J1 (el firmware de J3 deja sus pines en bajo, pero no hay pull-down en GPIO23)',
+      'Multímetro en continuidad: <b>no hay corto</b> entre +12 V y GND, ni entre M+ y M−',
+      'Multímetro en continuidad: el GND de la fuente, del IBT-2 y del ESP32 están unidos',
       'Ningún cable de 5 V o 12 V llega a un GPIO',
-      'Flashear con los 12 V apagados · recién después encender la fuente'
+      'Nada debajo de la pinza · ruedas trabadas',
+      'Flashear <code>-e j3</code> con los 12 V apagados · recién después encender la fuente'
     ]
   };
-  const KEY = 'cableado-j1j2-v2';
+  const KEY = 'cableado-j3-ibt2-v1';
   let marcados = {};
   try { marcados = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { marcados = {}; }
   const guardar = () => { try { localStorage.setItem(KEY, JSON.stringify(marcados)); } catch (e) {} };
