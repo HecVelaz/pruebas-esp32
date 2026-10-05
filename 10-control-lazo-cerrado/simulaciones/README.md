@@ -26,3 +26,16 @@
 | `j3/j3_7_comparacion_posicion_sim_vs_real_final.png` | J3, posición final: placa contra simulación (`resultados/escalon_pos_20261003_212157.csv`) |
 
 El informe usa el diagrama, `j1_4`, `j1_5`, `j3_1` y `j3_7`; las demás quedan como material de apoyo.
+
+## Secciones para Colab
+
+Texto en Markdown para pegar en las celdas de texto del cuaderno (abrir el archivo, copiar todo y pegar; no copiar
+desde la terminal). Las imágenes están enlazadas desde GitHub, centradas y numeradas.
+
+| Archivo | Sección | Figuras |
+|---------|---------|---------|
+| `caracterizacion_colab.md` | Caracterización en lazo abierto (Entrega 5) | 7a, 7b, 7c |
+| `modelo_planta_colab.md` | Modelo de la planta | — |
+| `simulacion_colab.md` | Simulación | 10 a 14 |
+| `firmware_colab.md` | Firmware | — (todavía con q1/q2/q3, falta pasar a J) |
+| `validacion_colab.md` | Validación | 15 a 18 |
