@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Paso 3 de J1: escalones de posición en la placa (comando "ep" del firmware), comparados con la simulación.
+"""Paso 3: escalones de posición en la placa (comando "ep" del firmware), comparados con la simulación.
 
 Manda "ep <A> <ms> <ciclos>": desde donde está la base, tramos de ms a base + A, base, base - A y base,
 repetidos. Guarda el CSV en resultados/ y calcula para cada escalón el tiempo de llegada (entrar y quedarse
@@ -12,7 +12,11 @@ Uso:
     python3 tools/escalon_posicion.py 20 --ciclos 10         # ~1 min 40 s, 40 escalones
     python3 tools/escalon_posicion.py 20 --kpp 2.5
     python3 tools/escalon_posicion.py --archivo resultados/escalon_pos_....csv
-Opciones: --ms (duración de cada tramo, def. 2500), --kp, --ki, --ff (J3), --bj (J3), --cero, --puerto, --sin-ventana.
+    python3 tools/escalon_posicion.py -a j3 --archivo resultados/escalon_pos_....csv  # J3: simula con su modelo
+Opciones: --ms (duración de cada tramo, def. 2500), --kp, --ki, --ff (J3), --bj (J3), --cero, --puerto, --sin-ventana,
+--articulacion/-a (j1, j2 o j3: planta de la simulación y título; J2 no tiene modelo y se grafica sin simulación).
+El encabezado del CSV no guarda todo el feedforward ni lo de "bj": la simulación usa --ff y --bj si se dan, y si no
+los de config.h de la articulación (con la marcha subiendo = zm del CSV).
 Ctrl+C durante la prueba manda Enter (el firmware frena).
 """
 import argparse
@@ -157,8 +161,11 @@ def main():
     ap.add_argument("--puerto", default="/dev/ttyUSB0")
     ap.add_argument("--archivo", help="volver a analizar un CSV guardado, sin tocar la placa")
     ap.add_argument("--sin-ventana", action="store_true", help="solo guarda el PNG")
-    ap.add_argument("--titulo", default="", help='prefijo del título del gráfico, por ejemplo "J3"')
+    ap.add_argument("-a", "--articulacion", choices=("j1", "j2", "j3"), default="j1", help="def. j1")
+    ap.add_argument("--titulo", help='prefijo del título del gráfico (def. el de la articulación, "J3")')
     args = ap.parse_args()
+    titulo = args.titulo if args.titulo is not None else args.articulacion.upper()
+    pl = dv.PLANTAS.get(args.articulacion)   # None: sin modelo (J2)
     if args.ff is not None and len(args.ff) not in (4, 5):
         ap.error("--ff lleva 4 o 5 números")
 
@@ -176,17 +183,26 @@ def main():
         lista.append((i * seg, desde, hasta))
         desde = hasta
 
-    # Simulación del primer ciclo con los mismos parámetros (relativa a la base)
-    dv.ZONA_MUERTA = meta["zm"]
-    dp.KP_VEL, dp.KI_VEL = meta["kp"], meta["ki"]
-    perfil = lambda tt: (amp if (int(tt // seg) % 4 == 0) else (-amp if int(tt // seg) % 4 == 2 else 0.0)) \
-        if tt < 4 * seg else 0.0
-    ts_, tr_s, th_s, wr_s, w_s, u_s, corte_sim = dp.simular(meta["kpp"], meta["vmax"], meta["amax"], meta["tol"],
-                                                             perfil, 4 * seg + 1.0,
-                                                             meta.get("tol_salida", meta["tol"]),
-                                                             meta.get("vmin", 0.0))
-    if corte_sim:
-        print(f"Aviso: con estos parámetros la simulación corta por {corte_sim}.")
+    # Simulación del primer ciclo con los mismos parámetros, desde la misma base (en J3 el peso depende del ángulo)
+    if pl is not None:
+        if args.ff is not None:
+            ff = tuple(args.ff) + ((0.0,) if len(args.ff) == 4 else ())
+        else:
+            d_p, m_p, d_n, m_n, pend = pl["ff"]
+            ff = (max(d_p, meta["zm"]) if d_p != m_p else meta["zm"], meta["zm"], d_n, m_n, pend)
+        vmin_baja, trabada = (args.bj[0], args.bj[1]) if args.bj else (pl["vmin_baja"], pl["trabada_ms"])
+        perfil = lambda tt: base + ((amp if (int(tt // seg) % 4 == 0) else (-amp if int(tt // seg) % 4 == 2 else 0.0))
+                                    if tt < 4 * seg else 0.0)
+        ts_, tr_s, th_s, wr_s, w_s, u_s, corte_sim = dp.simular(meta["kpp"], meta["vmax"], meta["amax"], meta["tol"],
+                                                                 perfil, 4 * seg + 1.0,
+                                                                 meta.get("tol_salida", meta["tol"]),
+                                                                 meta.get("vmin", 0.0), pl=pl, kp=meta["kp"],
+                                                                 ki=meta["ki"], ff=ff, vmin_baja=vmin_baja,
+                                                                 trabada_ms=trabada, pos0=base)
+        print(f"Simulación: planta de {pl['nombre']}, feedforward despegue/marcha +{ff[0]:g}/{ff[1]:g} %, "
+              f"-{ff[2]:g}/{ff[3]:g} %, {ff[4]:g} %/° subiendo; vmin bajando {vmin_baja:g} °/s, trabada {trabada:g} ms")
+        if corte_sim:
+            print(f"Aviso: con estos parámetros la simulación corta por {corte_sim}.")
 
     print(f"\nkpp = {meta['kpp']:.3f}, v_max {meta['vmax']:.0f} °/s, a_max {meta['amax']:.0f} °/s², "
           f"tol ±{meta['tol']:.2f}° · PI kp {meta['kp']:.3f} ki {meta['ki']:.2f}")
@@ -201,7 +217,7 @@ def main():
     for i, ((de, a), rs) in enumerate(por_tipo.items()):
         r = np.array(rs, dtype=float)
         t0s = i * seg
-        rs_sim = dp.medir(ts_, th_s, a, t0s, t0s + seg, de)
+        rs_sim = dp.medir(ts_, th_s, a + base, t0s, t0s + seg, de + base) if pl else (np.nan,) * 3
         print(f"  {de:+4.0f}° -> {a:+4.0f}° (x{len(rs):2d})  real {np.nanmean(r[:,0]):5.2f} ±{np.nanstd(r[:,0]):4.2f} s"
               f"  sim {rs_sim[0]:4.2f}   real {np.mean(r[:,1]):4.2f} (peor {np.max(r[:,1]):4.2f})  sim {rs_sim[1]:4.2f}"
               f"   real {np.mean(r[:,2]):+5.2f} (peor {r[np.argmax(np.abs(r[:,2])),2]:+5.2f})  sim {rs_sim[2]:+5.2f}")
@@ -217,23 +233,26 @@ def main():
     import matplotlib.pyplot as plt
 
     fig, ax = plt.subplots(3, 1, figsize=(11, 8.5), sharex=True, height_ratios=[2, 1.2, 1])
-    n_sim = len(ts_)
     ax[0].plot(t, th_ref, "k--", lw=1.1, label="pedido")
     ax[0].plot(t, th, color="#c2410c", lw=1.6, label="real (encoder)")
-    ax[0].plot(ts_, th_s + base, color="#1d64c8", lw=1.4, ls="-", alpha=0.8, label="simulado (primer ciclo)")
+    if pl:
+        ax[0].plot(ts_, th_s, color="#1d64c8", lw=1.4, ls="-", alpha=0.8,
+                   label=f"simulado, modelo de {pl['nombre']} (primer ciclo)")
     ax[0].set_ylabel("ángulo de la articulación [°]")
-    ax[0].set_title(f"{args.titulo + ' · ' if args.titulo else ''}Posición: Kpp = {meta['kpp']:.2f}, v_max {meta['vmax']:.0f} °/s, "
+    ax[0].set_title(f"{titulo + ' · ' if titulo else ''}Posición: Kpp = {meta['kpp']:.2f}, v_max {meta['vmax']:.0f} °/s, "
                     f"a_max {meta['amax']:.0f} °/s², tol ±{meta['tol']}°")
     ax[0].grid(alpha=0.3)
     ax[0].legend(fontsize=9)
     ax[1].plot(t, w_ref, "k--", lw=0.9, label="velocidad pedida")
     ax[1].plot(t, w_med, color="#c2410c", lw=1.1, label="velocidad medida")
-    ax[1].plot(ts_[:n_sim], w_s, color="#1d64c8", lw=1, alpha=0.7, label="simulada")
+    if pl:
+        ax[1].plot(ts_, w_s, color="#1d64c8", lw=1, alpha=0.7, label="simulada")
     ax[1].set_ylabel("°/s")
     ax[1].grid(alpha=0.3)
     ax[1].legend(fontsize=8)
     ax[2].plot(t, duty, color="#c2410c", lw=1)
-    ax[2].plot(ts_, u_s, color="#1d64c8", lw=0.9, alpha=0.7)
+    if pl:
+        ax[2].plot(ts_, u_s, color="#1d64c8", lw=0.9, alpha=0.7)
     ax[2].set_ylabel("duty [%]")
     ax[2].set_xlabel("tiempo [s]")
     ax[2].grid(alpha=0.3)

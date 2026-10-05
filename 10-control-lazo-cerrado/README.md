@@ -69,8 +69,11 @@ paso 5 de acá)** y 5 (al robot).
 `m <°> [%]` ir con duty fijo · `ev <°/s> [ms] [ciclos]` escalones de velocidad (CSV) · `a <°>` ir con el control de
 posición · `ep <A> [ms] [ciclos]` escalones de posición (CSV) · `kp`, `ki`, `kpp` ganancias · `g` mostrarlas ·
 `x` rueda libre · `?` ayuda. Rango permitido **−45° / +135°** desde el cero (brazo al costado). Scripts en `tools/`:
-`diseno_velocidad.py`, `diseno_posicion.py` (diseño y simulación), `escalon_velocidad.py`, `escalon_posicion.py`
-(prueba en placa contra la simulación).
+`diseno_velocidad.py`, `diseno_posicion.py` (diseño y simulación; `-a j1` o `-a j3`, con la planta de cada una en
+`PLANTAS` de `diseno_velocidad.py`), `escalon_velocidad.py`, `escalon_posicion.py` (prueba en placa contra la
+simulación; `-a j1/j2/j3`, J2 sin simulación porque no tiene modelo), `identificar_j3.py` (modelo de J3 a partir de
+los CSV guardados). `informe_simulaciones.py` arma `simulaciones/informe_simulaciones.pdf` y el zip para Overleaf a
+partir de `simulaciones/informe_simulaciones.tex`. Simulaciones de J1 y J3 e informe: [`simulaciones/`](simulaciones/README.md).
 
 **Cero de posición:** el encoder es incremental, así que al encender la placa la posición arranca en 0 donde
 esté el brazo. Hasta que haya finales de carrera, el cero se fija a mano: llevar la articulación a una marca
@@ -97,8 +100,9 @@ prueba en orden cronológico dentro de cada articulación (tipos: `escalon_veloc
 `barrido_carga`, `diseno_velocidad`, `diseno_posicion`). La fecha y hora es la misma del CSV: por ejemplo,
 `resultados/escalon_pos_20261002_223821.csv` → `imagenes/j1_base/j1_12_escalon_posicion_20261002_223821.png`.
 Los scripts de `tools/` siguen guardando el PNG nuevo junto al CSV, en `resultados/`: moverlo después y numerarlo a continuación del último.
-`escalon_velocidad.py` y `escalon_posicion.py` aceptan `--titulo J3` (prefijo del título del gráfico); con `--archivo` rehacen
-el gráfico desde el CSV. Las imágenes elegidas para el informe están copiadas en `imagenes/informe/`.
+`escalon_velocidad.py` y `escalon_posicion.py` toman la planta y el título de `-a j1/j2/j3` (`--titulo` lo cambia); con
+`--archivo` rehacen el gráfico desde el CSV. El CSV de `ep` no guarda todo el feedforward ni lo de `bj`: para J3 se
+pasan con `--ff` y `--bj` (si no, usan los de `config.h`). Las imágenes elegidas para el informe están copiadas en `imagenes/informe/`.
 
 | Fecha | Paso | Resultado |
 |-------|------|-----------|
@@ -114,3 +118,4 @@ el gráfico desde el CSV. Las imágenes elegidas para el informe están copiadas
 | 2026-10-02 | 5 (J1) | **No se puede mover a mano** con los 12 V apagados: reductora 50:1 × correa 5:1 = 250:1; forzarla podría hacer saltar un diente de la correa (y el encoder, que está en el motor, perdería el cero). Quieta, la mecánica la sostiene: el control solo trabaja en movimiento. Por eso no hace falta un modo "mantener" |
 | 2026-10-02 | 5 (J1) | **Perturbación en movimiento** (`ev 15 3000`, frenada suave con la mano en la ida, `resultados/escalon_vel_20261002_225238.*`): antes 14,9 °/s con 21,7 % de duty; al frenarla bajó a **11,8 °/s** (t = 1,19–1,41 s) y el PI subió el duty hasta **25,8 %**; al soltarla se pasó a **19,7 °/s** (lo que la integral acumuló durante la frenada) y volvió a 15 ± 1,2 °/s en t = 1,97 s (**~0,8 s** desde que empezó la frenada); después 15,0 °/s con 20 %. El "sobrepico de 31 %" que imprime el script en esa ida es el de la perturbación, no el del escalón (la vuelta, sin tocarla: 16 %, ts 0,53 s) |
 | 2026-10-02 | 5 (J1) | **Con carga** (un limón en la pinza, `ep 20 2500 5`, `resultados/escalon_pos_20261002_225437.*`): llegada **1,67–1,75 s**, sobrepico 0 en los 20, error 0,22–0,32°, zumbido 0: **igual que sin carga** (1,71–1,77 s). Con 250:1, la inercia del limón vista desde el motor se divide por 250² y casi no cambia nada |
+| 2026-10-04 | Modelo (J3) | **Modelo de J3 identificado** sin la placa (`tools/identificar_j3.py`), con los 8 escalones de velocidad y los 2 barridos de carga: τ·dω/dt = −ω + K·(u − c+(θ)) subiendo, −ω + K·(u + c−) bajando, −ω en el medio (el sin fin no deja caer el antebrazo). Etapa 1 (barridos): duty para subir a 4 °/s = 26,1 + 1,42·θ % (±4,9 %), para bajar −5,7 %. Etapa 2 (escalones, error de salida): **τ = 53 ms, K = 1,62 (°/s)/%, c+ = 23,6 + 1,42·θ %, c− = 3,2 %, despegue +5,9 / −6,1 %**; error medio de la velocidad 2,6 °/s. Coincide con lo ajustado a mano (feedforward 24 + 1,4·θ, despegue +7). Hasta ahora la simulación de los gráficos de J3 usaba **el motor de J1**: rehechos con el modelo de J3 (y los de J2 sin simulación). Diseño: cancelación de polo para ts 0,25 s → Kp 0,52, Ki 9,9; con las elegidas (0,35 / 5) τ_v = 0,12 s → sin sobrepico con Kpp ≤ 2,08 (Kpp 2: ζ = 1,02). Placa contra simulación (posición): subiendo 1,30 s contra 1,29 (`_212157`) y 1,60 contra 1,60 (`_191345`); de 0 a −10° 1,92 s contra 1,06: cerca del punto muerto de abajo el cuatro barras se endurece y el modelo tiene c− constante. Imágenes e informe (`.tex` para Overleaf, explicación en una página) en `simulaciones/` |

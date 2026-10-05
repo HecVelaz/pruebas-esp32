@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""Paso 3 de J1: diseño del P de posición de la base, encima del PI de velocidad, y simulación.
+"""Paso 3: diseño del P de posición, encima del PI de velocidad, y simulación, para J1 (base) o J3 (codo).
 
 Cascada (ARQUITECTURA.md §5):
     ángulo pedido -> [P de posición, 50 Hz] -> velocidad pedida -> [PI de velocidad, 100 Hz] -> duty -> motor
 
-El lazo de velocidad cerrado se aproxima como un primer orden 1 / (tau_v s + 1). En placa (paso 2, Ki = 4)
-tardó ts ~0,35 s en establecerse, así que tau_v ~ ts / 4 ~ 0,09 s (incluye el atraso de la medición).
+El lazo de velocidad cerrado se aproxima como un primer orden 1 / (tau_v s + 1). En J1 (paso 2, Ki = 4) tardó
+en placa ts ~0,35 s en establecerse, así que tau_v ~ ts / 4 ~ 0,09 s (incluye el atraso de la medición). En J3
+la placa no da un ts limpio (traba-suelta): tau_v sale de la simulación ideal del lazo de velocidad con el modelo
+identificado (tools/identificar_j3.py) y las ganancias elegidas.
 Con un P de posición Kpp, el lazo de posición queda:
     theta / theta_ref = Kpp / (tau_v s^2 + s + Kpp)
     wn = sqrt(Kpp / tau_v),   zeta = 1 / (2 sqrt(Kpp tau_v))
@@ -16,12 +18,14 @@ trapezoidal: acelera, va constante, frena), así no hay golpes contra el juego d
 objetivo, dentro de una tolerancia, la velocidad pedida es 0 (freno): sin eso el motor "zumbaría"
 alrededor del objetivo por la zona muerta y el juego.
 
-La simulación realista usa el mismo PI de velocidad del firmware (zona muerta, anti-windup, freno con
-velocidad pedida 0, velocidad medida en 4 muestras de las cuentas enteras del encoder).
+La simulación realista usa el mismo PI de velocidad del firmware (feedforward de marcha y despegue, compensación
+de gravedad en J3, anti-windup, freno con velocidad pedida 0, velocidad medida en 4 muestras de las cuentas enteras
+del encoder) y la planta de tools/diseno_velocidad.py. En J3 el ángulo absoluto importa (el peso cambia con él).
 
 Uso:
     python3 tools/diseno_posicion.py
     python3 tools/diseno_posicion.py --kpp 2.5 --vmax 30 --amax 60 --tol 0.3
+    python3 tools/diseno_posicion.py -a j3 --vmax 25            # J3 con lo de config.h
 """
 import argparse
 from datetime import datetime
@@ -33,30 +37,32 @@ import diseno_velocidad as dv
 
 DIR_RESULTADOS = Path(__file__).resolve().parent.parent / "resultados"
 
-TAU_V = 0.09        # s, lazo de velocidad cerrado medido en el paso 2 (ts ~0,35 s / 4)
-KP_VEL = 0.549      # PI de velocidad elegido en el paso 2
-KI_VEL = 4.0
 TS_POS = 0.02       # s, lazo de posición a 50 Hz
 
 
 # Protecciones del firmware (config.h), para que la simulación corte donde cortaría la placa
 SIN_CUENTAS_S = 0.15
 CONTRARIO_VEL, CONTRARIO_S = 5.0, 0.10
-ATASCO_VEL, ATASCO_DUTY, ATASCO_S = 2.0, 35.0, 0.30
+ATASCO_VEL, ATASCO_S = 2.0, 0.30
 
 
-def simular(kpp, vmax, amax, tol, perfil, t_fin, tol_salida=None, vmin=3.0):
-    """Cascada completa con las protecciones del firmware.
-    Devuelve t, theta_ref, theta (base), w_ref, w, duty y la causa del corte (None si no cortó).
+def simular(kpp, vmax, amax, tol, perfil, t_fin, tol_salida=None, vmin=3.0, pl=None, kp=None, ki=None, ff=None,
+            vmin_baja=None, trabada_ms=None, pos0=0.0):
+    """Cascada completa con las protecciones del firmware. perfil(t) da el ángulo pedido (absoluto).
+    kp, ki, ff, vmin_baja y trabada_ms: por defecto los de config.h de la articulación.
+    Devuelve t, theta_ref, theta, w_ref, w, duty y la causa del corte (None si no cortó).
     Si corta, desde ahí el duty es 0, como en la placa."""
-    dt = 0.0005
-    n_sub = int(round(dv.TS / dt))
+    pl = pl or dv.PLANTAS["j1"]
+    cpg = pl["cuentas_por_grado"]
+    kp = pl["kp"] if kp is None else kp
+    ki = pl["ki"] if ki is None else ki
+    vmin_baja = pl["vmin_baja"] if vmin_baja is None else vmin_baja
+    pi = dv.PI(kp, ki, ff or pl["ff"], pl["duty_max"], pl["trabada_ms"] if trabada_ms is None else trabada_ms)
     pasos = int(round(t_fin / dv.TS))
     n_pos = int(round(TS_POS / dv.TS))
-    w = pos = 0.0
-    integral = 0.0
+    w, pos = 0.0, pos0
     w_ref = 0.0
-    hist = [0] * (4 + 1)
+    hist = [int(np.floor(pos0 * cpg))] * (4 + 1)
     T, TR, TH, WR, W, U = [], [], [], [], [], []
     corte = None
     sin_c = contra = atasco = 0
@@ -64,10 +70,10 @@ def simular(kpp, vmax, amax, tol, perfil, t_fin, tol_salida=None, vmin=3.0):
     llegado, ref_ant = False, None   # histéresis, igual que el firmware
     for k in range(pasos):
         t = k * dv.TS
-        cuentas = int(np.floor(pos * dv.CUENTAS_POR_GRADO))
+        cuentas = int(np.floor(pos * cpg))
         hist = hist[1:] + [cuentas]
-        theta_med = cuentas / dv.CUENTAS_POR_GRADO
-        w_med = (hist[-1] - hist[0]) / dv.CUENTAS_POR_GRADO / (4 * dv.TS)
+        theta_med = cuentas / cpg
+        w_med = (hist[-1] - hist[0]) / cpg / (4 * dv.TS)
         th_ref = perfil(t)
         # Lazo de posición (cada n_pos periodos del de velocidad)
         if k % n_pos == 0:
@@ -78,25 +84,19 @@ def simular(kpp, vmax, amax, tol, perfil, t_fin, tol_salida=None, vmin=3.0):
                 llegado = abs(e) <= tol_salida
             elif abs(e) < tol:
                 llegado = True
-            deseada = 0.0 if llegado else float(np.sign(e) * min(max(abs(kpp * e), vmin), vmax))
+            deseada = 0.0 if llegado else float(np.sign(e) * min(max(abs(kpp * e), vmin_baja if e < 0 else vmin),
+                                                                  vmax))
             dmax = amax * TS_POS
             w_ref = deseada if deseada == 0.0 else float(np.clip(deseada, w_ref - dmax, w_ref + dmax))
         # Lazo de velocidad: el mismo PI del firmware
         if corte:
             w_ref = 0.0
-        if w_ref == 0.0:
-            u, integral = 0.0, 0.0
-        else:
-            ev = w_ref - w_med
-            u_lib = np.sign(w_ref) * dv.ZONA_MUERTA + KP_VEL * ev + integral
-            u = float(np.clip(u_lib, -dv.DUTY_MAX, dv.DUTY_MAX))
-            if u == u_lib or np.sign(ev) != np.sign(u_lib):
-                integral += KI_VEL * dv.TS * ev
+        u = pi.paso(w_ref, w_med, theta_med)
         # Protecciones, con las mismas condiciones que cascada() en el firmware
         if not corte:
-            sin_c = sin_c + 1 if (w_ref != 0 and abs(u) >= dv.ARRANQUE and hist[-1] == hist[-2]) else 0
+            sin_c = sin_c + 1 if (w_ref != 0 and abs(u) >= pl["arranque"] and hist[-1] == hist[-2]) else 0
             contra = contra + 1 if (w_ref != 0 and w_med * np.sign(w_ref) < -CONTRARIO_VEL) else 0
-            atasco = atasco + 1 if (abs(w_med) < ATASCO_VEL and abs(u) >= ATASCO_DUTY) else 0
+            atasco = atasco + 1 if (abs(w_med) < ATASCO_VEL and abs(u) >= pl["atasco_duty"]) else 0
             if sin_c * dv.TS >= SIN_CUENTAS_S - 1e-9:
                 corte = f"sin cuentas del encoder (t = {t:.2f} s)"
             elif contra * dv.TS >= CONTRARIO_S - 1e-9:
@@ -104,17 +104,10 @@ def simular(kpp, vmax, amax, tol, perfil, t_fin, tol_salida=None, vmin=3.0):
             elif atasco * dv.TS >= ATASCO_S - 1e-9:
                 corte = f"atasco (t = {t:.2f} s)"
             if corte:
-                u, integral, w_ref = 0.0, 0.0, 0.0
+                u, w_ref = 0.0, 0.0
+                pi.paso(0.0, w_med, theta_med)   # borra la integral, como el firmware
         T.append(t), TR.append(th_ref), TH.append(pos), WR.append(w_ref), W.append(w), U.append(u)
-        u_ef = 0.0 if abs(u) <= dv.ZONA_MUERTA else u - np.sign(u) * dv.ZONA_MUERTA
-        if abs(w) < 0.05 and abs(u) < dv.ARRANQUE:   # quieta: hace falta ARRANQUE para despegar
-            w, u_ef = 0.0, 0.0
-        for _ in range(n_sub):
-            w_ant = w
-            w += dt * (-w + dv.K * u_ef) / dv.TAU
-            if u_ef == 0.0 and w_ant * w < 0:   # frenando sin empuje: se detiene, no invierte
-                w = 0.0
-            pos += dt * w
+        w, pos = dv.planta(pl, w, pos, u)
     return tuple(np.array(x) for x in (T, TR, TH, WR, W, U)) + (corte,)
 
 
@@ -131,6 +124,7 @@ def medir(t, th, ref, t0, t1, desde):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("-a", "--articulacion", choices=sorted(dv.PLANTAS), default="j1", help="def. j1")
     ap.add_argument("--kpp", type=float, default=2.0, help="P de posición, (°/s)/° = 1/s (def. 2)")
     ap.add_argument("--vmax", type=float, default=30.0, help="velocidad máxima, °/s (def. 30)")
     ap.add_argument("--amax", type=float, default=60.0, help="aceleración máxima, °/s² (def. 60)")
@@ -139,21 +133,29 @@ def main():
     ap.add_argument("--vmin", type=float, default=3.0, help="velocidad mínima mientras no llegó, °/s (def. 3)")
     ap.add_argument("--sin-ventana", action="store_true", help="solo guarda el PNG")
     args = ap.parse_args()
+    pl = dv.PLANTAS[args.articulacion]
+    J = pl["nombre"]
 
-    kpp_max = 1 / (4 * TAU_V)
-    zeta = 1 / (2 * np.sqrt(args.kpp * TAU_V))
-    wn = np.sqrt(args.kpp / TAU_V)
-    print("== Diseño del P de posición de J1 (sobre el PI de velocidad del paso 2) ==")
-    print(f"Lazo de velocidad cerrado ~ 1/({TAU_V:.2f} s + 1); PI Kp = {KP_VEL}, Ki = {KI_VEL}")
+    tau_v = pl["tau_v"] if pl["tau_v"] is not None else dv.tau_lazo_velocidad(pl, pl["kp"], pl["ki"])
+    origen = "medido en placa" if pl["tau_v"] is not None else "simulación ideal del lazo de velocidad"
+    kpp_max = 1 / (4 * tau_v)
+    zeta = 1 / (2 * np.sqrt(args.kpp * tau_v))
+    wn = np.sqrt(args.kpp / tau_v)
+    print(f"== Diseño del P de posición de {J} (sobre el PI de velocidad del paso 2) ==")
+    print(f"Lazo de velocidad cerrado ~ 1/({tau_v:.3f} s + 1) ({origen}); PI Kp = {pl['kp']}, Ki = {pl['ki']}")
     print(f"Sin sobrepico: Kpp <= 1/(4 tau_v) = {kpp_max:.2f} 1/s")
     print(f"Kpp = {args.kpp:.2f} 1/s -> zeta = {zeta:.2f} ({'sin' if zeta >= 1 else 'con'} sobrepico), "
           f"wn = {wn:.1f} rad/s")
     print(f"Perfil: v_max = {args.vmax:.0f} °/s, a_max = {args.amax:.0f} °/s², tolerancia ±{args.tol:.2f}°")
     print(f"Con error > {args.vmax / args.kpp:.0f}° va a velocidad máxima; debajo, frena en proporción al error")
 
-    saltos = [(0.2, 20.0), (3.2, -20.0), (6.2, 0.0), (9.2, 5.0), (11.2, 0.0)]
+    if J == "J1":
+        saltos = [(0.2, 20.0), (3.2, -20.0), (6.2, 0.0), (9.2, 5.0), (11.2, 0.0)]
+    else:   # dentro del rango útil de J3 (-12° / +25°)
+        saltos = [(0.2, 10.0), (3.2, -10.0), (6.2, 0.0), (9.2, 20.0), (12.2, 0.0)]
     perfil = lambda t: next((v for t0, v in reversed(saltos) if t >= t0), 0.0)
-    t, tr, th, wr, w, u, corte = simular(args.kpp, args.vmax, args.amax, args.tol, perfil, 13.2, args.tol_salida, args.vmin)
+    t, tr, th, wr, w, u, corte = simular(args.kpp, args.vmax, args.amax, args.tol, perfil, saltos[-1][0] + 2.0,
+                                         args.tol_salida, args.vmin, pl=pl)
     if corte:
         print(f"\n*** La placa CORTARÍA por {corte}: estos parámetros no sirven así. ***")
 
@@ -172,14 +174,14 @@ def main():
 
     fig, ax = plt.subplots(3, 1, figsize=(10, 8.5), sharex=True, height_ratios=[2, 1.2, 1])
     ax[0].plot(t, tr, "k--", lw=1.2, label="ángulo pedido")
-    ax[0].plot(t, th, color="#1d64c8", lw=2, label="ángulo de la base (simulado)")
+    ax[0].plot(t, th, color="#1d64c8", lw=2, label=f"ángulo de{'l' if J == 'J3' else ' la'} {pl['pieza']} (simulado)")
     ax[0].set_ylabel("ángulo [°]")
-    ax[0].set_title(f"J1 · P de posición Kpp = {args.kpp:.2f} sobre PI de velocidad "
+    ax[0].set_title(f"{J} · P de posición Kpp = {args.kpp:.2f} sobre PI de velocidad "
                     f"(v_max {args.vmax:.0f} °/s, a_max {args.amax:.0f} °/s², tol ±{args.tol}°)")
     ax[0].grid(alpha=0.3)
     ax[0].legend(fontsize=9)
     ax[1].plot(t, wr, "k--", lw=1, label="velocidad pedida (sale del P)")
-    ax[1].plot(t, w, color="#1d64c8", lw=1.5, label="velocidad de la base")
+    ax[1].plot(t, w, color="#1d64c8", lw=1.5, label=f"velocidad de{'l' if J == 'J3' else ' la'} {pl['pieza']}")
     ax[1].set_ylabel("°/s")
     ax[1].grid(alpha=0.3)
     ax[1].legend(fontsize=9)
@@ -189,7 +191,8 @@ def main():
     ax[2].grid(alpha=0.3)
     fig.tight_layout()
     DIR_RESULTADOS.mkdir(exist_ok=True)
-    png = DIR_RESULTADOS / f"diseno_posicion_{datetime.now():%Y%m%d_%H%M%S}.png"
+    pre = "" if J == "J1" else f"{args.articulacion}_"
+    png = DIR_RESULTADOS / f"diseno_posicion_{pre}{datetime.now():%Y%m%d_%H%M%S}.png"
     fig.savefig(png, dpi=120)
     print(f"\nGráfica: {png.relative_to(DIR_RESULTADOS.parent)}")
     if not args.sin_ventana:
