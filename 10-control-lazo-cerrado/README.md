@@ -97,6 +97,8 @@ prueba en orden cronológico dentro de cada articulación (tipos: `escalon_veloc
 `barrido_carga`, `diseno_velocidad`, `diseno_posicion`). La fecha y hora es la misma del CSV: por ejemplo,
 `resultados/escalon_pos_20261002_223821.csv` → `imagenes/j1_base/j1_12_escalon_posicion_20261002_223821.png`.
 Los scripts de `tools/` siguen guardando el PNG nuevo junto al CSV, en `resultados/`: moverlo después y numerarlo a continuación del último.
+`escalon_velocidad.py` y `escalon_posicion.py` aceptan `--titulo J3` (prefijo del título del gráfico); con `--archivo` rehacen
+el gráfico desde el CSV. Las imágenes elegidas para el informe están copiadas en `imagenes/informe/`.
 
 | Fecha | Paso | Resultado |
 |-------|------|-----------|

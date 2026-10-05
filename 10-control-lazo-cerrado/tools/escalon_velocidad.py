@@ -177,6 +177,7 @@ def main():
     ap.add_argument("--puerto", default="/dev/ttyUSB0")
     ap.add_argument("--archivo", help="volver a analizar un CSV guardado, sin tocar la placa")
     ap.add_argument("--sin-ventana", action="store_true", help="solo guarda el PNG")
+    ap.add_argument("--titulo", default="", help='prefijo del título del gráfico, por ejemplo "J3"')
     args = ap.parse_args()
     if args.ff is not None and len(args.ff) not in (4, 5):
         ap.error("--ff lleva 4 o 5 números")
@@ -258,7 +259,7 @@ def main():
     ax[1, 1].set_xlabel("tiempo [s]")
     ax[1, 1].set_ylabel("°")
     ax[1, 1].grid(alpha=0.3)
-    fig.suptitle(f"PI de velocidad: Kp = {kp:.3f}, Ki = {ki:.2f}")
+    fig.suptitle(f"{args.titulo + ' · ' if args.titulo else ''}PI de velocidad: Kp = {kp:.3f}, Ki = {ki:.2f}")
     fig.tight_layout()
     png = archivo.with_suffix(".png")
     fig.savefig(png, dpi=110)

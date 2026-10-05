@@ -157,6 +157,7 @@ def main():
     ap.add_argument("--puerto", default="/dev/ttyUSB0")
     ap.add_argument("--archivo", help="volver a analizar un CSV guardado, sin tocar la placa")
     ap.add_argument("--sin-ventana", action="store_true", help="solo guarda el PNG")
+    ap.add_argument("--titulo", default="", help='prefijo del título del gráfico, por ejemplo "J3"')
     args = ap.parse_args()
     if args.ff is not None and len(args.ff) not in (4, 5):
         ap.error("--ff lleva 4 o 5 números")
@@ -221,7 +222,7 @@ def main():
     ax[0].plot(t, th, color="#c2410c", lw=1.6, label="real (encoder)")
     ax[0].plot(ts_, th_s + base, color="#1d64c8", lw=1.4, ls="-", alpha=0.8, label="simulado (primer ciclo)")
     ax[0].set_ylabel("ángulo de la articulación [°]")
-    ax[0].set_title(f"Posición: Kpp = {meta['kpp']:.2f}, v_max {meta['vmax']:.0f} °/s, "
+    ax[0].set_title(f"{args.titulo + ' · ' if args.titulo else ''}Posición: Kpp = {meta['kpp']:.2f}, v_max {meta['vmax']:.0f} °/s, "
                     f"a_max {meta['amax']:.0f} °/s², tol ±{meta['tol']}°")
     ax[0].grid(alpha=0.3)
     ax[0].legend(fontsize=9)
