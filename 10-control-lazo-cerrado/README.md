@@ -90,6 +90,14 @@ conocida y mandar un comando de cero.
 
 ## Resultados
 
+Los CSV quedan en `resultados/`. Los gráficos y las fotos están separados por articulación en
+`imagenes/j1_base/`, `imagenes/j2_hombro/` e `imagenes/j3_codo/`, con el nombre
+`<jN>_<orden>_<tipo de prueba>_<fecha_hora>[_cortado].png`, donde `<orden>` (01, 02, …) es el número de la
+prueba en orden cronológico dentro de cada articulación (tipos: `escalon_velocidad`, `escalon_posicion`,
+`barrido_carga`, `diseno_velocidad`, `diseno_posicion`). La fecha y hora es la misma del CSV: por ejemplo,
+`resultados/escalon_pos_20261002_223821.csv` → `imagenes/j1_base/j1_12_escalon_posicion_20261002_223821.png`.
+Los scripts de `tools/` siguen guardando el PNG nuevo junto al CSV, en `resultados/`: moverlo después y numerarlo a continuación del último.
+
 | Fecha | Paso | Resultado |
 |-------|------|-----------|
 | 2026-10-02 | 0 (J1) | Con duty + las cuentas suben (encoder normal), pero la base giraba horario → `J1_SENTIDO_INVERTIDO = true`. Verificado tras reflashear: `p 30 300` antihorario OK, `p -30 300` horario OK. `p 25 100`: solo 13 cuentas (1,5° de salida) en 0,1 s; con 30 % se mueve bien. Encoder en reposo A=0 B=1 |
