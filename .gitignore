@@ -25,5 +25,6 @@ managed_components/
 graphify-out/
 
 # Documentos del robot copiados solo para lectura (viven en recolector_de_frutas)
-docs/
+/docs
+/docs_viejo/
 __pycache__/
