@@ -140,6 +140,7 @@ svg text { font-family: var(--f-body); }
 <header>
   <span class="eyebrow">10-control-lazo-cerrado · solo J3</span>
   <h1>Cableado de J3 (codo): motor 5840-31ZY con IBT-2</h1>
+  <div class="warnbox"><b>Desactualizado (2026-10-10):</b> el EN de J3 ya no va al GPIO13 sino al <b>GPIO23</b>, común a los tres IBT-2, como en el robot. El cableado vigente está en <code>conexiones.html</code>. Esta página queda como registro.</div>
   <p class="lead">J3 deja el L298N y pasa a un IBT-2 (BTS7960), como J1. El motor es el 5840-31ZY (sin fin, 12 V, 160 rpm, 100 kg·cm) y el encoder es el 38S6G5 acoplado a la salida del sin fin. Se usan los pines que el robot ya tiene reservados para J3: <b>13, 16 y 17</b> para el driver y <b>18 y 19</b> para el encoder.</p>
   <div class="chips">
     <span class="chip">Fuente de laboratorio <b>12,0 V</b> · límite <b>2 A</b></span>

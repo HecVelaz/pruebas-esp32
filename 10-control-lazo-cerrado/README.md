@@ -9,7 +9,7 @@ gráficas, como en el lazo abierto (`06`, `07`, `08`). Las ganancias que salgan 
 | | J1: base giratoria | J2: hombro |
 |---|---|---|
 | Motor | 36GP-555, 160 rpm, reductora 50:1 | 5840-31ZY, sin fin (no cae sin corriente) |
-| Driver | IBT-2 (BTS7960), PWM 20 kHz | L298N canal A, modo freno, PWM 1 kHz |
+| Driver | IBT-2 (BTS7960), PWM 20 kHz | IBT-2 (BTS7960), PWM 1 kHz (hasta el 2026-10-03, L298N en modo freno) |
 | Encoder | Hall 16 PPR x4 → 3200 cuentas por vuelta de salida del motor | Óptico 1000 PPR x4 → 4000 cuentas por vuelta |
 | Modelo de velocidad (R1 E5) | G = 1,58 / (0,065 s + 1) [rpm/%] | G = 1,33 / (0,059 s + 1) [rpm/%] |
 | Zona muerta (arranque) | 16 % sin carga, 25 % con carga | entre 20 y 40 % (falta medir) |
@@ -26,28 +26,31 @@ Control en cascada (`docs/ARQUITECTURA.md` §5 del repo del robot):
 
 ## Conexiones
 
-Las del brazo del robot (`recolector_de_frutas/docs/conexiones.html`), todo en la **WROOM**. Pines en
-`include/pins.h`. **Cableado completo** (motor → driver → ESP32, tracción, bumpers y lista de resistencias) en
-[`CONEXIONES.md`](CONEXIONES.md). Diagrama para cablear (mapa de la placa, esquemas de J1 y J2 con las
-resistencias y lista para tildar): [`conexiones.html`](conexiones.html), abrir en el navegador. Fuente:
-laboratorio a 12 V: límite de 3 A con J1, 2 A con J2 sola y fusible de 2 A en el L298N si van los dos juntos
-(ver `CONEXIONES.md`).
+Las del brazo del robot (conexionado v0.4 de `recolector_de_frutas`), todo en la **WROOM**: J1, J2 y J3 con un
+IBT-2 cada una y el **EN común en el GPIO 23** (desde el 2026-10-10; antes J2 iba con el L298N y J3 tenía su EN en el
+13). Pines en `include/pins.h`. **Cableado completo** en [`CONEXIONES.md`](CONEXIONES.md). Diagrama para cablear
+(mapa de la placa, esquemas de J1, J2 y J3 y lista para tildar): [`conexiones.html`](conexiones.html), abrir en el
+navegador. Fuente de laboratorio a 12 V, límite de 3 A. **Motores:** 36-555 con encoder SCX-555 en las tres (J2/J3 de 58 rpm
+con correa 20 → 100). `-e j2_160`: prueba aislada del motor de J1 (160 rpm) en el hombro, cableado como J2.
 
 | GPIO | Conecta a | Nota |
 |------|-----------|------|
 | 21 · 22 | J1 IBT-2 RPWM · LPWM | 20 kHz |
-| 23 | J1 IBT-2 R_EN + L_EN | pull-down 10 kΩ |
-| 34 · 35 | J1 encoder A · B | pull-up **externo** 10 kΩ a 3V3 (sin pull-up interno) |
-| 25 · 26 · 27 | J2 L298N ENA · IN1 · IN2 | jumper de ENA afuera, pull-down 10 kΩ en ENA |
-| 32 · 33 | J2 encoder A · B | pull-up interno |
-| 36 · 39 | Finales de carrera J1 · J2 | todavía no instalados |
+| 25 · 26 | J2 IBT-2 RPWM · LPWM | 1 kHz |
+| 16 · 17 | J3 IBT-2 RPWM · LPWM | 1 kHz |
+| 23 | R_EN + L_EN de los 3 IBT-2 | pull-down 10 kΩ (una sola) |
+| 34 · 35 | J1 encoder A · B | sin pull-up interno: el de la SCX-555 (10 kΩ externos opcionales) |
+| 32 · 33 | J2 encoder A · B (SCX-555) | pull-up interno + el de la placa |
+| 18 · 19 | J3 encoder A · B (SCX-555) | pull-up interno + el de la placa |
+| 36 · 39 · 27 | Finales de carrera J1 · J2 · J3 | todavía no instalados; 36/39 con 10 kΩ a 3V3 |
+| 13 | libre | reserva |
 
 - **Apagar los 12 V antes de flashear o pulsar EN** mientras falten los pull-down de los EN.
 - J1 cambia de placa respecto de `06` (S3 → WROOM): revisar el signo del encoder.
 
 ## Plan paso a paso
 
-Cada paso se prueba en la placa antes de pasar al siguiente. Hoja de ruta con las tareas de cada paso, para tildar: [`plan.html`](plan.html). Plan **solo de J1**, más simple y para seguir paso a paso: [`plan_j1.html`](plan_j1.html). Plan **solo de J2** (hombro, con los límites del cuatro barras): [`plan_j2.html`](plan_j2.html); `tools/cuatro_barras.py` calcula cuánto puede girar J2 con J3 quieto (balancín rojo de 60 mm: Grashof, γ₄ entre −112° y −30°). Plan **solo de J3** (codo): [`plan_j3.html`](plan_j3.html). **J3 pasó al IBT-2 (2026-10-03):** RPWM 16, LPWM 17, EN 13 (+10 kΩ a GND), encoder en 18/19; cableado en [`conexiones_j3.html`](conexiones_j3.html). Los duty de `cfg_j3` son los del L298N × 0,8, **provisorios** hasta repetir el paso 0.
+Cada paso se prueba en la placa antes de pasar al siguiente. Hoja de ruta con las tareas de cada paso, para tildar: [`plan.html`](plan.html). Plan **solo de J1**, más simple y para seguir paso a paso: [`plan_j1.html`](plan_j1.html). Plan **solo de J2** (hombro, con los límites del cuatro barras): [`plan_j2.html`](plan_j2.html); `tools/cuatro_barras.py` calcula cuánto puede girar J2 con J3 quieto (balancín rojo de 60 mm: Grashof, γ₄ entre −112° y −30°). Plan **solo de J3** (codo): [`plan_j3.html`](plan_j3.html). **J3 pasó al IBT-2 (2026-10-03)**; desde el 2026-10-10 su EN es el común (23) y J2 también va con IBT-2 (25/26): [`conexiones_j3.html`](conexiones_j3.html) queda como registro del cableado anterior. Los duty de `cfg_j3` son los del L298N × 0,8, **provisorios** hasta repetir el paso 0.
 
 | Paso | Qué | Para qué |
 |------|-----|----------|

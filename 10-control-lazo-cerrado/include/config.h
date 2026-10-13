@@ -14,10 +14,13 @@ constexpr const char *SENTIDO_NEG = "HORARIO visto desde arriba";
 constexpr const char *MARCA = "brazo al costado del robot";
 constexpr bool SIGNOS_EN_VIVO = false;  // "ie"/"is" deshabilitados: los límites son asimétricos
 constexpr bool FRENO_EN_REPOSO = false;  // rueda libre al terminar (la base no carga peso)
+constexpr bool SOSTENER_AUTO = false;  // "sa" al arrancar: se autobloquea por la correa y el 50:1 alcanza
 
 // Encoder Hall 16 PPR x4 en el eje del motor, reductora 50:1 -> 3200 cuentas por vuelta de la salida
 // de la reductora. De ahí a la base: correa GT2, polea de 18 dientes en el motor y 90 en la base (5:1).
-constexpr float CUENTAS_POR_VUELTA_SALIDA = 16.0f * 4.0f * 50.0f;
+constexpr const char *MOTOR = "36GP-555 160 rpm";
+constexpr float REDUCTORA = 50.0f;
+constexpr float CUENTAS_POR_VUELTA_SALIDA = 16.0f * 4.0f * REDUCTORA;
 constexpr float RELACION_CORREA = 90.0f / 18.0f;
 // 16 000 cuentas por vuelta de la base = 44,4 por grado. Verificado en el paso 1 (m 45 paralelo a un
 // doblez de 45°, error de pocos grados como mucho, a ojo).
@@ -101,72 +104,73 @@ constexpr int32_t KICK_CUENTAS = 0;
 constexpr bool KICK_SOLO_POSITIVO = true;
 }  // namespace cfg_j1
 
-// ===================== J2 (hombro): motor 5840-31ZY (sin fin) + L298N canal A =====================
-// Mueve la barra verde con un piñón y un engranaje grande en el eje del hombro. J3 (barra roja) queda quieto:
-// cada grado de J2 cambia en un grado el ángulo entre la roja y la verde (gamma4). Con la roja de 60 mm el
-// cuatro barras funciona bien con gamma4 entre -112° y -30° (tools/cuatro_barras.py): fuera de eso, punto muerto.
+// ===================== J2 (hombro): motor 36GP-555 + IBT-2 (RPWM 25, LPWM 26, EN 23) =====================
+// Motor 36-555 de 58 rpm (139:1) con encoder SCX-555, como en el robot. Sin caracterizar: valores provisorios de J1.
+// -e j2_160: prueba aislada (2026-10-10) con el motor de J1 (36GP-555 de 160 rpm, 50:1) en el hombro, solo para ver
+// si puede levantar el brazo. Hasta el 2026-10-03 J2 era el 5840-31ZY (sin fin): sus valores medidos están en git.
+// J3 (barra roja) queda quieto: con la roja en su marca, el cuatro barras deja a J2 de -19,9° a +42,3°
+// (tools/cuatro_barras.py --q2 30 --theta 112, con 10° de margen).
 namespace cfg_j2 {
 constexpr const char *NOMBRE = "J2";
 constexpr const char *PIEZA = "brazo";
 constexpr const char *SENTIDO_POS = "HACIA ARRIBA";
 constexpr const char *SENTIDO_NEG = "HACIA ABAJO";
 constexpr const char *MARCA = "barra verde en su marca";
-constexpr bool SIGNOS_EN_VIVO = true;  // "ie"/"is" habilitados: los límites provisorios son simétricos
-constexpr bool FRENO_EN_REPOSO = true;  // freno al terminar: con el brazo completo el sin fin se iba cayendo en rueda libre
+constexpr bool SIGNOS_EN_VIVO = true;  // "ie"/"is" habilitados: los límites del paso 0 son simétricos
+// El 36GP-555 es planetario y NO se autobloquea: sin corriente el brazo cae. El freno (EN alto, PWM 0: el motor en
+// corto) solo hace que caiga más despacio. Sostener el brazo o tenerlo apoyado cuando no se mueve.
+constexpr bool FRENO_EN_REPOSO = true;
+constexpr bool SOSTENER_AUTO = true;  // "sa" al arrancar: sostiene desde "z" (el 36GP-555/36-555 no se autobloquea). Signos OK (2026-10-13)
 
-// Encoder 38S6G5 (1000 PPR x4) acoplado al eje de SALIDA del sin fin: 4000 cuentas por vuelta de esa salida.
-// De ahí al hombro: piñón -> engranaje grande. MEDIR en el paso 1 (dientes del grande / dientes del piñón).
-// Mientras valga 1, los "grados" del firmware son de la salida del sin fin: el brazo se mueve MENOS que eso
-// (si el engranaje reduce), así que los límites provisorios quedan del lado seguro.
-constexpr float CUENTAS_POR_VUELTA_SALIDA = 1000.0f * 4.0f;
-constexpr float RELACION_ENGRANAJE = 56.0f / 18.0f;  // piñón 18, engranaje 56 (2026-10-03, igual que J3)
-constexpr float CUENTAS_POR_GRADO = CUENTAS_POR_VUELTA_SALIDA * RELACION_ENGRANAJE / 360.0f;
+// Encoder SCX-555 (16 PPR x4) en el eje del motor -> 64 cuentas por vuelta del motor x reductora.
+// De ahí al hombro: correa GT2, polea de 20 dientes en el motor y 100 en el hombro (5:1; 240 mm, 54 mm entre centros).
+#if defined(J2_MOTOR_160RPM)
+constexpr const char *MOTOR = "36GP-555 160 rpm (prueba)";
+constexpr float REDUCTORA = 50.0f;   // 44,4 cuentas por grado (como J1)
+#else
+constexpr const char *MOTOR = "36-555 58 rpm";
+constexpr float REDUCTORA = 139.0f;  // 123,6 cuentas por grado
+#endif
+constexpr float CUENTAS_POR_VUELTA_SALIDA = 16.0f * 4.0f * REDUCTORA;
+constexpr float RELACION_CORREA = 100.0f / 20.0f;
+constexpr float CUENTAS_POR_GRADO = CUENTAS_POR_VUELTA_SALIDA * RELACION_CORREA / 360.0f;
 
-// Paso 0: signos (positivo = el brazo sube). En 08, con este acople, las cuentas iban al revés.
-constexpr bool ENCODER_INVERTIDO = true;   // paso 0 (2026-10-03): con duty + las cuentas subían (OK)
-constexpr bool SENTIDO_INVERTIDO = true;   // paso 0 (2026-10-03): con duty + el brazo bajaba
+// Paso 0: signos (positivo = el brazo sube). SIN MEDIR: se ajustan en vivo con "ie" e "is" y se copian acá.
+constexpr bool ENCODER_INVERTIDO = false;
+constexpr bool SENTIDO_INVERTIDO = false;
 
-// PWM del L298N en modo freno (igual que en 08: lineal a 1 kHz). Con el IBT-2 (-e j2ibt) también 1 kHz: a 20 kHz el
-// BTS7960 perdía parte de cada pulso (visto en J3). Con el IBT-2 el motor recibe ~12 V en lugar de 9,6 V: los duty
-// de arranque del L298N sobran un ~25 % y el sentido depende de M+/M-: repetir el paso 0 ("ie"/"is" en vivo).
-constexpr uint32_t PWM_FREQ_HZ = 1000;
+// PWM del IBT-2: 20 kHz, como J1 con este mismo motor
+constexpr uint32_t PWM_FREQ_HZ = 20000;
 constexpr uint8_t PWM_BITS = 10;
 
-// Límites PROVISORIOS desde la marca, hasta medir la postura (ángulos de la verde y de la roja) y calcular la
-// ventana del cuatro barras con tools/cuatro_barras.py.
-// 2026-10-03: el cero (barra verde en su marca) está a 30° de la horizontal; con la roja en su marca (112°),
-// tools/cuatro_barras.py --q2 30 --theta 112: con J3 quieto, J2 puede ir de -19,9° a +42,3° con 10° de margen.
-// Si J3 se mueve de su marca, recalcular.
-constexpr float LIMITE_POS_GRADOS = 40.0f;
-constexpr float LIMITE_NEG_GRADOS = -18.0f;
-constexpr float DUTY_MAX_PCT = 80.0f;      // TEMPORAL (2026-10-03, IBT-2): con 30-40 % no se movía. L298N: 55 %
-constexpr uint32_t PULSO_MAX_MS = 200;     // el sin fin va rápido: a 40 % la salida gira a ~350 °/s
+// Límites simétricos (para poder usar "ie"/"is"): ±25° a pedido del usuario (2026-10-13; con ±60° se trababa entre
+// -34° y -41°). OJO: con J3 quieto en su marca, tools/cuatro_barras.py daba los puntos muertos a -19,9° y +42,3°.
+constexpr float LIMITE_POS_GRADOS = 25.0f;
+constexpr float LIMITE_NEG_GRADOS = -25.0f;
+constexpr float DUTY_MAX_PCT = 70.0f;      // provisorio: para ver con cuánto sube el brazo (fuente con límite de 3 A)
+constexpr uint32_t PULSO_MAX_MS = 500;     // con el de 160 rpm, a 100 % el hombro va a ~190 °/s: pulsos cortos
 constexpr uint32_t PULSO_DEF_MS = 100;
 constexpr int32_t CUENTAS_SIN_GIRO = 5;
 constexpr uint32_t SIN_CUENTAS_MS = 150;
 constexpr int32_t AVANCE_MIN = 3;
 
 // Paso 1: "m <grados>"
-constexpr float DUTY_MOVER_PCT = 30.0f;    // VERIFICAR con el arranque del paso 0
+constexpr float DUTY_MOVER_PCT = 40.0f;    // VERIFICAR en el paso 0 (subiendo hace falta más que en J1)
 constexpr uint32_t MOVER_MAX_MS = 10000;
 
-// Paso 2: PI de velocidad. Modelo de 08 (modo freno): K = 1,33 rpm/% de la salida del sin fin = 7,98 (°/s)/%,
-// tau = 59 ms. Ganancias PROVISORIAS por cancelación de polo para ts = 0,25 s (como J1): Kp = tau/(K·ts/4),
-// Ki = Kp/tau. Se rehacen con tools/diseno_velocidad.py cuando se conozcan la transmisión y la zona muerta.
-constexpr float K_VEL = 1.33f * 6.0f / RELACION_ENGRANAJE;  // (°/s del brazo) por %
-constexpr float TAU_VEL = 0.059f;
-constexpr float KP_VEL = 0.35f;  // como J3 (diseño: TAU_VEL / (K_VEL * 0.25f / 4.0f) = 0,37)
-constexpr float KI_VEL = 5.0f;   // como J3 (diseño: 6,2)
-// Paso 0 con el IBT-2 y el resorte (2026-10-03): desde quieta sube con 60-70 % y baja con -30/-40 %.
-// Barrido de carga -10 -> +20 -> -10° a 4 °/s (resultados/barrido_20261003_225314): subiendo ~59 % a -10°, ~55 % en
-// 0°, ~48 % a +20° (baja ~0,35 %/°: el brazo se acerca a la vertical y el resorte ayuda más); bajando ~-9/-10 %
-// en todo el rango, con traba-suelta (0 a -20 °/s, como J3).
-constexpr float FF_PENDIENTE_POS = -0.35f;    // %/° subiendo (negativa: cuanto más arriba, menos esfuerzo)
-constexpr float ZONA_MUERTA_PCT = 52.0f;      // en marcha, subiendo, en 0° (barrido: 55 % a 4 °/s)
-constexpr float ZONA_MUERTA_NEG_PCT = 9.0f;   // en marcha, bajando
-constexpr float DESPEGUE_PCT = 62.0f;         // quieta, para subir, en 0°
-constexpr float DESPEGUE_NEG_PCT = 30.0f;     // quieta, para bajar
-constexpr float ARRANQUE_PCT = 30.0f;      // con menos no se mueve en ningún sentido (paso 0)
+// Paso 2: PI de velocidad. Provisorio: las ganancias de J1 (con el de 160 rpm es el mismo motor y la misma relación;
+// con el de 58 rpm, K es ~1/3: rehacer con tools/diseno_velocidad.py). El feedforward es provisorio y simétrico: con el peso del brazo va a ser asimétrico (medir con
+// "bc" y pasarlo a "ff", como en J3).
+constexpr float KP_VEL = 0.549f;
+constexpr float KI_VEL = 4.0f;
+constexpr float FF_PENDIENTE_POS = 0.0f;
+constexpr float ZONA_MUERTA_PCT = 17.0f;
+// Bajando la gravedad ayuda (2026-10-13, 36GP-555 en el hombro): con -17 % se pasaba al frenar bajando y con 0 %
+// le costaba frenar subiendo (al pasarse no volvía): 8 % intermedio
+constexpr float ZONA_MUERTA_NEG_PCT = 8.0f;
+constexpr float DESPEGUE_PCT = ZONA_MUERTA_PCT;
+constexpr float DESPEGUE_NEG_PCT = ZONA_MUERTA_NEG_PCT;
+constexpr float ARRANQUE_PCT = 50.0f;  // corte "sin cuentas" solo con >= 50 %: sostener el peso ya pide 20-30 % (2026-10-13)
 constexpr uint32_t TS_VEL_US = 10000;
 constexpr int VENTANA_VEL = 4;
 constexpr float VEL_MAX = 30.0f;
@@ -177,19 +181,18 @@ constexpr uint32_t ESCALON_MAX_MS = 3000;
 constexpr uint32_t PAUSA_MS = 500;
 constexpr uint32_t CICLOS_MAX = 60;
 constexpr float ATASCO_VEL = 2.0f;
-constexpr float ATASCO_DUTY_PCT = 75.0f;   // por encima de la zona muerta y debajo de DUTY_MAX_PCT
+constexpr float ATASCO_DUTY_PCT = 60.0f;   // debajo de DUTY_MAX_PCT
 constexpr uint32_t ATASCO_MS = 300;
 
-// Paso 3: P de posición (provisorio, como J1)
+// Paso 3: P de posición (como J1)
 constexpr float KPP = 2.0f;
 constexpr uint32_t TS_POS_US = 20000;
-constexpr float VMAX_POS = 15.0f;
+constexpr float VMAX_POS = 20.0f;
 constexpr float AMAX_POS = 60.0f;
 constexpr float VMIN_POS = 3.0f;
-constexpr float VMIN_BAJA_POS = 6.0f;      // °/s, mínimo bajando (como J3: con 3 se traba al final) ("bj")
-constexpr uint32_t TRABADA_MS = 40;        // trabada este tiempo: vuelve a la rampa de despegue (como J3) ("bj")
-constexpr float DITHER_PCT = 3.0f;         // ± % a 25 Hz mientras se mueve ("bj"). 2026-10-03: de las tres pruebas
-                                           // de J2, la mejor (bajando: picos 30 -> 23 °/s, paradas 4,3 -> 3,5)
+constexpr float VMIN_BAJA_POS = VMIN_POS;
+constexpr uint32_t TRABADA_MS = 100;
+constexpr float DITHER_PCT = 0.0f;
 constexpr float TOL_POS = 0.3f;
 constexpr float TOL_SALIDA = 0.6f;
 constexpr uint32_t LLEGADA_MS = 200;
@@ -203,12 +206,12 @@ constexpr int32_t KICK_CUENTAS = 0;
 constexpr bool KICK_SOLO_POSITIVO = true;
 }  // namespace cfg_j2
 
-// ===================== J3 (codo): motor 5840-31ZY (sin fin) + L298N =====================
+// ===================== J3 (codo): motor 36-555 58 rpm + IBT-2 (RPWM 16, LPWM 17, EN 23) =====================
+// EN común con J1 y J2 desde el 2026-10-10 (antes, EN propio en el GPIO13). En el robot va un 36-555 de 58 rpm con
+// encoder SCX-555 y correa 5:1: al cambiar el motor, cambian las cuentas por grado y todo lo medido.
 // Mueve la barra roja (balancín de 60 mm) con un piñón y un engranaje grande en el eje del hombro; la roja empuja
 // el acoplador y este el antebrazo. J2 (barra verde) queda quieto: cada grado de J3 cambia en un grado gamma4.
-// EN EL BANCO (2026-10-03) va cableado en el canal A, con los pines de J2 (25/26/27 y encoder 32/33); en el robot
-// va en el canal B (13/16/17 y 18/19). Con la roja de 60 mm el
-// cuatro barras funciona bien con gamma4 entre -112° y -30° (tools/cuatro_barras.py): fuera de eso, punto muerto.
+// Con la roja de 60 mm el cuatro barras funciona bien con gamma4 entre -112° y -30° (tools/cuatro_barras.py): fuera de eso, punto muerto.
 namespace cfg_j3 {
 constexpr const char *NOMBRE = "J3";
 constexpr const char *PIEZA = "antebrazo";
@@ -217,14 +220,16 @@ constexpr const char *SENTIDO_NEG = "PINZA HACIA ABAJO";
 constexpr const char *MARCA = "barra roja en su marca";
 constexpr bool SIGNOS_EN_VIVO = true;
 constexpr bool FRENO_EN_REPOSO = false;  // rueda libre al terminar: el sin fin sostiene el antebrazo
+constexpr bool SOSTENER_AUTO = false;  // "sa" al arrancar
 
-// Encoder 38S6G5 (1000 PPR x4) acoplado al eje de SALIDA del sin fin: 4000 cuentas por vuelta de esa salida.
-// De ahí al hombro: piñón -> engranaje grande. MEDIR en el paso 1 (dientes del grande / dientes del piñón).
-// Mientras valga 1, los "grados" del firmware son de la salida del sin fin: el brazo se mueve MENOS que eso
-// (si el engranaje reduce), así que los límites provisorios quedan del lado seguro.
-constexpr float CUENTAS_POR_VUELTA_SALIDA = 1000.0f * 4.0f;
-constexpr float RELACION_ENGRANAJE = 56.0f / 18.0f;  // paso 1 (2026-10-03): piñón 18, engranaje 56 dientes
-constexpr float CUENTAS_POR_GRADO = CUENTAS_POR_VUELTA_SALIDA * RELACION_ENGRANAJE / 360.0f;
+// 2026-10-10: el motor pasa a ser el 36-555 de 58 rpm (139:1) con encoder SCX-555 y correa 20 -> 100 (5:1).
+// Las cuentas por grado ya son las nuevas; LO DEMÁS (signos, feedforward, ganancias, duty) es del 5840-31ZY:
+// repetir los pasos 0-3 antes de confiar en ellos.
+constexpr const char *MOTOR = "36-555 58 rpm";
+constexpr float REDUCTORA = 139.0f;
+constexpr float CUENTAS_POR_VUELTA_SALIDA = 16.0f * 4.0f * REDUCTORA;
+constexpr float RELACION_CORREA = 100.0f / 20.0f;
+constexpr float CUENTAS_POR_GRADO = CUENTAS_POR_VUELTA_SALIDA * RELACION_CORREA / 360.0f;  // 123,6
 
 // DRIVER: IBT-2 desde el 2026-10-03 (antes L298N, que con 12 V daba 9,6 V al motor). Con el IBT-2 el motor recibe
 // ~12 V: a igual duty va ~25 % más rápido. Los duty de abajo son los del L298N x 0,8, PROVISORIOS: se vuelven a

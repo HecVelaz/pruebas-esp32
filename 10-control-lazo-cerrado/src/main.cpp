@@ -1,5 +1,5 @@
-// Lazo cerrado de una articulación del brazo en la ESP32-WROOM-32D: J1 (36GP-555 + IBT-2, base giratoria,
-// -e j1), J2 (5840-31ZY + L298N, hombro, -e j2; o con el IBT-2 de J3, -e j2ibt) o J3 (5840-31ZY + IBT-2, codo, -e j3). Los parámetros de cada una están en include/config.h
+// Lazo cerrado de una articulación del brazo en la ESP32-WROOM-32D, cada una con su IBT-2 y los pines del robot:
+// J1 (base giratoria, -e j1), J2 (hombro, -e j2) o J3 (codo, -e j3), con motores 36GP-555 y encoder SCX-555. Los parámetros de cada una están en include/config.h
 // (espacio de nombres "art"). Pasos:
 //  - Paso 0: pulsos cortos de duty fijo para comprobar que "positivo" es lo mismo para el motor,
 //    el encoder y la articulación (J1: antihorario visto desde arriba; J2: el brazo sube). Ver config.h.
@@ -11,19 +11,22 @@
 //    "ep <A> [ms] [ciclos]" hace escalones 0, +A, 0, -A con CSV para tools/escalon_posicion.py.
 #include <Arduino.h>
 
-// IBT-2 en los pines de J3 (RPWM 16, LPWM 17, EN 13, encoder 18/19): J3, o J2 cableado en el lugar de J3 (-e j2ibt)
-#if defined(ARTICULACION_J3) || defined(J2_IBT2)
-#define IBT2_EN_PINES_J3
-#endif
-
-#if defined(ARTICULACION_L298N)
-#include "L298N.h"
-#else
 #include "BTS7960.h"
-#endif
 #include "EncoderPCNT.h"
 #include "config.h"
 #include "pins.h"
+
+// Pines de la articulación elegida (los tres IBT-2 comparten el EN, GPIO 23)
+#if defined(ARTICULACION_J3)
+constexpr int PIN_RPWM = PIN_J3_RPWM, PIN_LPWM = PIN_J3_LPWM, PIN_ENC_A = PIN_J3_ENC_A, PIN_ENC_B = PIN_J3_ENC_B;
+#elif defined(ARTICULACION_J2) && defined(J2_EN_PINES_J1)
+// Pruebas -e j2_en_j1 y -e j2_160_en_j1: el hombro (configuración de J2) en el IBT-2 y el encoder de J1
+constexpr int PIN_RPWM = PIN_J1_RPWM, PIN_LPWM = PIN_J1_LPWM, PIN_ENC_A = PIN_J1_ENC_A, PIN_ENC_B = PIN_J1_ENC_B;
+#elif defined(ARTICULACION_J2)
+constexpr int PIN_RPWM = PIN_J2_RPWM, PIN_LPWM = PIN_J2_LPWM, PIN_ENC_A = PIN_J2_ENC_A, PIN_ENC_B = PIN_J2_ENC_B;
+#else
+constexpr int PIN_RPWM = PIN_J1_RPWM, PIN_LPWM = PIN_J1_LPWM, PIN_ENC_A = PIN_J1_ENC_A, PIN_ENC_B = PIN_J1_ENC_B;
+#endif
 
 constexpr uint8_t LEDC_CH_R = 0;
 constexpr uint8_t LEDC_CH_L = 1;
@@ -35,11 +38,7 @@ constexpr float RAMPA_DESPEGUE = 300.0f;  // %/s: del feedforward de marcha al d
 constexpr int64_t LIM_POS_C = (int64_t)(art::LIMITE_POS_GRADOS * art::CUENTAS_POR_GRADO);
 constexpr int64_t LIM_NEG_C = (int64_t)(art::LIMITE_NEG_GRADOS * art::CUENTAS_POR_GRADO);
 
-#if defined(ARTICULACION_L298N)
-L298N motor;
-#else
 BTS7960 motor;
-#endif
 EncoderPCNT enc;
 bool hwOk = false;
 bool ceroFijado = false;  // sin "z" no se mueve: el cero tiene que estar en la marca, lejos de los topes
@@ -64,6 +63,10 @@ uint32_t trabadaMs = art::TRABADA_MS;
 float ditherPct = art::DITHER_PCT;
 
 void irAControlado(float g, bool informar);  // paso 3, la usa también "ev" al terminar
+bool sostenerAuto = art::SOSTENER_AUTO;     // "sa" (ver sostenerPaso)
+// Sostener quieto: duty = uHold + khP * error, y uHold aprende el duty que sostiene el peso (integrador de posición)
+float khP = 6.0f;   // % por grado
+float khI = 15.0f;  // % por grado y por segundo
 
 char linea[48];
 size_t lineaLen = 0;
@@ -143,14 +146,13 @@ void ayuda() {
   Serial.println("  bj <vmin bajando °/s> <trabada ms> <dither %>  ajustes contra el traba-suelta al bajar");
   Serial.println("  a <°>        ir a un ángulo con el control de posición (cascada). Ej: a 30, a 0");
   Serial.println("  ep <A> [ms] [ciclos]  escalones de posición: A, 0, -A, 0 desde donde está (CSV). Ej: ep 20 2500 4");
+  Serial.println("  s [°]        sostener con el control de posición (sin número: donde está) hasta Enter. Ej: s, s 10");
+  Serial.println("  sa           sostener automático sí/no: entre comando y comando mantiene el ángulo (x lo apaga)");
+  Serial.println("  khp <x>, khi <x>  ganancias del sostener quieto (%/°, %/(°·s))");
   Serial.println("  kpp <x>      cambiar el P de posición");
   Serial.println("  c            mostrar cuentas y grados");
   Serial.println("  x            rueda libre (driver deshabilitado)");
-#if defined(ARTICULACION_L298N)
-  Serial.println("  dg           diagnóstico del cableado al L298N: un pin en alto por vez (el motor no se mueve)");
-#elif defined(IBT2_EN_PINES_J3)
   Serial.println("  dg           diagnóstico del cableado al IBT-2: EN, RPWM y LPWM de a uno, y la salida M+/M-");
-#endif
   Serial.println("  ?            esta ayuda");
   Serial.printf("Seguridad: corte fuera de %+.0f° / %+.0f° del cero, si avanza menos de %ld cuentas\n",
                 art::LIMITE_POS_GRADOS, art::LIMITE_NEG_GRADOS, (long)art::AVANCE_MIN);
@@ -188,7 +190,9 @@ void monitorEncoder() {
 
 // Espera QUIETO_MS sin que la articulación se mueva (un movimiento anterior o la mano pueden dejarla girando).
 // Un Enter durante la espera cancela antes de energizar el motor.
+bool saltarQuieto = false;  // venía sosteniendo (sostener automático): el brazo cae despacio, no esperar a que se quede quieto
 bool listaParaMover() {
+  if (saltarQuieto) return true;
   const int64_t c = cuentas();
   const uint32_t t0 = millis();
   while (millis() - t0 < QUIETO_MS) {
@@ -536,6 +540,8 @@ void mostrarGanancias() {
   Serial.printf("P de posición: kpp = %.3f 1/s | v_max %.0f °/s, a_max %.0f °/s², llega a ±%.2f°, se despierta a "
                 "±%.2f° | %lu ms\n", kpp, art::VMAX_POS, art::AMAX_POS, art::TOL_POS, art::TOL_SALIDA,
                 (unsigned long)(art::TS_POS_US / 1000));
+  Serial.printf("Sostener quieto: khp = %.1f %%/°, khi = %.1f %%/(°·s) | automático (sa) %s\n", khP, khI,
+                sostenerAuto ? "PRENDIDO" : "apagado");
 }
 
 // ---------- Paso 3: P de posición (cascada) ----------
@@ -559,9 +565,11 @@ float refEscalones(uint32_t k) {
 // Lazo en cascada durante como mucho nTotal periodos de 10 ms. Cada art::TS_POS_US, el P de posición
 // calcula la velocidad pedida (limitada a v_max, con su cambio limitado a a_max, y 0 dentro de la
 // tolerancia); cada 10 ms, el PI de velocidad la cumple. Con salirAlLlegar, termina cuando está dentro de
-// la tolerancia y quieta durante art::LLEGADA_MS. Con csv, manda una línea por periodo.
+// la tolerancia y quieta durante art::LLEGADA_MS. Con csv, manda una línea por periodo; con informeMs > 0, un
+// resumen (ángulo, error y duty) cada informeMs.
 // Devuelve nullptr si terminó bien, o la causa del corte. Al salir, frena y deja el driver apagado.
-const char *cascada(Referencia ref, uint32_t nTotal, bool salirAlLlegar, bool csv, uint32_t &msUsados) {
+const char *cascada(Referencia ref, uint32_t nTotal, bool salirAlLlegar, bool csv, uint32_t &msUsados,
+                    uint32_t informeMs = 0) {
   const float ts = art::TS_VEL_US / 1e6f;
   const uint32_t nPos = art::TS_POS_US / art::TS_VEL_US, tsMs = art::TS_VEL_US / 1000;
   const uint32_t nLlegada = art::LLEGADA_MS / tsMs;
@@ -609,9 +617,12 @@ const char *cascada(Referencia ref, uint32_t nTotal, bool salirAlLlegar, bool cs
       Serial.printf("%lu,%.2f,%.2f,%.2f,%.2f,%.1f\n", (unsigned long)((tick - t0) / 1000), thRef, grados(c), wRef, wMed,
                     u);
     }
+    if (informeMs > 0 && k % (informeMs / tsMs) == 0) {
+      Serial.printf("   %+.2f° (pedido %+.2f°, error %+.2f°), duty %+.1f %%\n", grados(c), thRef, thRef - grados(c), u);
+    }
 
-    // Protecciones (las mismas que "ev")
-    if (excesoLimite(c) > 0) {
+    // Protecciones (las mismas que "ev"). Fuera del límite solo corta si va hacia más afuera (puede volver)
+    if (excesoLimite(c) > 0 && haciaAfuera(c, thRef > grados(c) ? 1 : -1)) {
       corte = "límite de ángulo";
       break;
     }
@@ -648,8 +659,10 @@ const char *cascada(Referencia ref, uint32_t nTotal, bool salirAlLlegar, bool cs
   }
   aplicarDuty(0.0f);
   msUsados = (micros() - t0) / 1000;
-  delay(FRENO_MS);
-  reposo();
+  if (!sostenerAuto) {  // con el sostener automático, el control sigue enseguida (si no, el brazo cae)
+    delay(FRENO_MS);
+    reposo();
+  }
   return corte;
 }
 
@@ -666,53 +679,168 @@ void irAControlado(float g, bool informar) {
   }
 }
 
-#if defined(ARTICULACION_L298N)
-// "dg": diagnóstico del cableado WROOM -> L298N. Pone en alto UN pin por vez (ENA solo, IN1 solo, IN2 solo):
-// nunca ENA junto con un IN, así el puente no entrega tensión y el motor no se mueve aunque esté conectado.
-// Con el multímetro se mide cada pin del L298N contra su GND: el que está en alto tiene que dar ~3,3 V.
-void diagnostico() {
-  motor.coast();
-  const struct { const char *nombre; int pin; } etapas[] = {
-      {"ENA (GPIO25)", PIN_J2_ENA}, {"IN1 (GPIO26)", PIN_J2_IN1}, {"IN2 (GPIO27)", PIN_J2_IN2}};
-  Serial.println(">> Diagnóstico: un pin en alto por vez (el motor no puede moverse). Enter para pasar al siguiente.");
-  for (const auto &e : etapas) {
-    for (int p : {PIN_J2_ENA, PIN_J2_IN1, PIN_J2_IN2}) digitalWrite(p, LOW);
-    digitalWrite(e.pin, HIGH);
-    Serial.printf("   %s en ALTO, los otros dos en bajo. Medí en el L298N contra GND: %s ~3,3 V, los otros ~0 V.\n",
-                  e.nombre, e.nombre);
-    const uint32_t t0 = millis();
-    while (!hayEntrada() && millis() - t0 < 120000) delay(10);
-    descartando = false;
+// "s [grados]": sostener. Para los motores que no se autobloquean (J2 con el 36GP-555 o el 36-555, planetarios):
+// el lazo de posición queda corriendo y mantiene el ángulo hasta un Enter, un corte o SOSTENER_MAX_MS.
+// Al llegar, el duty vuelve a 0 (freno) y el brazo cae un poco; cuando se aleja más de art::TOL_SALIDA, el lazo lo
+// vuelve a subir: sostiene con pequeñas correcciones (de ~0,6°), no quieto del todo.
+// Al terminar (o si corta), queda en el reposo de la articulación: sin corriente, el brazo vuelve a caer.
+constexpr uint32_t SOSTENER_MAX_MS = 300000;  // 5 min: el motor trabaja todo el tiempo y se calienta
+constexpr uint32_t SOSTENER_INFORME_MS = 1000;
+void sostener(float g) {
+  refFija = g;
+  uint32_t ms = 0;
+  Serial.printf(">> Sosteniendo en %+.2f° (Enter para soltar; máximo %lu s). Al soltar, SIN corriente cae.\n", g,
+                (unsigned long)(SOSTENER_MAX_MS / 1000));
+  const char *corte = cascada(refConstante, SOSTENER_MAX_MS * 1000 / art::TS_VEL_US, false, false, ms,
+                              SOSTENER_INFORME_MS);
+  const float fin = grados(cuentas());
+  if (corte && strcmp(corte, "Enter") != 0) {
+    Serial.printf(">> CORTADO por %s después de %.1f s. En %+.2f°.\n", corte, ms / 1000.0f, fin);
+  } else {
+    Serial.printf(">> Soltado después de %.1f s, en %+.2f°.\n", ms / 1000.0f, fin);
   }
-  // Etapa 4: la salida del puente. ENA en alto y 15 % de PWM en IN1: en OUT1-OUT2 tiene que haber ~15 % de
-  // la tensión de la fuente (~1,5-1,8 V). Con 15 % el sin fin no arranca (con 20 % tampoco lo hacía en 08);
-  // igual se corta si el encoder cuenta movimiento.
-  for (int p : {PIN_J2_ENA, PIN_J2_IN1, PIN_J2_IN2}) digitalWrite(p, LOW);
-  Serial.println("   Etapa 4: ENA en alto y PWM 15 % en IN1. Medí OUT1-OUT2 (~1,5-1,8 V) y el borne 12V del L298N contra GND.");
-  Serial.println("   Si el brazo se mueve: Enter (o apagá la fuente).");
-  const int64_t c0 = cuentas();
-  motor.setDuty(0.15f);
-  // Autodiagnóstico del canal de PWM (leer el pin con la entrada habilitada lo desconectaría del LEDC)
-  Serial.printf("   Canal de PWM de IN1: duty %lu de 1023 (esperado ~153), %lu Hz\n", (unsigned long)ledcRead(0),
-                (unsigned long)ledcReadFreq(0));
-  const uint32_t t0 = millis();
-  bool movio = false;
-  while (!hayEntrada() && millis() - t0 < 60000) {
-    if (llabs(cuentas() - c0) > 10) {
-      movio = true;
-      break;
-    }
-    delay(5);
-  }
-  descartando = false;
-  motor.brake();
-  delay(FRENO_MS);
-  motor.coast();
-  if (movio) Serial.println("   CORTADO: el encoder contó movimiento.");
-  Serial.println(">> Diagnóstico terminado: todo en bajo.");
 }
-#elif defined(IBT2_EN_PINES_J3)
-// "dg": diagnóstico del cableado WROOM -> IBT-2 de J3. Etapas 1-3: nunca EN junto con un PWM, así el puente no
+
+// Sostener automático ("sa"): para las articulaciones que no se autobloquean. Con el cero fijado, el lazo de
+// posición corre en loop() cada 10 ms entre comando y comando, así el brazo no cae mientras se escribe el siguiente.
+// Al llegar un Enter con un comando, se frena, se ejecuta el comando y después vuelve a sostener: en el ángulo
+// pedido si fue "a", donde quedó si fue otro movimiento, o en el mismo ángulo si fue un comando que no mueve.
+// Si se traba, no llega o cae, sigue sosteniendo donde está (no suelta el brazo).
+// Al llegar (error < art::TOL_POS) no corta el duty: pasa a un PI de posición (khP, khI) cuyo integrador uHold aprende
+// el duty que sostiene el peso; ese valor se guarda para la próxima vez.
+// Una vez ahí no vuelve a la cascada. No suelta nunca por sí solo: solo con "sa" o "x".
+// Mientras corre "e" (monitor del encoder) o "dg" no sostiene.
+struct EstadoSostener {
+  bool activo = false;
+  float ref = 0.0f;
+  int64_t hist[art::VENTANA_VEL + 1];
+  float integral = 0.0f, wRef = 0.0f;
+  bool llegado = false;
+  uint32_t tick = 0, k = 0, atasco = 0, contrario = 0, sinCuentas = 0;
+  float uHold = 0.0f;      // duty que sostiene el peso (aprendido; queda entre una vez y la otra)
+  bool uHoldValido = false;
+  float uAnt = 0.0f;       // último duty aplicado
+  bool avisoAtasco = false;
+} hold;
+void sostenerIniciar(float g) {
+  hold.ref = g;
+  const int64_t c = cuentas();
+  for (auto &h : hold.hist) h = c;
+  hold.integral = hold.wRef = hold.uAnt = 0.0f;
+  hold.llegado = false;
+  hold.avisoAtasco = false;
+  hold.k = hold.atasco = hold.contrario = hold.sinCuentas = 0;
+  hold.tick = micros();
+  hold.activo = true;
+}
+
+void sostenerParar(const char *causa) {
+  hold.activo = false;
+  aplicarDuty(0.0f);
+  if (causa) {
+    Serial.printf(">> Sostener automático CORTADO por %s en %+.2f°. Sin corriente: cae. \"sa\" para volver.\n", causa,
+                  grados(cuentas()));
+    sostenerAuto = false;
+    delay(FRENO_MS);
+    reposo();
+  }
+}
+
+// No puede llegar al ángulo pedido: lo cambia por el actual y sigue sosteniendo (en el próximo periodo)
+void sostenerAqui(int64_t c, const char *causa) {
+  hold.ref = grados(c);
+  hold.llegado = true;
+  hold.wRef = hold.integral = 0.0f;
+  hold.sinCuentas = hold.atasco = 0;
+  if (!hold.uHoldValido) {
+    hold.uHold = hold.uAnt;
+    hold.uHoldValido = true;
+  }
+  Serial.printf(">> %s: sostengo donde está, en %+.2f°.\n", causa, hold.ref);
+}
+
+// Un periodo de la cascada (la misma lógica y protecciones que cascada(), sin bloquear)
+void sostenerPaso() {
+  if (!hold.activo || micros() - hold.tick < art::TS_VEL_US) return;
+  hold.tick += art::TS_VEL_US;
+  if (micros() - hold.tick > 5 * art::TS_VEL_US) hold.tick = micros();  // se atrasó (un comando largo): no recuperar de golpe
+  const float ts = art::TS_VEL_US / 1e6f;
+  const uint32_t nPos = art::TS_POS_US / art::TS_VEL_US, tsMs = art::TS_VEL_US / 1000;
+  const int64_t c = cuentas();
+  for (int i = 0; i < art::VENTANA_VEL; i++) hold.hist[i] = hold.hist[i + 1];
+  hold.hist[art::VENTANA_VEL] = c;
+  const float wMed = grados(hold.hist[art::VENTANA_VEL] - hold.hist[0]) / (art::VENTANA_VEL * ts);
+  if (hold.k++ % nPos == 0) {
+    const float e = hold.ref - grados(c);
+    // Una vez que llegó se queda en el sostener quieto aunque se aleje (si cae, el PI de posición lo vuelve a
+    // subir con el duty aprendido; volver a la cascada arrancaba el PI de velocidad de cero y el brazo caía más)
+    if (!hold.llegado && fabsf(e) < art::TOL_POS) {
+      hold.llegado = true;
+      if (!hold.uHoldValido) {  // la primera vez: arranca del duty con que venía
+        hold.uHold = hold.uAnt;
+        hold.uHoldValido = true;
+      }
+    }
+    const float vP = fmaxf(fabsf(kpp * e), e < 0 ? vminBaja : art::VMIN_POS);
+    const float deseada = hold.llegado ? 0.0f : (e > 0 ? 1.0f : -1.0f) * fminf(vP, art::VMAX_POS);
+    const float dMax = art::AMAX_POS * art::TS_POS_US / 1e6f;
+    hold.wRef = deseada == 0.0f ? 0.0f : constrain(deseada, hold.wRef - dMax, hold.wRef + dMax);
+  }
+  float u;
+  if (hold.llegado) {
+    const float e = hold.ref - grados(c);
+    hold.uHold = constrain(hold.uHold + khI * ts * e, -art::DUTY_MAX_PCT, art::DUTY_MAX_PCT);
+    u = constrain(hold.uHold + khP * e, -art::DUTY_MAX_PCT, art::DUTY_MAX_PCT);
+    hold.integral = 0.0f;
+  } else {
+    u = pasoPI(hold.wRef, wMed, grados(c), hold.integral);
+  }
+  hold.uAnt = u;
+  aplicarDuty(u);
+  // Trabado (o el ángulo pedido no se puede alcanzar) o fuera del límite: no suelta (el brazo caería), se queda
+  // sosteniendo donde está
+  if (excesoLimite(c) > 0 && fabsf(hold.ref - grados(c)) > art::TOL_POS) {
+    sostenerAqui(c, "fuera del límite de ángulo");
+    return;
+  }
+  hold.sinCuentas = (hold.wRef != 0.0f && fabsf(u) >= art::ARRANQUE_PCT && c == hold.hist[art::VENTANA_VEL - 1])
+                        ? hold.sinCuentas + 1 : 0;
+  if (hold.sinCuentas * tsMs >= art::SIN_CUENTAS_MS) {
+    sostenerAqui(c, "no avanza (¿trabado o tope?)");
+    return;
+  }
+  hold.contrario = (hold.wRef != 0.0f && wMed * (hold.wRef > 0 ? 1.0f : -1.0f) < -art::CONTRARIO_VEL)
+                       ? hold.contrario + 1 : 0;
+  if (hold.contrario * tsMs >= art::CONTRARIO_MS) {  // p. ej. el peso le gana y cae: no suelta nunca
+    sostenerAqui(c, "se mueve al revés de lo pedido (¿el peso le gana?)");
+    return;
+  }
+  hold.atasco = (fabsf(wMed) < art::ATASCO_VEL && fabsf(u) >= art::ATASCO_DUTY_PCT) ? hold.atasco + 1 : 0;
+  if (hold.atasco * tsMs >= art::ATASCO_MS) {
+    if (hold.llegado) {  // sostener el peso le pide mucho duty: avisa una vez, pero no suelta
+      if (!hold.avisoAtasco) Serial.printf(">> AVISO: para sostener en %+.2f° hace falta %.0f %% de duty.\n", grados(c), u);
+      hold.avisoAtasco = true;
+      hold.atasco = 0;
+    } else {
+      sostenerAqui(c, "atasco (duty alto sin velocidad)");
+    }
+  }
+}
+
+// "sa": prender o apagar el sostener automático
+void comandoSostenerAuto() {
+  sostenerAuto = !sostenerAuto;
+  if (!sostenerAuto) {
+    sostenerParar(nullptr);
+    reposo();
+    Serial.println(">> Sostener automático APAGADO: sin corriente el brazo cae.");
+    return;
+  }
+  Serial.println(">> Sostener automático PRENDIDO: entre comando y comando mantiene el ángulo.");
+  if (!ceroFijado) Serial.printf("   Empieza después de \"z\" en la marca (%s) y el primer movimiento.\n", art::MARCA);
+}
+
+// "dg": diagnóstico del cableado WROOM -> IBT-2 de la articulación. Etapas 1-3: nunca EN junto con un PWM, así el puente no
 // entrega tensión y el motor no se mueve. Con el multímetro se mide cada pin del conector del IBT-2 contra su GND.
 void esperarEnter(uint32_t maxMs) {
   const uint32_t t0 = millis();
@@ -726,18 +854,18 @@ void diagnostico() {
   // Etapa 1: EN en alto con los dos PWM en 0 = freno: el motor no puede moverse
   motor.brake();
   Serial.printf("   Etapa 1: EN (GPIO%d) en ALTO, RPWM y LPWM en 0 (freno). Medí contra el GND del IBT-2:\n"
-                "            R_EN ~3,3 V, L_EN ~3,3 V, VCC ~3,3 V, B+ ~12 V. RPWM y LPWM ~0 V.\n", PIN_J3_EN);
+                "            R_EN ~3,3 V, L_EN ~3,3 V, VCC ~3,3 V, B+ ~12 V. RPWM y LPWM ~0 V.\n", PIN_BRAZO_EN);
   esperarEnter(120000);
   // Etapas 2 y 3: un PWM al 100 % (nivel fijo) con EN en bajo: salidas en alta impedancia, el motor no se mueve
   motor.coast();
   ledcWrite(LEDC_CH_R, (1u << art::PWM_BITS) - 1);
   Serial.printf("   Etapa 2: RPWM (GPIO%d) en ALTO, EN en bajo. Medí: RPWM ~3,3 V; R_EN, L_EN y LPWM ~0 V.\n",
-                PIN_J3_RPWM);
+                PIN_RPWM);
   esperarEnter(120000);
   ledcWrite(LEDC_CH_R, 0);
   ledcWrite(LEDC_CH_L, (1u << art::PWM_BITS) - 1);
   Serial.printf("   Etapa 3: LPWM (GPIO%d) en ALTO, EN en bajo. Medí: LPWM ~3,3 V; R_EN, L_EN y RPWM ~0 V.\n",
-                PIN_J3_LPWM);
+                PIN_LPWM);
   esperarEnter(120000);
   ledcWrite(LEDC_CH_L, 0);
   // Etapa 4: la salida del puente. EN en alto y 15 % en RPWM: entre M+ y M- tiene que haber ~15 % de la fuente
@@ -765,7 +893,6 @@ void diagnostico() {
   if (movio) Serial.printf("   CORTADO: el encoder contó movimiento (%+lld cuentas).\n", (long long)(cuentas() - c0));
   Serial.println(">> Diagnóstico terminado: todo en bajo.");
 }
-#endif
 
 // Lee un número que ocupe toda la cadena (se admiten espacios al final). Rechaza NaN e infinito.
 // Después del número tiene que haber un espacio o el fin de la línea ("m 10+30" se rechaza).
@@ -860,6 +987,30 @@ void comandoIrA(const char *args) {
   if (!listaParaMover()) return;
   Serial.printf(">> Ir a %+.1f° desde %+.2f° (control de posición)\n", g, grados(cuentas()));
   irAControlado(g, true);
+}
+
+// "s [grados]": sin número, sostiene donde está
+void comandoSostener(const char *args) {
+  float g;
+  const char *resto;
+  const float maxG = art::LIMITE_POS_GRADOS - 3.0f, minG = art::LIMITE_NEG_GRADOS + 3.0f;
+  while (*args == ' ') args++;
+  if (!ceroFijado) {
+    Serial.printf("Primero llevar a la marca (%s) y escribir \"z\".\n", art::MARCA);
+    return;
+  }
+  if (*args == '\0') {
+    g = grados(cuentas());
+  } else if (!leerNumero(args, &resto, g) || *resto != '\0') {
+    Serial.printf("Uso: s [grados], con %+.0f <= grados <= %+.0f (sin número: donde está)\n", minG, maxG);
+    return;
+  }
+  if (g > maxG || g < minG) {
+    Serial.printf("Fuera de rango: %+.2f° (tiene que estar entre %+.0f° y %+.0f°).\n", g, minG, maxG);
+    return;
+  }
+  if (!listaParaMover()) return;
+  sostener(g);
 }
 
 // "ep <A> [ms] [ciclos]": escalones de posición desde donde está
@@ -1098,12 +1249,49 @@ void comandoMover(const char *args) {
   irA(g, pct);
 }
 
+void ejecutarComando(char *l);
+
+// Ejecuta un comando y, con el sostener automático, después vuelve a sostener
 void ejecutar(char *l) {
   while (*l == ' ') l++;
   if (*l == '\0') return;
+  const bool sosteniendo = hold.activo;
+  const float refAntes = hold.ref;
+  if (sosteniendo) {
+    hold.activo = false;
+    aplicarDuty(0.0f);  // freno mientras corre el comando
+  }
+  saltarQuieto = sosteniendo;
+  ejecutarComando(l);
+  saltarQuieto = false;
+  if (strcmp(l, "z") == 0) {
+    // "z" fija el cero. Si venía sosteniendo, sigue sosteniendo ahí mismo (mismo lugar: el duty aprendido sirve).
+    // Si no, no empieza (el duty aprendido era de otro ángulo y movía el motor): arranca con el primer movimiento.
+    if (sostenerAuto && sosteniendo) {
+      sostenerIniciar(0.0f);
+      Serial.println("   Sigue sosteniendo en el nuevo cero.");
+    } else {
+      hold.uHoldValido = false;
+      if (sostenerAuto) Serial.println("   Sostener automático: empieza con el primer movimiento (a, m, p...). Sostener el brazo hasta entonces.");
+    }
+    return;
+  }
+  if (!sostenerAuto || !ceroFijado || !hwOk || hold.activo) return;
+  // ¿El comando movió la articulación? Entonces sostener donde quedó ("a": en el ángulo pedido)
+  const bool movio = (l[0] == 'p' || l[0] == 'm' || l[0] == 's' || l[0] == 'a' || strncmp(l, "ev", 2) == 0 ||
+                      strncmp(l, "ep", 2) == 0 || strncmp(l, "bc", 2) == 0 || strncmp(l, "dg", 2) == 0);
+  const bool esA = l[0] == 'a' && l[1] == ' ';
+  float g = (sosteniendo && !movio) ? refAntes : grados(cuentas());
+  if (esA && fabsf(refFija - grados(cuentas())) < art::TOL_SALIDA) g = refFija;  // llegó: sostener en el pedido
+  if (!sosteniendo || movio) Serial.printf(">> Sosteniendo en %+.2f° (\"sa\" para soltar).\n", g);
+  sostenerIniciar(g);
+}
+
+void ejecutarComando(char *l) {
   if (strcmp(l, "?") == 0) {
     ayuda();
   } else if (strcmp(l, "x") == 0) {
+    sostenerAuto = false;
     motor.coast();
     Serial.println(">> Rueda libre.");
   } else if (!hwOk) {
@@ -1132,10 +1320,8 @@ void ejecutar(char *l) {
       mostrarSignos();
       Serial.printf("   Volver a la marca (%s) y escribir \"z\". Pasar el valor a config.h.\n", art::MARCA);
     }
-#if defined(ARTICULACION_L298N) || defined(IBT2_EN_PINES_J3)
   } else if (strcmp(l, "dg") == 0) {
     diagnostico();
-#endif
   } else if (l[0] == 'p' && (l[1] == ' ' || l[1] == '\0')) {
     comandoPulso(l + 1);
   } else if (l[0] == 'm' && (l[1] == ' ' || l[1] == '\0')) {
@@ -1158,6 +1344,14 @@ void ejecutar(char *l) {
     comandoGanancia(l + 3, kpp, "kpp");
   } else if (l[0] == 'a' && (l[1] == ' ' || l[1] == '\0')) {
     comandoIrA(l + 1);
+  } else if (strncmp(l, "khp", 3) == 0 && (l[3] == ' ' || l[3] == '\0')) {
+    comandoGanancia(l + 3, khP, "khp");
+  } else if (strncmp(l, "khi", 3) == 0 && (l[3] == ' ' || l[3] == '\0')) {
+    comandoGanancia(l + 3, khI, "khi");
+  } else if (strcmp(l, "sa") == 0) {
+    comandoSostenerAuto();
+  } else if (l[0] == 's' && (l[1] == ' ' || l[1] == '\0')) {
+    comandoSostener(l + 1);
   } else if (strncmp(l, "ep", 2) == 0 && (l[2] == ' ' || l[2] == '\0')) {
     comandoEscalonPos(l + 2);
   } else {
@@ -1224,62 +1418,27 @@ void apagarPin(int pin) {
 
 void setup() {
   // Driver primero y deshabilitado: hasta acá el EN/ENA depende del pull-down de 10 kΩ
-#if defined(IBT2_EN_PINES_J3)
-  for (int p : {PIN_J1_EN, PIN_J1_RPWM, PIN_J1_LPWM, PIN_J2_ENA, PIN_J2_IN1, PIN_J2_IN2}) apagarPin(p);
-#elif defined(ARTICULACION_L298N)
-  for (int p : {PIN_J1_EN, PIN_J1_RPWM, PIN_J1_LPWM, PIN_J3_EN, PIN_J3_RPWM, PIN_J3_LPWM}) apagarPin(p);
-#else
-  for (int p : {PIN_J2_ENA, PIN_J2_IN1, PIN_J2_IN2, PIN_J3_EN, PIN_J3_RPWM, PIN_J3_LPWM}) apagarPin(p);
-#endif
-#if defined(ARTICULACION_L298N)
-  const bool okDriver = motor.begin(PIN_J2_ENA, PIN_J2_IN1, PIN_J2_IN2, LEDC_CH_R, LEDC_CH_L, L298N::Modo::Freno,
+  // Los PWM de las tres articulaciones en bajo (las que no se usan quedan frenadas con el EN alto)
+  for (int p : {PIN_BRAZO_EN, PIN_J1_RPWM, PIN_J1_LPWM, PIN_J2_RPWM, PIN_J2_LPWM, PIN_J3_RPWM, PIN_J3_LPWM}) apagarPin(p);
+  const bool okDriver = motor.begin(PIN_RPWM, PIN_LPWM, PIN_BRAZO_EN, PIN_BRAZO_EN, LEDC_CH_R, LEDC_CH_L,
                                     art::PWM_FREQ_HZ, art::PWM_BITS);
   motor.coast();
-  const bool okEnc = enc.begin(PIN_J2_ENC_A, PIN_J2_ENC_B);  // pull-up interno (NPN colector abierto)
-#elif defined(IBT2_EN_PINES_J3)
-  const bool okDriver = motor.begin(PIN_J3_RPWM, PIN_J3_LPWM, PIN_J3_EN, PIN_J3_EN, LEDC_CH_R, LEDC_CH_L,
-                                    art::PWM_FREQ_HZ, art::PWM_BITS);
-  motor.coast();
-  const bool okEnc = enc.begin(PIN_J3_ENC_A, PIN_J3_ENC_B);  // pull-up interno (NPN colector abierto)
-#else
-  const bool okDriver = motor.begin(PIN_J1_RPWM, PIN_J1_LPWM, PIN_J1_EN, PIN_J1_EN, LEDC_CH_R, LEDC_CH_L,
-                                    art::PWM_FREQ_HZ, art::PWM_BITS);
-  motor.coast();
-  // GPIO34/35 no tienen pull-up interno (el driver intenta activarlo y no pasa nada): usan los externos
-  const bool okEnc = enc.begin(PIN_J1_ENC_A, PIN_J1_ENC_B);
-#endif
+  // Encoder SCX-555 (pull-ups de 5,1 kΩ en su placa). J1: GPIO34/35 no tienen pull-up interno (el driver intenta
+  // activarlo y no pasa nada). J2/J3: además el interno
+  const bool okEnc = enc.begin(PIN_ENC_A, PIN_ENC_B);
   hwOk = okDriver && okEnc;
 
   Serial.begin(115200);
   delay(1500);
 
   Serial.println();
-#if defined(ARTICULACION_L298N)
-  Serial.printf("== 10 · %s (%s): 5840-31ZY + L298N, WROOM ==\n", art::NOMBRE, art::PIEZA);
-  Serial.printf("L298N: ENA=GPIO%d, IN1=GPIO%d, IN2=GPIO%d | modo freno, PWM %lu Hz\n", PIN_J2_ENA, PIN_J2_IN1,
-                PIN_J2_IN2, (unsigned long)art::PWM_FREQ_HZ);
-  Serial.printf("Encoder: A=GPIO%d, B=GPIO%d | 4000 cuentas por vuelta del sin fin x engranaje %.2f:1 = %.2f cuentas "
-                "por grado%s\n", PIN_J2_ENC_A, PIN_J2_ENC_B, art::RELACION_ENGRANAJE, art::CUENTAS_POR_GRADO,
-                art::RELACION_ENGRANAJE == 1.0f ? " (engranaje SIN MEDIR: grados de la salida del sin fin)" : "");
-  Serial.println("Cuatro barras: el otro motor (J2 o J3) queda quieto, no salir de los límites (tools/cuatro_barras.py).");
-#elif defined(IBT2_EN_PINES_J3)
-  Serial.printf("== 10 · %s (%s): 5840-31ZY + IBT-2, WROOM ==\n", art::NOMBRE, art::PIEZA);
-  Serial.printf("IBT-2: RPWM=GPIO%d, LPWM=GPIO%d, EN=GPIO%d | PWM %lu Hz\n", PIN_J3_RPWM, PIN_J3_LPWM, PIN_J3_EN,
-                (unsigned long)art::PWM_FREQ_HZ);
-  Serial.printf("Encoder: A=GPIO%d, B=GPIO%d | 4000 cuentas por vuelta del sin fin x engranaje %.2f:1 = %.2f cuentas "
-                "por grado%s\n", PIN_J3_ENC_A, PIN_J3_ENC_B, art::RELACION_ENGRANAJE, art::CUENTAS_POR_GRADO,
-                art::RELACION_ENGRANAJE == 1.0f ? " (engranaje SIN MEDIR: grados de la salida del sin fin)" : "");
-#if defined(J2_IBT2)
-  Serial.println("J2 en el lugar de J3 (J3 desconectado). Cuatro barras: J3 queda quieto, no salir de los límites.");
-#else
-  Serial.println("Cuatro barras: J2 queda quieto, no salir de los límites (tools/cuatro_barras.py).");
-#endif
-#else
-  Serial.println("== 10 · J1 (base): 36GP-555 + IBT-2, WROOM ==");
-  Serial.printf("IBT-2: RPWM=GPIO%d, LPWM=GPIO%d, EN=GPIO%d | PWM %lu Hz\n", PIN_J1_RPWM, PIN_J1_LPWM, PIN_J1_EN,
-                (unsigned long)art::PWM_FREQ_HZ);
-  Serial.printf("Encoder: A=GPIO%d, B=GPIO%d | reductora 50:1 x correa %.0f:1 = %.2f cuentas por grado de la base\n",
-                PIN_J1_ENC_A, PIN_J1_ENC_B, art::RELACION_CORREA, art::CUENTAS_POR_GRADO);
+  Serial.printf("== 10 · %s (%s): %s + IBT-2, WROOM ==\n", art::NOMBRE, art::PIEZA, art::MOTOR);
+  Serial.printf("IBT-2: RPWM=GPIO%d, LPWM=GPIO%d, EN=GPIO%d (común a los tres IBT-2) | PWM %lu Hz\n", PIN_RPWM, PIN_LPWM,
+                PIN_BRAZO_EN, (unsigned long)art::PWM_FREQ_HZ);
+  Serial.printf("Encoder SCX-555: A=GPIO%d, B=GPIO%d | reductora %.0f:1 x correa %.0f:1 = %.2f cuentas por grado\n",
+                PIN_ENC_A, PIN_ENC_B, art::REDUCTORA, art::RELACION_CORREA, art::CUENTAS_POR_GRADO);
+#if defined(ARTICULACION_J2) || defined(ARTICULACION_J3)
+  Serial.println("Cuatro barras: la otra articulación (J2 o J3) queda quieta, no salir de los límites (tools/cuatro_barras.py).");
 #endif
   mostrarSignos();
   mostrarGanancias();
@@ -1294,4 +1453,7 @@ void setup() {
   while (Serial.available()) Serial.read();
 }
 
-void loop() { leerSerial(); }
+void loop() {
+  leerSerial();
+  sostenerPaso();
+}
