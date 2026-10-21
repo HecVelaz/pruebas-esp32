@@ -101,6 +101,7 @@ $PIO run -t upload -t monitor       # flashear y abrir el monitor
   sudo udevadm control --reload-rules && sudo udevadm trigger
   ```
 - Si el upload no conecta, entrar en modo bootloader: mantener **BOOT**, pulsar **RST** y soltar **BOOT**. Después de flashear, pulsar **RST** otra vez. (En la DevKit de la ESP32-WROOM-32D el reset se llama **EN**; el puerto es `/dev/ttyUSB0`.)
+- **IBT-2:** VCC (lógica) a 5 V en el robot y en `12`–`14`, como la tracción; las señales de la ESP32 son de 3,3 V. Si un módulo no responde a duty bajo o va a los saltos, probar su VCC a 3V3.
 - **Motores:** el firmware no fija el driver hasta arrancar, y sin pull-down en los EN/ENA el puente flota durante el flasheo y el reset. **Apagar la fuente del motor (12 V) antes de flashear o pulsar RST/EN.** Abrir el puerto con pyserial o el monitor no reinicia ninguna de las dos placas.
 - **Scripts de los motores** (`tools/graficar.py`, `tools/rampa.py`): cerrar antes el monitor de PlatformIO (el puerto no se puede abrir dos veces). Con `--archivo` vuelven a graficar un CSV guardado sin tocar la placa.
 
