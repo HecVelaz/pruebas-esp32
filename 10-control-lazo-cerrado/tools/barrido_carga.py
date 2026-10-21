@@ -24,7 +24,8 @@ from pathlib import Path
 
 import numpy as np
 
-DIR_RESULTADOS = Path(__file__).resolve().parent.parent / "resultados"
+# absolute() y no resolve(): llamado desde el enlace tools/ de 12, 13 o 14, guarda en la carpeta de esa prueba
+DIR_RESULTADOS = Path(__file__).absolute().parent.parent / "resultados"
 RE_META = re.compile(r"^# barrido (.*)$")
 RE_FILA = re.compile(r"^(\d+),([+-]?[\d.]+),([+-]?[\d.]+),([+-]?[\d.]+),([+-]?[\d.]+)$")
 RECHAZOS = ("Primero", "Uso", "La base todavía", ">> Cancelado")

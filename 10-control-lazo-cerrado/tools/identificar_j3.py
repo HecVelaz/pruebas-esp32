@@ -42,7 +42,7 @@ import diseno_velocidad as dv  # noqa: E402
 DIR = Path(__file__).resolve().parent.parent
 DIR_RESULTADOS = DIR / "resultados"
 
-CUENTAS_POR_GRADO = dv.PLANTAS["j3"]["cuentas_por_grado"]   # 34,57
+CUENTAS_POR_GRADO = dv.PLANTAS["j3_5840"]["cuentas_por_grado"]   # 34,57
 TS = dv.TS
 VENTANA = 4
 V_BARRIDO = 4.0
@@ -96,7 +96,7 @@ def planta_j3(p, est):
     """Diccionario de la planta (formato de tools/diseno_velocidad.py) con los parámetros p y la recta est."""
     tau, k, bp, bn = p
     a, b, u4n = est[:3]
-    return dict(dv.PLANTAS["j3"], tau=tau, K=k, c0=a - V_BARRIDO / k, c1=b, cn=abs(u4n) - V_BARRIDO / k, bp=bp, bn=bn)
+    return dict(dv.PLANTAS["j3_5840"], tau=tau, K=k, c0=a - V_BARRIDO / k, c1=b, cn=abs(u4n) - V_BARRIDO / k, bp=bp, bn=bn)
 
 
 def replay(p, est, u, pos0):
@@ -152,7 +152,7 @@ def main():
     print(f"  K   = {m['K']:.2f} (°/s)/%")
     print(f"  subiendo se mueve con u > c+(θ) = {m['c0']:.1f} + {m['c1']:.2f}·θ %; quieta despega con {m['bp']:.1f} % más")
     print(f"  bajando  se mueve con u < -c- = -{m['cn']:.1f} %; quieta despega con {m['bn']:.1f} % más")
-    print("  (copiar a PLANTAS['j3'] de tools/diseno_velocidad.py)")
+    print("  (copiar a PLANTAS['j3_5840'] de tools/diseno_velocidad.py)")
 
     import matplotlib
     if args.sin_ventana:

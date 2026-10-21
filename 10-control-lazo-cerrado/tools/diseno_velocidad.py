@@ -24,8 +24,8 @@ encoder en una ventana. Guarda el PNG en resultados/.
 Uso:
     python3 tools/diseno_velocidad.py                       # J1, especificaciones por defecto
     python3 tools/diseno_velocidad.py --ts 0.3 --wref 20
-    python3 tools/diseno_velocidad.py -a j3 --wref 10       # J3: diseño teórico
-    python3 tools/diseno_velocidad.py -a j3 --wref 10 --kp 0.35 --ki 5   # simular las ganancias elegidas
+    python3 tools/diseno_velocidad.py -a j3_5840 --wref 10       # J3: diseño teórico
+    python3 tools/diseno_velocidad.py -a j3_5840 --wref 10 --kp 0.35 --ki 5   # simular las ganancias elegidas
     python3 tools/diseno_velocidad.py --ventana 2           # probar otra ventana de medición
 """
 import argparse
@@ -34,7 +34,8 @@ from pathlib import Path
 
 import numpy as np
 
-DIR_RESULTADOS = Path(__file__).resolve().parent.parent / "resultados"
+# absolute() y no resolve(): llamado desde el enlace tools/ de 12, 13 o 14, guarda en la carpeta de esa prueba
+DIR_RESULTADOS = Path(__file__).absolute().parent.parent / "resultados"
 
 TS = 0.01                         # s, lazo de velocidad a 100 Hz
 VEL_QUIETO = 1.0                  # °/s, como el firmware: debajo, feedforward de despegue
@@ -51,7 +52,8 @@ PLANTAS = {
                kp=0.549, ki=4.0, ff=(17.0, 17.0, 17.0, 17.0, 0.0), vmin_baja=3.0, trabada_ms=100,
                tau_v=0.09),               # lazo de velocidad cerrado, medido en el paso 2 (ts ~0,35 s / 4)
     # J3: tools/identificar_j3.py (2026-10-04) con 8 escalones de velocidad y 2 barridos de carga
-    "j3": dict(nombre="J3", pieza="codo",
+    # j3_5840: el codo con el motor viejo (5840-31ZY, sin fin, encoder 38S6G5). El J3 nuevo (36-555) no tiene modelo todavía
+    "j3_5840": dict(nombre="J3", pieza="codo",
                K=1.62, tau=0.053, c0=23.6, c1=1.42, cn=3.2, bp=5.9, bn=6.1,
                cuentas_por_grado=1000 * 4 * (56 / 18) / 360.0,
                duty_max=80.0, arranque=20.0, atasco_duty=70.0,

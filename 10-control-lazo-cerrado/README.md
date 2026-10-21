@@ -72,9 +72,9 @@ paso 5 de acá)** y 5 (al robot).
 `m <°> [%]` ir con duty fijo · `ev <°/s> [ms] [ciclos]` escalones de velocidad (CSV) · `a <°>` ir con el control de
 posición · `ep <A> [ms] [ciclos]` escalones de posición (CSV) · `kp`, `ki`, `kpp` ganancias · `g` mostrarlas ·
 `x` rueda libre · `?` ayuda. Rango permitido **−45° / +135°** desde el cero (brazo al costado). Scripts en `tools/`:
-`diseno_velocidad.py`, `diseno_posicion.py` (diseño y simulación; `-a j1` o `-a j3`, con la planta de cada una en
+`diseno_velocidad.py`, `diseno_posicion.py` (diseño y simulación; `-a j1` o `-a j3_5840` (el codo con el motor viejo), con la planta de cada una en
 `PLANTAS` de `diseno_velocidad.py`), `escalon_velocidad.py`, `escalon_posicion.py` (prueba en placa contra la
-simulación; `-a j1/j2/j3`, J2 sin simulación porque no tiene modelo), `identificar_j3.py` (modelo de J3 a partir de
+simulación; `-a j1/j2/j3/j3_5840`, J2 y J3 (36-555) sin simulación porque no tienen modelo; los gráficos de J3 de esta carpeta se rehacen con `-a j3_5840`), `identificar_j3.py` (modelo de J3 a partir de
 los CSV guardados). `informe_simulaciones.py` arma `simulaciones/informe_simulaciones.pdf` y el zip para Overleaf a
 partir de `simulaciones/informe_simulaciones.tex`. Simulaciones de J1 y J3 e informe: [`simulaciones/`](simulaciones/README.md).
 

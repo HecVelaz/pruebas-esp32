@@ -25,7 +25,7 @@ del encoder) y la planta de tools/diseno_velocidad.py. En J3 el ángulo absoluto
 Uso:
     python3 tools/diseno_posicion.py
     python3 tools/diseno_posicion.py --kpp 2.5 --vmax 30 --amax 60 --tol 0.3
-    python3 tools/diseno_posicion.py -a j3 --vmax 25            # J3 con lo de config.h
+    python3 tools/diseno_posicion.py -a j3_5840 --vmax 25            # J3 con lo de config.h
 """
 import argparse
 from datetime import datetime
@@ -35,7 +35,8 @@ import numpy as np
 
 import diseno_velocidad as dv
 
-DIR_RESULTADOS = Path(__file__).resolve().parent.parent / "resultados"
+# absolute() y no resolve(): llamado desde el enlace tools/ de 12, 13 o 14, guarda en la carpeta de esa prueba
+DIR_RESULTADOS = Path(__file__).absolute().parent.parent / "resultados"
 
 TS_POS = 0.02       # s, lazo de posición a 50 Hz
 

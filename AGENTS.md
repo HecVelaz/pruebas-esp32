@@ -24,6 +24,9 @@ Probar sensores de a uno, cada uno en su propia carpeta y proyecto PlatformIO in
 | `07-motor-rampa-vueltas` | Mismo motor: rampa de PWM 0 → 100 % que termina a N vueltas de salida, para comparar con y sin carga |
 | `08-motor-5840-l298n` | Motor 5840-31ZY (sin fin, 12 V, 160 rpm) con L298N y encoder externo de 1000 PPR, en una **ESP32-WROOM-32D**, lazo abierto |
 | `10-control-lazo-cerrado` | Lazo cerrado (cascada posición → velocidad) de J1 (36GP-555 + IBT-2) y J2 (5840-31ZY + L298N) del brazo, en la **ESP32-WROOM-32D** con los pines del robot |
+| `12-j1-base` | Prueba definitiva de J1 (base, 36GP-555 + IBT-2) montada, con el conexionado v0.5 del robot (EN común, las tres conectadas), en la WROOM |
+| `13-j2-hombro` | Prueba definitiva de J2 (hombro, 36-555 58 rpm + engranajes 15 → 75 + IBT-2), igual que 12 |
+| `14-j3-codo` | Prueba definitiva de J3 (codo, 36-555 58 rpm + engranajes 15 → 75 + IBT-2), igual que 12 |
 
 El **firmware del robot** (lo que ya no es una prueba de un componente suelto) vive en el repo
 `~/Documentos/recolector_de_frutas` (`firmware/brazo`, `firmware/lib`, …). El brazo empezó acá como
@@ -64,7 +67,7 @@ pruebas-esp32/
 - **`README.md`**: tabla de conexiones, comando para probar, salida esperada, cómo verificar que los valores son razonables y una tabla de **Resultados** para completar después de probar.
 - Al crear la carpeta, agregarla a `folders` en `pruebas-esp32.code-workspace`.
 
-La configuración de placa de `platformio.ini` es la misma en todas las pruebas con la ESP32-S3 (excepción: `08-motor-5840-l298n` y `10-control-lazo-cerrado` usan una ESP32-WROOM-32D, `board = esp32dev`, puerto `/dev/ttyUSB0` del CH340):
+La configuración de placa de `platformio.ini` es la misma en todas las pruebas con la ESP32-S3 (excepción: `08-motor-5840-l298n`, `10-control-lazo-cerrado` y `12`–`14` usan una ESP32-WROOM-32D, `board = esp32dev`, puerto `/dev/ttyUSB0` del CH340):
 
 ```ini
 platform = espressif32

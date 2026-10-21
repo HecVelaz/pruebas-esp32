@@ -13,9 +13,10 @@ Uso:
     python3 tools/escalon_velocidad.py 20                       # ev 20 1000 1 (un ciclo, ~3 s)
     python3 tools/escalon_velocidad.py 20 --ciclos 40 --ki 4    # 2 minutos, 80 escalones
     python3 tools/escalon_velocidad.py --archivo resultados/escalon_vel_....csv   # volver a analizar
-    python3 tools/escalon_velocidad.py -a j3 --archivo resultados/escalon_vel_....csv  # J3: simula con su modelo
+    python3 tools/escalon_velocidad.py -a j3_5840 --archivo resultados/escalon_vel_....csv  # J3: simula con su modelo
 Opciones: --ms, --kp, --ki, --ff (J3), --puerto (por defecto /dev/ttyUSB0), --cero (manda "z" antes), --sin-ventana,
---articulacion/-a (j1, j2 o j3: planta de la simulación y título; J2 no tiene modelo y se grafica sin simulación).
+--articulacion/-a (j1, j2, j3 o j3_5840: planta de la simulación y título; J2 y J3 (36-555) no tienen modelo todavía y se
+grafican sin simulación; j3_5840 es el codo con el motor viejo, para rehacer los gráficos de 10).
 La simulación usa el feedforward de --ff o, si no, el del encabezado del CSV (zm, zm_neg, desp, desp_neg, pend; lo que
 falte: despegue = marcha, bajando = subiendo, sin pendiente, como era el firmware antes de tenerlos).
 Ctrl+C durante la prueba manda Enter (el firmware frena).
@@ -32,7 +33,8 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import diseno_velocidad as dv  # noqa: E402
 
-DIR_RESULTADOS = Path(__file__).resolve().parent.parent / "resultados"
+# absolute() y no resolve(): llamado desde el enlace tools/ de 12, 13 o 14, guarda en la carpeta de esa prueba
+DIR_RESULTADOS = Path(__file__).absolute().parent.parent / "resultados"
 RE_META = re.compile(r"^# escalon_vel (.*)$")
 RE_FILA = re.compile(r"^(\d+),([+-]?[\d.]+),([+-]?[\d.]+),([+-]?[\d.]+),([+-]?[\d.]+)$")
 
@@ -181,11 +183,11 @@ def main():
     ap.add_argument("--puerto", default="/dev/ttyUSB0")
     ap.add_argument("--archivo", help="volver a analizar un CSV guardado, sin tocar la placa")
     ap.add_argument("--sin-ventana", action="store_true", help="solo guarda el PNG")
-    ap.add_argument("-a", "--articulacion", choices=("j1", "j2", "j3"), default="j1", help="def. j1")
+    ap.add_argument("-a", "--articulacion", choices=("j1", "j2", "j3", "j3_5840"), default="j1", help="def. j1")
     ap.add_argument("--titulo", help='prefijo del título del gráfico (def. el de la articulación, "J3")')
     args = ap.parse_args()
-    titulo = args.titulo if args.titulo is not None else args.articulacion.upper()
-    pl = dv.PLANTAS.get(args.articulacion)   # None: sin modelo (J2)
+    titulo = args.titulo if args.titulo is not None else args.articulacion.split("_")[0].upper()
+    pl = dv.PLANTAS.get(args.articulacion)   # None: sin modelo (J2, J3)
     if args.ff is not None and len(args.ff) not in (4, 5):
         ap.error("--ff lleva 4 o 5 números")
 
@@ -218,7 +220,7 @@ def main():
     for t0, sg in lista:
         if t0 + ms > t[-1]:
             break  # prueba cortada antes de este escalón
-        res[sg].append(dv.medir_escalon(t, sg * w_med, v, t0, t0 + ms, pl or dv.PLANTAS["j3"]))
+        res[sg].append(dv.medir_escalon(t, sg * w_med, v, t0, t0 + ms, pl or dv.PLANTAS["j3_5840"]))
     if pl is not None:
         sim = {sg: dv.medir_escalon(ts_sim, sg * wm_sim, v, t0, t0 + ms, pl) for t0, sg in lista[:2]}
     fmt_sim = lambda sg, i, f: f"   simulado {sim[sg][i]:{f}}" if sim else ""

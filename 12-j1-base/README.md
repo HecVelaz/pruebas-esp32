@@ -1,0 +1,103 @@
+# 12-j1-base — Prueba definitiva de J1 (base giratoria), montada en el brazo
+
+Confirmar el lazo cerrado de **J1** con el **conexionado definitivo del robot** (v0.5 de `recolector_de_frutas`):
+las tres articulaciones conectadas a la vez en la WROOM, con el **EN común** en el GPIO 23. J1 ya pasó todos los
+pasos en `10-control-lazo-cerrado` (2026-10-02) con el mismo motor, la misma correa y los mismos pines: acá se
+repiten rápido con el brazo completo armado, para tener el resultado final.
+
+Pruebas hermanas: [`13-j2-hombro`](../13-j2-hombro/README.md) y [`14-j3-codo`](../14-j3-codo/README.md). Orden
+recomendado: **J1 → J2 → J3**.
+
+## Qué se controla
+
+| | J1: base giratoria |
+|---|---|
+| Motor | 36GP-555, 12 V, 160 rpm, reductora 50:1 |
+| Transmisión | correa GT2, polea de 18 dientes en el motor y 90 en la base (5:1) |
+| Encoder | SCX-555, 16 PPR x4 = 64 cuentas por vuelta del motor → **44,44 cuentas por grado de la base** |
+| Driver | IBT-2 (BTS7960), PWM 20 kHz |
+| Rango | **−45° (horario) / +135° (antihorario)** desde el cero (brazo hacia el costado del robot) |
+| Ganancias (de 10) | PI de velocidad Kp 0,549, Ki 4, zona muerta 17 %; P de posición Kpp 2, v_max 30 °/s |
+
+## Conexiones (v0.5, definitivas)
+
+Detalle cable por cable: `recolector_de_frutas/docs/CONEXIONES.md` y `docs/html/placa_wroom.html`. Pines en
+[`include/pins.h`](include/pins.h).
+
+| GPIO | Conecta a | Nota |
+|---|---|---|
+| 21 · 22 | **J1** IBT-2 RPWM · LPWM | lo que mueve esta prueba |
+| 34 · 35 | **J1** encoder A (negro) · B (rojo) | SCX-555 a **3V3**; pull-up de su placa |
+| 23 | R_EN + L_EN de los **3** IBT-2 | pull-down 10 kΩ a GND |
+| 25 · 26 / 36 · 39 | J2 IBT-2 / encoder | conectados, quietos |
+| 16 · 17 / 18 · 19 | J3 IBT-2 / encoder | conectados, quietos |
+| 32 · 33 · 27 | Finales de carrera J1 · J2 · J3 | no se usan acá |
+
+IBT-2: VCC a 3V3, GND de la lógica a GND de la WROOM; B+ / B− a 12 V. Motor: blanco = M+, amarillo = M−. Encoder:
+verde = 3V3, azul = GND.
+
+**Con el EN común, J2 y J3 se frenan o se sueltan junto con J1.** Mientras J1 se mueve o está quieta (EN alto,
+`FRENO_EN_REPOSO = true`), J2 y J3 quedan **frenadas**; con `x` o al arrancar la placa (EN bajo) quedan **sueltas**
+y, como no se autobloquean, el brazo cae. Durante esta prueba: **brazo apoyado en su tope** (o atado), antes de
+encender los 12 V.
+
+## Seguridad
+
+- **Fuente de laboratorio a 12 V con límite de 3 A**, no la LiPo (nada de pruebas con motores trabados con la LiPo).
+- **Apagar los 12 V antes de flashear o pulsar EN** si todavía falta el pull-down de 10 kΩ del GPIO 23.
+- Cada flasheo o reset borra el cero: llevar la base a la marca y mandar `z`.
+- Ctrl+C o Enter en cualquier prueba → frena.
+
+## Cómo flashear y abrir el monitor
+
+```bash
+cd ~/Documentos/pruebas-esp32/12-j1-base
+~/.platformio/penv/bin/pio run -t upload     # 12 V APAGADOS
+tools/monitor.sh                             # monitor sin tocar DTR/RTS; salir con Ctrl+]
+```
+
+Al arrancar imprime `== 12 · J1 (base): 36GP-555 160 rpm + IBT-2, WROOM ==`, los pines, los signos y las
+ganancias. Los scripts de `tools/` (enlace a `../10-control-lazo-cerrado/tools`) guardan en **`resultados/` de esta
+carpeta**; cerrar el monitor antes de correrlos.
+
+## Pasos
+
+Orden de la fuente en cada paso: **12 V apagados → monitor → base en la marca → `z` → 12 V encendidos → comandos →
+12 V apagados**.
+
+| Paso | Qué hacer | Qué se espera (lo de 10) |
+|---|---|---|
+| A | Revisar el cableado con la tabla de arriba. Monitor abierto, sin 12 V: `e` y girar la polea del motor a mano | las cuentas cambian; A/B nunca a mitad de camino (medir con el multímetro: 0 o 3,3 V) |
+| A | Con 12 V: `dg` (diagnóstico del IBT-2, etapa por etapa) | EN ~3,3 V, RPWM/LPWM según la etapa, M+/M− con tensión |
+| 0 | `p 30 300` y `p -30 300` | **+ = antihorario** visto desde arriba, − = horario; las cuentas suben con + |
+| 1 | `m 45`, `m 0`, `m -30`, `m 0` | 45° contra una escuadra o un doblez de 45°; vuelve a la marca |
+| 2 | `python3 tools/escalon_velocidad.py -a j1 20 --ciclos 10` | ts 0,33–0,38 s, sobrepico 4–7 % |
+| 3 | `python3 tools/escalon_posicion.py -a j1 20 --ciclos 5` | llegada ~1,7 s, sobrepico 0, error ≤ 0,3°, sin zumbido |
+| 4 | `a 90`, `a 0`, `a 135`, `a -45`, `a 0` | todo el rango sin tocar nada (cables, mástil) |
+| 5 | Paso 3 otra vez con un limón en la pinza | igual que sin carga |
+
+Si el paso 0 da al revés: el motor está cableado al revés que en 10 (cambiar `SENTIDO_INVERTIDO` en
+`include/config.h`, o invertir M+/M−). Si con duty + las cuentas bajan: `ENCODER_INVERTIDO`. En J1 `ie`/`is` están
+deshabilitados porque los límites son asimétricos.
+
+**Comandos:** `?` muestra todos. Los más usados: `z` cero · `c` posición · `e` encoder · `p <%> [ms]` pulso ·
+`m <°> [%]` duty fijo · `a <°>` control de posición · `ev`/`ep` escalones (CSV) · `kp`, `ki`, `kpp`, `g` ganancias ·
+`x` rueda libre · `dg` diagnóstico.
+
+## Estado
+
+- [ ] A: cableado, encoder y `dg`
+- [ ] 0: signos
+- [ ] 1: 44,44 cuentas por grado
+- [ ] 2: PI de velocidad
+- [ ] 3: posición
+- [ ] 4: rango completo −45° / +135°
+- [ ] 5: con carga
+
+## Resultados
+
+Los CSV y PNG quedan en `resultados/` (nombre con fecha y hora).
+
+| Fecha | Paso | Resultado |
+|---|---|---|
+| | | |

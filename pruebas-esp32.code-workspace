@@ -29,6 +29,18 @@
 		},
 		{
 			"path": "10-control-lazo-cerrado"
+		},
+		{
+			"path": "11-led-rgb-s3"
+		},
+		{
+			"path": "12-j1-base"
+		},
+		{
+			"path": "13-j2-hombro"
+		},
+		{
+			"path": "14-j3-codo"
 		}
 	],
 	"settings": {
