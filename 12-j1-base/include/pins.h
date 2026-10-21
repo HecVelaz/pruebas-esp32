@@ -8,11 +8,12 @@
 // Queda libre el GPIO 13 (reserva).
 
 // Los tres IBT-2 (BTS7960) comparten el EN: R_EN y L_EN de los tres al GPIO 23 (+ pull-down 10 kΩ a GND).
+// VCC de los tres IBT-2 al riel de 5 V (VIN del shield); R_IS y L_IS sin conectar.
 // El firmware deja RPWM y LPWM de las otras dos articulaciones en bajo: con el EN alto quedan FRENADAS y con el EN
 // bajo (rueda libre, "x") quedan SUELTAS. J2 y J3 no se autobloquean: sueltas, el brazo cae.
 constexpr int PIN_BRAZO_EN = 23;
 
-// J1 (base giratoria): 36GP-555 160 rpm (50:1) + IBT-2 + correa 18 -> 90, VCC del IBT-2 a 3V3
+// J1 (base giratoria): 36GP-555 160 rpm (50:1) + IBT-2 + correa 18 -> 90
 constexpr int PIN_J1_RPWM = 21;
 constexpr int PIN_J1_LPWM = 22;
 constexpr int PIN_J1_ENC_A = 34;  // negro = Signal A (SCX-555 a 3V3)

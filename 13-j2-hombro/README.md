@@ -33,8 +33,11 @@ Detalle cable por cable: `recolector_de_frutas/docs/CONEXIONES.md` y `docs/html/
 | 16 · 17 / 18 · 19 | J3 IBT-2 / encoder | conectados, quietos (frenados con el EN alto) |
 | 32 · 33 · 27 | Finales de carrera J1 · J2 · J3 | no se usan acá |
 
-IBT-2: VCC a 3V3, GND de la lógica a GND de la WROOM; B+ / B− a 12 V. Motor: blanco = M+, amarillo = M−. Encoder:
+IBT-2: **VCC al riel de 5 V** (VIN del shield; en `10` iba a 3V3), GND al riel GND, R_IS y L_IS sin conectar; B+ / B− a 12 V. Motor: blanco = M+, amarillo = M−. Encoder:
 verde = 3V3, azul = GND.
+Con el VCC a 5 V, el alto de 3,3 V de la WROOM queda justo para la entrada del IBT-2 (si es un 74HC244 pide
+3,5 V; suele andar igual). Si en `dg` o en el paso 0 el motor no responde o va a los saltos, probar el VCC de ese
+IBT-2 a 3V3, como en `10` (`recolector_de_frutas/docs/CONEXIONES.md`, "IBT-2 a 3,3 V").
 
 **Antes del primer encendido:** con el encoder a 3V3 y sin girar, medir A y B en 36 y 39: tienen que estar en 0 o
 3,3 V, nunca a mitad. Si quedan a mitad, falta el pull-up de la placa: 10 kΩ de cada uno a 3V3.

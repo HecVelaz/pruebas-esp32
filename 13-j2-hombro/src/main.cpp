@@ -852,7 +852,7 @@ void diagnostico() {
   // Etapa 1: EN en alto con los dos PWM en 0 = freno: el motor no puede moverse
   motor.brake();
   Serial.printf("   Etapa 1: EN (GPIO%d) en ALTO, RPWM y LPWM en 0 (freno). Medí contra el GND del IBT-2:\n"
-                "            R_EN ~3,3 V, L_EN ~3,3 V, VCC ~3,3 V, B+ ~12 V. RPWM y LPWM ~0 V.\n", PIN_BRAZO_EN);
+                "            R_EN ~3,3 V, L_EN ~3,3 V, VCC ~5 V, B+ ~12 V. RPWM y LPWM ~0 V.\n", PIN_BRAZO_EN);
   esperarEnter(120000);
   // Etapas 2 y 3: un PWM al 100 % (nivel fijo) con EN en bajo: salidas en alta impedancia, el motor no se mueve
   motor.coast();
