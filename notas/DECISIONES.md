@@ -13,7 +13,7 @@
   (Desde 2026-10-22 "Roles" y "Continuidad entre agentes" están en `CLAUDE.md` y `notas/FLUJO.md`;
   `AGENTS.md` es un symlink a `CLAUDE.md`.)
 
-## Decisiones que están dentro del estado (copiadas de `ESTADO.md`)
+## Decisiones que están dentro de la bitácora (copiadas de `BITACORA.md`)
 
 - GPS: `05-gps-ros2 -e serial` no se probó: se decidió usar solo WiFi. La protoboard daba falsos contactos: el GPS va conectado directo a la S3.
 - J1: **decisión del usuario (2026-10-02): rango −45° (horario) / +135° (antihorario) desde el cero al costado** (no los ±75° de la E4); `ie`/`is` deshabilitados porque invertirían los límites asimétricos.

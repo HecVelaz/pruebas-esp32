@@ -1,7 +1,7 @@
 # Pendientes de pruebas-esp32 (al 2026-10-22)
 
 <!-- Movido desde CLAUDE.md (2026-10-22). Los bloques "Pendiente GPS", "Pendiente" de 08 y "Falta" se movieron
-     tal cual; el resto se copió de los "Pendiente:" que siguen dentro de cada punto de ESTADO.md. -->
+     tal cual; el resto se copió de los "Pendiente:" que siguen dentro de cada entrada de BITACORA.md. -->
 
 ## Brazo (12–14, lo próximo)
 

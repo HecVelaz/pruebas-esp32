@@ -1,7 +1,7 @@
 # 10-control-lazo-cerrado (y 12–14)
 
 Reglas del lazo cerrado del brazo. Valen también para `12-j1-base`, `13-j2-hombro` y `14-j3-codo`, que usan estos
-mismos `tools/` por symlink. El estado de cada articulación está en `../notas/ESTADO.md`.
+mismos `tools/` por symlink. El estado de cada articulación está en `../notas/ESTADO.md` y la historia en `../notas/BITACORA.md`.
 
 - **Cada flasheo borra el cero:** con la articulación en la marca, `z` (en J2 con sostener: sostener el brazo, `z`, `a 0`).
 - `tools/` es compartido: los scripts guardan en `resultados/` de la carpeta desde donde se llaman

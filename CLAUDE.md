@@ -45,6 +45,7 @@ de frutas. El **firmware del robot** (lo que ya no es una prueba de un component
 | Para… | Leer |
 |---|---|
 | Saber en qué quedó cada prueba | `notas/ESTADO.md` |
+| Historia, mediciones y nombres de los CSV de cada prueba | `notas/BITACORA.md` |
 | Qué sigue | `notas/PENDIENTES.md` |
 | Por qué se eligió algo | `notas/DECISIONES.md` |
 | Estructura de carpetas, `platformio.ini` de la S3, ModemManager, bootloader, micro-ROS | `notas/FLUJO.md` |
