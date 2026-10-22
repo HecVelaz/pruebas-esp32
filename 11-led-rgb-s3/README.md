@@ -19,4 +19,4 @@ Si la S3 queda en modo descarga después de flashear, apretar RST.
 
 | Fecha | Resultado |
 |---|---|
-| | |
+| 19/10/2026 | **GPIO 48.** Este programa mostró azul y rojo; con un pin por programa: solo el 48 parpadea, el 38 no hace nada. El rojo venía del canal RMT que sigue ruteado al 48 al escribir por el 38: probar cada pin por separado. |
