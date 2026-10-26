@@ -41,6 +41,15 @@
 		},
 		{
 			"path": "14-j3-codo"
+		},
+		{
+			"path": "15-ibt2-j3-c3"
+		},
+		{
+			"path": "16-l298n-j3-c3"
+		},
+		{
+			"path": "17-brazo-joystick"
 		}
 	],
 	"settings": {

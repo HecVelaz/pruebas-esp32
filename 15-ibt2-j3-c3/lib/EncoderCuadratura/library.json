@@ -1,0 +1,7 @@
+{
+  "name": "EncoderCuadratura",
+  "version": "0.1.0",
+  "description": "Encoder en cuadratura x4 por interrupciones de GPIO, para chips sin PCNT (ESP32-C3)",
+  "frameworks": "arduino",
+  "platforms": "espressif32"
+}

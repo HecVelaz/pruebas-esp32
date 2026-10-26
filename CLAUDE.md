@@ -73,6 +73,9 @@ de frutas. El **firmware del robot** (lo que ya no es una prueba de un component
 | `12-j1-base` | Prueba definitiva de J1 (base, 36GP-555 + IBT-2) montada, con el conexionado v0.5 del robot (EN común, las tres conectadas), en la WROOM |
 | `13-j2-hombro` | Prueba definitiva de J2 (hombro, 36-555 58 rpm + engranajes 15 → 75 + IBT-2), igual que 12 |
 | `14-j3-codo` | Prueba definitiva de J3 (codo, 36-555 58 rpm + engranajes 15 → 75 + IBT-2), igual que 12 |
+| `15-ibt2-j3-c3` | IBT-2 de J3 (driver 3) con el motor montado, en una **ESP32-C3-MINI-1**: pulsos cortos limitados a ±15° |
+| `16-l298n-j3-c3` | Lo mismo que 15 con un **L298N** en lugar del IBT-2 (mismo C3, pines y comandos), para descartar el driver |
+| `17-brazo-joystick` | J1, J2 y J3 a la vez con un joystick en el navegador (lazo abierto; `tools/joystick.py` hace de puente serie), en la WROOM |
 | `notas/` | Estado, decisiones, pendientes, pines y flujo de trabajo (no es una prueba) |
 
 `12`–`14`: `tools/` es un enlace a `10-control-lazo-cerrado/tools`.

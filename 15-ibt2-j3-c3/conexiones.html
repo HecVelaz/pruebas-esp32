@@ -1,0 +1,311 @@
+<title>Conexiones IBT-2 J3 · C3</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Plano de banco: hoja de esquema con grilla tenue, cables con sus colores reales y tablas de verificación debajo. */
+:root {
+  --bg: #f3f5f4;
+  --sheet: #ffffff;
+  --grid: #e3e8e6;
+  --ink: #18201d;
+  --muted: #5b6863;
+  --line: #c9d1ce;
+  --board: #1f6f5c;       /* placa del C3 */
+  --board-ink: #eaf6f1;
+  --ibt: #b3261e;         /* IBT-2 (PCB roja) */
+  --ibt-ink: #fff1ef;
+  --motor: #6b7470;
+  --motor-ink: #f4f6f5;
+  --supply: #2c3e50;
+  --supply-ink: #eef3f7;
+  --outline: #4c5551;     /* borde de cada cable, para que blanco y negro se vean en los dos temas */
+  --warn: #9a5b00;
+  --warn-bg: #fff4dd;
+  --w-blanco: #fbfbf7;
+  --w-amarillo: #f2c418;
+  --w-rojo: #d7261e;
+  --w-negro: #141414;
+  --w-verde: #1fa34a;
+  --w-azul: #1f5fd1;
+  --w-naranja: #f08a24;
+  --w-violeta: #8e5bd6;
+  --w-marron: #8a5a3c;
+  --f-display: "Barlow Semi Condensed", "Arial Narrow", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "DejaVu Sans Mono", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121715; --sheet: #182019; --grid: #222c28; --ink: #e6ece9; --muted: #9aa8a2; --line: #34413c;
+    --board: #2a8a72; --ibt: #c2382f; --motor: #59625e; --supply: #34495e;
+    --outline: #8d9893; --warn: #f0b85a; --warn-bg: #2d2412;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121715; --sheet: #182019; --grid: #222c28; --ink: #e6ece9; --muted: #9aa8a2; --line: #34413c;
+  --board: #2a8a72; --ibt: #c2382f; --motor: #59625e; --supply: #34495e;
+  --outline: #8d9893; --warn: #f0b85a; --warn-bg: #2d2412;
+  color-scheme: dark;
+}
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--f-display); font-size: 16px; line-height: 1.5;
+}
+.wrap {
+  max-width: 1080px; margin: 0 auto;
+  padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 28px;
+}
+header { display: grid; gap: 6px; }
+.eyebrow { font-family: var(--f-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { margin: 0; font-size: clamp(26px, 4vw, 36px); font-weight: 700; line-height: 1.1; text-wrap: balance; }
+h2 { margin: 0 0 10px; font-size: 21px; font-weight: 600; text-wrap: balance; }
+p { margin: 0; max-width: 68ch; }
+.lead { color: var(--muted); }
+code, .mono { font-family: var(--f-mono); font-size: .9em; }
+
+.sheet {
+  background-color: var(--sheet);
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 20px 20px;
+  border: 1px solid var(--line); border-radius: 6px;
+  overflow-x: auto;
+}
+.sheet svg { display: block; width: 100%; min-width: 760px; height: auto; }
+svg text { font-family: var(--f-display); fill: var(--ink); }
+svg .pin { font-family: var(--f-mono); font-size: 13px; font-weight: 500; }
+svg .title { font-size: 19px; font-weight: 700; }
+svg .sub { font-size: 13px; }
+svg .tag { font-family: var(--f-mono); font-size: 11.5px; fill: var(--muted); }
+.w-gap { fill: none; stroke: var(--sheet); stroke-width: 12; stroke-linecap: round; stroke-linejoin: round; }
+.w-out { fill: none; stroke: var(--outline); stroke-width: 6.5; stroke-linecap: round; stroke-linejoin: round; }
+.w { fill: none; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr)); gap: 28px; }
+.grid2 > * { min-width: 0; }
+.tbl { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 15px; }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; font-family: var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+td.mono { white-space: nowrap; }
+.sw { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+.sw i { width: 22px; height: 10px; border-radius: 5px; border: 1.5px solid var(--outline); display: inline-block; }
+
+.notes { display: grid; gap: 10px; padding: 0; margin: 0; list-style: none; }
+.notes li { padding: 10px 14px; border-left: 3px solid var(--line); background: var(--sheet); border-radius: 0 4px 4px 0; }
+.notes li.warn { border-left-color: var(--warn); background: var(--warn-bg); }
+.notes b { font-weight: 600; }
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">pruebas-esp32 · 15-ibt2-j3-c3</span>
+    <h1>Conexiones del IBT-2 de J3 con la ESP32-C3</h1>
+    <p class="lead">Driver 3 (2 × BTS7960B + 74HC244D) y el motor de J3, un 36-555 de 58 rpm con encoder SCX-555, con los
+      colores reales de sus cables. Los cables entre el C3 y el IBT-2 son dupont: sus colores son una sugerencia.</p>
+  </header>
+
+  <div class="sheet" role="img" aria-label="Esquema: ESP32-C3 a IBT-2 y al encoder del motor; IBT-2 a la fuente de 12 V y al motor">
+    <svg viewBox="0 0 1000 610" xmlns="http://www.w3.org/2000/svg">
+      <!-- ===== Cables (primero los que quedan abajo en los cruces) ===== -->
+      <g id="cables">
+        <!-- GPIO4 -> RPWM (dupont naranja) -->
+        <path class="w-gap" d="M260 120 H480"/><path class="w-out" d="M260 120 H480"/><path class="w" stroke="var(--w-naranja)" d="M260 120 H480"/>
+        <!-- GPIO5 -> LPWM (dupont violeta) -->
+        <path class="w-gap" d="M260 150 H480"/><path class="w-out" d="M260 150 H480"/><path class="w" stroke="var(--w-violeta)" d="M260 150 H480"/>
+        <!-- GPIO6 -> R_EN y L_EN (dupont marrón) -->
+        <path class="w-gap" d="M260 180 H480 M450 180 V210 H480"/><path class="w-out" d="M260 180 H480 M450 180 V210 H480"/><path class="w" stroke="var(--w-marron)" d="M260 180 H480 M450 180 V210 H480"/>
+        <!-- 3V3 -> VCC (verde, como Encoder+) -->
+        <path class="w-gap" d="M260 300 H480"/><path class="w-out" d="M260 300 H480"/><path class="w" stroke="var(--w-verde)" d="M260 300 H480"/>
+        <!-- GND -> GND (azul, como Encoder−) -->
+        <path class="w-gap" d="M260 330 H480"/><path class="w-out" d="M260 330 H480"/><path class="w" stroke="var(--w-azul)" d="M260 330 H480"/>
+        <!-- Encoder: rojo = Signal B -> GPIO10, negro = Signal A -> GPIO7 -->
+        <path class="w-gap" d="M260 400 H760"/><path class="w-out" d="M260 400 H760"/><path class="w" stroke="var(--w-rojo)" d="M260 400 H760"/>
+        <path class="w-gap" d="M260 430 H760"/><path class="w-out" d="M260 430 H760"/><path class="w" stroke="var(--w-negro)" d="M260 430 H760"/>
+        <!-- Encoder−: azul al GND (pasa por encima) -->
+        <path class="w-gap" d="M760 490 H400 V330"/><path class="w-out" d="M760 490 H400 V330"/><path class="w" stroke="var(--w-azul)" d="M760 490 H400 V330"/>
+        <!-- Encoder+: verde al 3V3 (pasa por encima) -->
+        <path class="w-gap" d="M760 460 H420 V300"/><path class="w-out" d="M760 460 H420 V300"/><path class="w" stroke="var(--w-verde)" d="M760 460 H420 V300"/>
+        <!-- 12 V: B+ y B− -->
+        <path class="w-gap" d="M680 120 H800"/><path class="w-out" d="M680 120 H800"/><path class="w" stroke="var(--w-rojo)" d="M680 120 H800"/>
+        <path class="w-gap" d="M680 160 H800"/><path class="w-out" d="M680 160 H800"/><path class="w" stroke="var(--w-negro)" d="M680 160 H800"/>
+        <!-- Motor: amarillo = Motor− -> M−, blanco = Motor+ -> M+ -->
+        <path class="w-gap" d="M680 250 H730 V520 H760"/><path class="w-out" d="M680 250 H730 V520 H760"/><path class="w" stroke="var(--w-amarillo)" d="M680 250 H730 V520 H760"/>
+        <path class="w-gap" d="M680 290 H710 V550 H760"/><path class="w-out" d="M680 290 H710 V550 H760"/><path class="w" stroke="var(--w-blanco)" d="M680 290 H710 V550 H760"/>
+      </g>
+
+      <!-- Uniones -->
+      <g fill="var(--ink)">
+        <circle cx="450" cy="180" r="5"/>
+        <circle cx="420" cy="300" r="5"/><circle cx="400" cy="330" r="5"/>
+      </g>
+
+      <!-- Sin pull-down en el EN (decisión del 2026-10-22): manda el orden de la fuente -->
+      <text x="300" y="232" class="tag">EN sin pull-down:</text>
+      <text x="300" y="248" class="tag">12 V solo con el firmware corriendo</text>
+
+      <!-- Etiquetas de cables -->
+      <text x="275" y="113" class="tag">naranja</text>
+      <text x="275" y="143" class="tag">violeta</text>
+      <text x="275" y="173" class="tag">marrón</text>
+      <text x="275" y="293" class="tag">verde</text>
+      <text x="275" y="323" class="tag">azul</text>
+      <text x="560" y="393" class="tag">rojo · Signal B</text>
+      <text x="560" y="423" class="tag">negro · Signal A</text>
+      <text x="560" y="453" class="tag">verde · Encoder+</text>
+      <text x="560" y="483" class="tag">azul · Encoder−</text>
+      <text x="566" y="515" class="tag">amarillo · Motor−</text>
+      <text x="566" y="545" class="tag">blanco · Motor+</text>
+      <text x="694" y="113" class="tag">+12 V</text>
+      <text x="694" y="153" class="tag">GND</text>
+
+      <!-- ===== ESP32-C3 ===== -->
+      <g>
+        <rect x="60" y="60" width="200" height="420" rx="10" fill="var(--board)"/>
+        <rect x="88" y="78" width="120" height="70" rx="4" fill="none" stroke="var(--board-ink)" stroke-opacity=".5" stroke-width="1.5"/>
+        <text x="148" y="108" text-anchor="middle" class="title" style="fill:var(--board-ink)">ESP32-C3</text>
+        <text x="148" y="128" text-anchor="middle" class="sub" style="fill:var(--board-ink)">4 MB · CH340</text>
+        <rect x="40" y="440" width="34" height="26" rx="4" fill="var(--outline)"/>
+        <text x="78" y="500" class="tag">USB → PC (/dev/ttyUSB0)</text>
+        <g class="pin" style="fill:var(--board-ink)" text-anchor="end">
+          <text x="246" y="124" style="fill:var(--board-ink)">GPIO 4</text>
+          <text x="246" y="154" style="fill:var(--board-ink)">GPIO 5</text>
+          <text x="246" y="184" style="fill:var(--board-ink)">GPIO 6</text>
+          <text x="246" y="304" style="fill:var(--board-ink)">3V3</text>
+          <text x="246" y="334" style="fill:var(--board-ink)">GND</text>
+          <text x="246" y="404" style="fill:var(--board-ink)">GPIO 10</text>
+          <text x="246" y="434" style="fill:var(--board-ink)">GPIO 7</text>
+        </g>
+        <g fill="var(--board-ink)">
+          <circle cx="260" cy="120" r="4"/><circle cx="260" cy="150" r="4"/><circle cx="260" cy="180" r="4"/>
+          <circle cx="260" cy="300" r="4"/><circle cx="260" cy="330" r="4"/><circle cx="260" cy="400" r="4"/><circle cx="260" cy="430" r="4"/>
+        </g>
+      </g>
+
+      <!-- ===== IBT-2 ===== -->
+      <g>
+        <rect x="480" y="70" width="200" height="290" rx="8" fill="var(--ibt)"/>
+        <rect x="560" y="196" width="104" height="52" rx="3" fill="none" stroke="var(--ibt-ink)" stroke-opacity=".45" stroke-width="1.5"/>
+        <text x="612" y="217" text-anchor="middle" class="title" style="fill:var(--ibt-ink)">IBT-2</text>
+        <text x="612" y="237" text-anchor="middle" class="sub" style="fill:var(--ibt-ink)">driver 3 · J3</text>
+        <g class="pin">
+          <text x="494" y="124" style="fill:var(--ibt-ink)">RPWM</text>
+          <text x="494" y="154" style="fill:var(--ibt-ink)">LPWM</text>
+          <text x="494" y="184" style="fill:var(--ibt-ink)">R_EN</text>
+          <text x="494" y="214" style="fill:var(--ibt-ink)">L_EN</text>
+          <text x="494" y="244" style="fill:var(--ibt-ink)" opacity=".7">R_IS</text>
+          <text x="494" y="274" style="fill:var(--ibt-ink)" opacity=".7">L_IS</text>
+          <text x="494" y="304" style="fill:var(--ibt-ink)">VCC</text>
+          <text x="494" y="334" style="fill:var(--ibt-ink)">GND</text>
+        </g>
+        <g class="pin" text-anchor="end">
+          <text x="666" y="124" style="fill:var(--ibt-ink)">B+</text>
+          <text x="666" y="164" style="fill:var(--ibt-ink)">B−</text>
+          <text x="666" y="254" style="fill:var(--ibt-ink)" text-anchor="end">M−</text>
+          <text x="666" y="294" style="fill:var(--ibt-ink)" text-anchor="end">M+</text>
+        </g>
+        <g fill="var(--ibt-ink)">
+          <circle cx="480" cy="120" r="4"/><circle cx="480" cy="150" r="4"/><circle cx="480" cy="180" r="4"/><circle cx="480" cy="210" r="4"/>
+          <circle cx="480" cy="300" r="4"/><circle cx="480" cy="330" r="4"/>
+          <circle cx="680" cy="120" r="4"/><circle cx="680" cy="160" r="4"/><circle cx="680" cy="250" r="4"/><circle cx="680" cy="290" r="4"/>
+        </g>
+        <!-- R_IS y L_IS sin conectar -->
+        <path d="M462 234 l12 12 M474 234 l-12 12 M462 264 l12 12 M474 264 l-12 12" stroke="var(--ink)" stroke-width="2"/>
+        <text x="456" y="258" text-anchor="end" class="tag">sin conectar</text>
+        <text x="580" y="378" text-anchor="middle" class="tag">2 × BTS7960B · 74HC244D</text>
+      </g>
+
+      <!-- ===== Fuente 12 V ===== -->
+      <g>
+        <rect x="800" y="86" width="160" height="104" rx="8" fill="var(--supply)"/>
+        <text x="880" y="126" text-anchor="middle" class="title" style="fill:var(--supply-ink)">Fuente 12 V</text>
+        <text x="880" y="146" text-anchor="middle" class="sub" style="fill:var(--supply-ink)">límite 3 A</text>
+        <text x="880" y="174" text-anchor="middle" class="tag" style="fill:var(--supply-ink)">no la LiPo</text>
+        <g class="pin"><text x="812" y="124" style="fill:var(--supply-ink)">+</text><text x="812" y="164" style="fill:var(--supply-ink)">−</text></g>
+      </g>
+
+      <!-- ===== Motor 36-555 + SCX-555 ===== -->
+      <g>
+        <rect x="760" y="376" width="96" height="196" rx="4" fill="var(--sheet)" stroke="var(--outline)" stroke-width="2"/>
+        <text x="808" y="368" text-anchor="middle" class="tag">conector SCX-555</text>
+        <g class="pin" font-size="12">
+          <text x="772" y="404">Signal B</text>
+          <text x="772" y="434">Signal A</text>
+          <text x="772" y="464">Encoder+</text>
+          <text x="772" y="494">Encoder−</text>
+          <text x="772" y="524">Motor−</text>
+          <text x="772" y="554">Motor+</text>
+        </g>
+        <g fill="var(--ink)">
+          <circle cx="760" cy="400" r="4"/><circle cx="760" cy="430" r="4"/><circle cx="760" cy="460" r="4"/>
+          <circle cx="760" cy="490" r="4"/><circle cx="760" cy="520" r="4"/><circle cx="760" cy="550" r="4"/>
+        </g>
+        <rect x="866" y="400" width="96" height="150" rx="14" fill="var(--motor)"/>
+        <rect x="856" y="420" width="12" height="110" rx="2" fill="var(--board)"/>
+        <rect x="962" y="455" width="22" height="40" rx="3" fill="var(--motor)"/>
+        <text x="914" y="462" text-anchor="middle" class="title" style="fill:var(--motor-ink)" font-size="17">J3</text>
+        <text x="914" y="482" text-anchor="middle" class="sub" style="fill:var(--motor-ink)">36-555</text>
+        <text x="914" y="499" text-anchor="middle" class="sub" style="fill:var(--motor-ink)">58 rpm</text>
+        <text x="914" y="590" text-anchor="middle" class="tag">139:1 · engranajes 15 → 75</text>
+      </g>
+
+      <text x="40" y="596" class="tag">Punto = unión. Un cable que pasa por encima de otro sin punto no lo toca.</text>
+    </svg>
+  </div>
+
+  <div class="grid2">
+    <section>
+      <h2>Cables del motor y del encoder SCX-555</h2>
+      <div class="tbl">
+        <table>
+          <thead><tr><th>Conector</th><th>Cable</th><th>Va a</th></tr></thead>
+          <tbody>
+            <tr><td>Signal B</td><td><span class="sw"><i style="background:var(--w-rojo)"></i>rojo</span></td><td class="mono">GPIO 10</td></tr>
+            <tr><td>Signal A</td><td><span class="sw"><i style="background:var(--w-negro)"></i>negro</span></td><td class="mono">GPIO 7</td></tr>
+            <tr><td>Encoder+</td><td><span class="sw"><i style="background:var(--w-verde)"></i>verde</span></td><td class="mono">3V3 del C3</td></tr>
+            <tr><td>Encoder−</td><td><span class="sw"><i style="background:var(--w-azul)"></i>azul</span></td><td class="mono">GND del C3</td></tr>
+            <tr><td>Motor−</td><td><span class="sw"><i style="background:var(--w-amarillo)"></i>amarillo</span></td><td class="mono">M− del IBT-2</td></tr>
+            <tr><td>Motor+</td><td><span class="sw"><i style="background:var(--w-blanco)"></i>blanco</span></td><td class="mono">M+ del IBT-2</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <section>
+      <h2>C3 al IBT-2</h2>
+      <div class="tbl">
+        <table>
+          <thead><tr><th>C3</th><th>IBT-2</th><th>Dupont sugerido</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">GPIO 4</td><td class="mono">RPWM</td><td><span class="sw"><i style="background:var(--w-naranja)"></i>naranja</span></td></tr>
+            <tr><td class="mono">GPIO 5</td><td class="mono">LPWM</td><td><span class="sw"><i style="background:var(--w-violeta)"></i>violeta</span></td></tr>
+            <tr><td class="mono">GPIO 6</td><td class="mono">R_EN + L_EN</td><td><span class="sw"><i style="background:var(--w-marron)"></i>marrón</span> (sin pull-down)</td></tr>
+            <tr><td class="mono">3V3</td><td class="mono">VCC</td><td><span class="sw"><i style="background:var(--w-verde)"></i>verde</span></td></tr>
+            <tr><td class="mono">GND</td><td class="mono">GND</td><td><span class="sw"><i style="background:var(--w-azul)"></i>azul</span></td></tr>
+            <tr><td class="mono">—</td><td class="mono">R_IS, L_IS</td><td>sin conectar</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <section>
+    <h2>Antes de prender los 12 V</h2>
+    <ul class="notes">
+      <li class="warn"><b>VCC del IBT-2 a 3V3, no a 5 V.</b> El 74HC244D alimentado a 5 V toma como alto recién desde
+        ~3,5 V y el C3 da 3,3 V. A 3V3 no hay duda de nivel: si el motor no se mueve, es el driver.</li>
+      <li class="warn"><b>El EN va sin pull-down, así que el orden de la fuente es obligatorio.</b> Primero el USB,
+        esperar la ayuda y <code>PWM 20000 Hz OK</code> en el monitor, recién ahí prender los 12 V. Apagar los 12 V
+        <b>antes</b> de flashear, pulsar RST o desenchufar el USB. Mientras el C3 arranca o se resetea, EN, RPWM y LPWM
+        flotan y el puente puede dar un tirón.</li>
+      <li><b>Guiarse por la etiqueta de la placa del encoder, no solo por el color.</b> En el SCX-555 el rojo y el negro
+        son señales, no alimentación, y los colores pueden cambiar entre lotes.</li>
+      <li><b>Con el encoder a 3V3 y sin girar</b>, A y B (GPIO 7 y 10) tienen que estar en 0 o 3,3 V, nunca a mitad.
+        Con el comando <code>e</code> se ven como 0 o 1.</li>
+      <li><b>J3 no sostiene el antebrazo sin corriente</b> (reductora planetaria) y J2 queda suelta: apoyar el hombro en
+        un tope y tener el antebrazo con la mano.</li>
+    </ul>
+  </section>
+</div>

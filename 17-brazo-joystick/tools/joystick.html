@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Joystick del brazo</title>
+<style>
+  :root { --fondo: #f4f5f7; --panel: #fff; --texto: #1d2330; --suave: #6b7383; --borde: #d6dae1;
+          --acento: #2f6fde; --ok: #1f9d55; --alerta: #d97706; --peligro: #d12f2f; }
+  @media (prefers-color-scheme: dark) {
+    :root { --fondo: #14171d; --panel: #1d222b; --texto: #e6e9ef; --suave: #98a1b2; --borde: #333a47;
+            --acento: #5b93f0; --ok: #3cc27a; --alerta: #f0a33a; --peligro: #f06060; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.4 system-ui, sans-serif; background: var(--fondo); color: var(--texto);
+         user-select: none; -webkit-user-select: none; }
+  main { max-width: 900px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: var(--suave); margin: 0 0 16px; font-size: 13px; }
+  .barra { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+  button { font: inherit; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--borde);
+           background: var(--panel); color: var(--texto); cursor: pointer; }
+  button.freno { background: var(--peligro); color: #fff; border-color: var(--peligro); font-weight: 600; }
+  .con { margin-left: auto; font-size: 13px; color: var(--suave); }
+  .con b { color: var(--peligro); } .con b.ok { color: var(--ok); }
+  .sticks { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .panel { background: var(--panel); border: 1px solid var(--borde); border-radius: 12px; padding: 14px; }
+  .panel h2 { font-size: 14px; margin: 0 0 8px; color: var(--suave); font-weight: 600; }
+  .pad { position: relative; width: 100%; max-width: 280px; aspect-ratio: 1; margin: 0 auto; border-radius: 50%;
+         background: radial-gradient(circle, var(--fondo) 0 60%, var(--borde) 61% 62%, var(--fondo) 63%);
+         border: 2px solid var(--borde); touch-action: none; }
+  .pad.vertical { border-radius: 40px; aspect-ratio: auto; width: 90px; height: 280px; max-width: none;
+                  background: var(--fondo); }
+  .bola { position: absolute; width: 34%; aspect-ratio: 1; left: 50%; top: 50%; border-radius: 50%;
+          background: var(--acento); transform: translate(-50%, -50%); box-shadow: 0 2px 8px #0004; }
+  .pad.vertical .bola { width: 70px; }
+  .art { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 16px; }
+  .art .valor { font-size: 28px; font-variant-numeric: tabular-nums; font-weight: 600; }
+  .art .det { font-size: 13px; color: var(--suave); font-variant-numeric: tabular-nums; }
+  .rango { position: relative; height: 8px; border-radius: 4px; background: var(--fondo); margin: 8px 0;
+           border: 1px solid var(--borde); }
+  .rango i { position: absolute; top: -4px; width: 4px; height: 14px; border-radius: 2px; background: var(--acento); }
+  .rango u { position: absolute; top: -4px; width: 2px; height: 14px; background: var(--suave); }
+  .est { font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 10px; }
+  .est.OK { background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok); }
+  .est.LIM, .est.SIGNO { background: color-mix(in srgb, var(--alerta) 18%, transparent); color: var(--alerta); }
+  .est.TRABA { background: color-mix(in srgb, var(--peligro) 18%, transparent); color: var(--peligro); }
+  label { font-size: 13px; color: var(--suave); display: flex; align-items: center; gap: 8px; }
+  .ayuda { font-size: 13px; color: var(--suave); margin-top: 16px; }
+  kbd { border: 1px solid var(--borde); border-radius: 4px; padding: 0 5px; background: var(--panel); }
+  @media (max-width: 600px) { .sticks, .art { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Joystick del brazo</h1>
+  <p class="sub">Lazo abierto: el joystick da el duty. Soltarlo frena. Cero = donde arrancó el puente o el último “Cero”.</p>
+
+  <div class="barra">
+    <button class="freno" id="freno">FRENAR (espacio)</button>
+    <button id="cero">Cero aquí</button>
+    <label>Escala <input type="range" id="escala" min="20" max="100" value="60"> <span id="escalaV">60 %</span></label>
+    <span class="con">Placa: <b id="con">sin datos</b> · <span id="pad">sin gamepad</span></span>
+  </div>
+
+  <div class="sticks">
+    <div class="panel"><h2>J1 base (←→) · J2 hombro (↑↓)</h2><div class="pad" id="padA"><div class="bola"></div></div></div>
+    <div class="panel"><h2>J3 codo (↑↓)</h2><div class="pad vertical" id="padB"><div class="bola"></div></div></div>
+  </div>
+
+  <div class="art" id="arts"></div>
+
+  <p class="ayuda">Teclado: <kbd>A</kbd>/<kbd>D</kbd> J1 · <kbd>W</kbd>/<kbd>S</kbd> J2 · <kbd>I</kbd>/<kbd>K</kbd> J3 ·
+    <kbd>espacio</kbd> frenar. Gamepad: stick izquierdo J1/J2, stick derecho vertical J3.
+    Estados: <b>LIM</b> en el límite (solo deja volver), <b>TRABA</b> atasco (soltar el joystick),
+    <b>SIGNO</b> el encoder cuenta al revés del duty (anotar para config.h).</p>
+</main>
+<script>
+const NOMBRES = ["J1 base", "J2 hombro", "J3 codo"];
+const LIMITES = [[-45, 135], [-15, 15], [-15, 15]];  // como config.h
+const ejes = { pantalla: [0, 0, 0], teclado: [0, 0, 0] };
+let frenado = false;
+
+const arts = document.getElementById("arts");
+NOMBRES.forEach((n, i) => {
+  arts.insertAdjacentHTML("beforeend", `<div class="panel"><h2>${n} <span class="est" id="e${i}">?</span></h2>
+    <div class="valor" id="q${i}">–</div><div class="rango" id="r${i}"><u></u><i></i></div>
+    <div class="det">duty <span id="d${i}">–</span> % · límites ${LIMITES[i][0]}° / ${LIMITES[i][1]}°</div></div>`);
+  const [a, b] = LIMITES[i];
+  document.querySelector(`#r${i} u`).style.left = `${(-a) / (b - a) * 100}%`;
+});
+
+function stick(id, ix, iy, vertical) {
+  const pad = document.getElementById(id), bola = pad.querySelector(".bola");
+  let activo = null;
+  const mover = ev => {
+    const r = pad.getBoundingClientRect();
+    let x = (ev.clientX - r.left - r.width / 2) / (r.width / 2 - bola.offsetWidth / 2);
+    let y = -(ev.clientY - r.top - r.height / 2) / (r.height / 2 - bola.offsetHeight / 2);
+    if (vertical) x = 0;
+    const m = Math.hypot(x, y);
+    if (m > 1) { x /= m; y /= m; }
+    pintar(x, y);
+    if (ix >= 0) ejes.pantalla[ix] = x;
+    ejes.pantalla[iy] = y;
+  };
+  const pintar = (x, y) => {
+    bola.style.left = `${50 + x * (50 - bola.offsetWidth / pad.offsetWidth * 50)}%`;
+    bola.style.top = `${50 - y * (50 - bola.offsetHeight / pad.offsetHeight * 50)}%`;
+  };
+  const soltar = () => {
+    activo = null; pintar(0, 0);
+    if (ix >= 0) ejes.pantalla[ix] = 0;
+    ejes.pantalla[iy] = 0;
+  };
+  pad.addEventListener("pointerdown", ev => { activo = ev.pointerId; pad.setPointerCapture(activo); frenado = false; mover(ev); });
+  pad.addEventListener("pointermove", ev => { if (ev.pointerId === activo) mover(ev); });
+  pad.addEventListener("pointerup", soltar);
+  pad.addEventListener("pointercancel", soltar);
+  pad.addEventListener("lostpointercapture", soltar);
+}
+stick("padA", 0, 1, false);
+stick("padB", -1, 2, true);
+
+const TECLAS = { a: [0, -1], d: [0, 1], w: [1, 1], s: [1, -1], i: [2, 1], k: [2, -1] };
+const apretadas = new Set();
+function teclado() {
+  ejes.teclado = [0, 0, 0];
+  apretadas.forEach(k => { const [i, v] = TECLAS[k]; ejes.teclado[i] += v; });
+}
+addEventListener("keydown", ev => {
+  const k = ev.key.toLowerCase();
+  if (k === " ") { ev.preventDefault(); frenar(); return; }
+  if (TECLAS[k]) { apretadas.add(k); frenado = false; teclado(); }
+});
+addEventListener("keyup", ev => { apretadas.delete(ev.key.toLowerCase()); teclado(); });
+addEventListener("blur", () => { apretadas.clear(); teclado(); });
+
+function gamepad() {
+  const g = [...(navigator.getGamepads?.() || [])].find(p => p);
+  document.getElementById("pad").textContent = g ? "gamepad conectado" : "sin gamepad";
+  if (!g) return [0, 0, 0];
+  const z = v => Math.abs(v) < 0.12 ? 0 : v;
+  return [z(g.axes[0] || 0), -z(g.axes[1] || 0), -z(g.axes[3] || 0)];
+}
+
+const escala = document.getElementById("escala");
+escala.oninput = () => document.getElementById("escalaV").textContent = escala.value + " %";
+
+async function post(ruta, cuerpo) {
+  const r = await fetch(ruta, { method: "POST", body: cuerpo ?? "" });
+  return r.json();
+}
+function frenar() { frenado = true; apretadas.clear(); teclado(); post("/freno").then(mostrar).catch(() => {}); }
+document.getElementById("freno").onclick = frenar;
+document.getElementById("cero").onclick = () => post("/cero").then(mostrar).catch(() => {});
+
+function mostrar(s) {
+  const con = document.getElementById("con");
+  const viva = s.edad < 0.5;
+  con.textContent = viva ? "conectada" : "sin datos";
+  con.className = viva ? "ok" : "";
+  s.q.forEach((q, i) => {
+    document.getElementById(`q${i}`).textContent = `${q >= 0 ? "+" : ""}${q.toFixed(1)}°`;
+    document.getElementById(`d${i}`).textContent = s.d[i].toFixed(0);
+    const e = document.getElementById(`e${i}`);
+    e.textContent = s.e[i]; e.className = `est ${s.e[i]}`;
+    const [a, b] = LIMITES[i];
+    document.querySelector(`#r${i} i`).style.left = `calc(${Math.min(100, Math.max(0, (q - a) / (b - a) * 100))}% - 2px)`;
+  });
+}
+
+let enVuelo = false;
+setInterval(async () => {
+  if (enVuelo) return;
+  const g = gamepad(), k = escala.value / 100;
+  const e = [0, 1, 2].map(i => {
+    const v = Math.max(-1, Math.min(1, ejes.pantalla[i] + ejes.teclado[i] + g[i]));
+    return frenado || document.hidden ? 0 : +(v * k).toFixed(3);
+  });
+  enVuelo = true;
+  try { mostrar(await post("/cmd", JSON.stringify(e))); }
+  catch { document.getElementById("con").textContent = "puente caído"; document.getElementById("con").className = ""; }
+  finally { enVuelo = false; }
+}, 50);
+</script>
+</body>
+</html>

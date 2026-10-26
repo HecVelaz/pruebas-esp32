@@ -37,7 +37,8 @@ constexpr bool SENTIDO_INVERTIDO = false;
 
 // PWM del IBT-2: 20 kHz como J1 y el firmware del robot. Si a duty bajo rinde poco (con el 5840 en 10, a 20 kHz el
 // IBT-2 entregaba ~1/3 de la tensión esperada), probar 1000.
-constexpr uint32_t PWM_FREQ_HZ = 20000;
+// 2026-10-26, paso 0 a 20 kHz: arrancaba recién con 40 % subiendo Y bajando (35 % no movía) → se prueba 1 kHz.
+constexpr uint32_t PWM_FREQ_HZ = 1000;
 constexpr uint8_t PWM_BITS = 10;
 
 // Límites PROVISORIOS desde la marca, simétricos para poder usar "ie"/"is" en el paso 0. Después del paso 0, medir

@@ -1,0 +1,319 @@
+<title>Conexiones L298N J3 · C3</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Plano de banco: hoja de esquema con grilla tenue, cables con sus colores reales y tablas de verificación debajo. */
+:root {
+  --bg: #f3f5f4;
+  --sheet: #ffffff;
+  --grid: #e3e8e6;
+  --ink: #18201d;
+  --muted: #5b6863;
+  --line: #c9d1ce;
+  --board: #1f6f5c;       /* placa del C3 */
+  --board-ink: #eaf6f1;
+  --ibt: #b3261e;         /* módulo del driver (PCB roja) */
+  --ibt-ink: #fff1ef;
+  --motor: #6b7470;
+  --motor-ink: #f4f6f5;
+  --supply: #2c3e50;
+  --supply-ink: #eef3f7;
+  --outline: #4c5551;     /* borde de cada cable, para que blanco y negro se vean en los dos temas */
+  --warn: #9a5b00;
+  --warn-bg: #fff4dd;
+  --w-blanco: #fbfbf7;
+  --w-amarillo: #f2c418;
+  --w-rojo: #d7261e;
+  --w-negro: #141414;
+  --w-verde: #1fa34a;
+  --w-azul: #1f5fd1;
+  --w-naranja: #f08a24;
+  --w-violeta: #8e5bd6;
+  --w-marron: #8a5a3c;
+  --f-display: "Barlow Semi Condensed", "Arial Narrow", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "DejaVu Sans Mono", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121715; --sheet: #182019; --grid: #222c28; --ink: #e6ece9; --muted: #9aa8a2; --line: #34413c;
+    --board: #2a8a72; --ibt: #c2382f; --motor: #59625e; --supply: #34495e;
+    --outline: #8d9893; --warn: #f0b85a; --warn-bg: #2d2412;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121715; --sheet: #182019; --grid: #222c28; --ink: #e6ece9; --muted: #9aa8a2; --line: #34413c;
+  --board: #2a8a72; --ibt: #c2382f; --motor: #59625e; --supply: #34495e;
+  --outline: #8d9893; --warn: #f0b85a; --warn-bg: #2d2412;
+  color-scheme: dark;
+}
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--f-display); font-size: 16px; line-height: 1.5;
+}
+.wrap {
+  max-width: 1080px; margin: 0 auto;
+  padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 28px;
+}
+header { display: grid; gap: 6px; }
+.eyebrow { font-family: var(--f-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { margin: 0; font-size: clamp(26px, 4vw, 36px); font-weight: 700; line-height: 1.1; text-wrap: balance; }
+h2 { margin: 0 0 10px; font-size: 21px; font-weight: 600; text-wrap: balance; }
+p { margin: 0; max-width: 68ch; }
+.lead { color: var(--muted); }
+code, .mono { font-family: var(--f-mono); font-size: .9em; }
+
+.sheet {
+  background-color: var(--sheet);
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 20px 20px;
+  border: 1px solid var(--line); border-radius: 6px;
+  overflow-x: auto;
+}
+.sheet svg { display: block; width: 100%; min-width: 760px; height: auto; }
+svg text { font-family: var(--f-display); fill: var(--ink); }
+svg .pin { font-family: var(--f-mono); font-size: 13px; font-weight: 500; }
+svg .title { font-size: 19px; font-weight: 700; }
+svg .sub { font-size: 13px; }
+svg .tag { font-family: var(--f-mono); font-size: 11.5px; fill: var(--muted); }
+.w-gap { fill: none; stroke: var(--sheet); stroke-width: 12; stroke-linecap: round; stroke-linejoin: round; }
+.w-out { fill: none; stroke: var(--outline); stroke-width: 6.5; stroke-linecap: round; stroke-linejoin: round; }
+.w { fill: none; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr)); gap: 28px; }
+.grid2 > * { min-width: 0; }
+.tbl { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 15px; }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; font-family: var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+td.mono { white-space: nowrap; }
+.sw { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+.sw i { width: 22px; height: 10px; border-radius: 5px; border: 1.5px solid var(--outline); display: inline-block; }
+
+.notes { display: grid; gap: 10px; padding: 0; margin: 0; list-style: none; }
+.notes li { padding: 10px 14px; border-left: 3px solid var(--line); background: var(--sheet); border-radius: 0 4px 4px 0; }
+.notes li.warn { border-left-color: var(--warn); background: var(--warn-bg); }
+.notes b { font-weight: 600; }
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">pruebas-esp32 · 16-l298n-j3-c3</span>
+    <h1>Conexiones del L298N de J3 con la ESP32-C3</h1>
+    <p class="lead">Canal A de un módulo L298N y el motor de J3, un 36-555 de 58 rpm con encoder SCX-555, con los colores
+      reales de sus cables. Mismo C3 y mismos GPIO que en 15. Los cables entre el C3 y el L298N son dupont: sus colores
+      son una sugerencia.</p>
+  </header>
+
+  <div class="sheet" role="img" aria-label="Esquema: ESP32-C3 a L298N y al encoder del motor; L298N a la fuente de 12 V y al motor">
+    <svg viewBox="0 0 1000 610" xmlns="http://www.w3.org/2000/svg">
+      <!-- ===== Cables (primero los que quedan abajo en los cruces) ===== -->
+      <g id="cables">
+        <!-- GPIO4 -> IN1 (dupont naranja) -->
+        <path class="w-gap" d="M260 120 H480"/><path class="w-out" d="M260 120 H480"/><path class="w" stroke="var(--w-naranja)" d="M260 120 H480"/>
+        <!-- GPIO5 -> IN2 (dupont violeta) -->
+        <path class="w-gap" d="M260 150 H480"/><path class="w-out" d="M260 150 H480"/><path class="w" stroke="var(--w-violeta)" d="M260 150 H480"/>
+        <!-- GPIO6 -> ENA, pin de señal (dupont marrón) -->
+        <path class="w-gap" d="M260 180 H480"/><path class="w-out" d="M260 180 H480"/><path class="w" stroke="var(--w-marron)" d="M260 180 H480"/>
+        <!-- GND del C3 -> GND de la bornera (dupont azul, por arriba del módulo) -->
+        <path class="w-gap" d="M260 90 H460 V44 H740 V110"/><path class="w-out" d="M260 90 H460 V44 H740 V110"/><path class="w" stroke="var(--w-azul)" d="M260 90 H460 V44 H740 V110"/>
+        <!-- 12 V: GND y +12V de la bornera -->
+        <path class="w-gap" d="M680 110 H800"/><path class="w-out" d="M680 110 H800"/><path class="w" stroke="var(--w-negro)" d="M680 110 H800"/>
+        <path class="w-gap" d="M680 145 H800"/><path class="w-out" d="M680 145 H800"/><path class="w" stroke="var(--w-rojo)" d="M680 145 H800"/>
+        <!-- Encoder: rojo = Signal B -> GPIO10, negro = Signal A -> GPIO7 -->
+        <path class="w-gap" d="M260 400 H760"/><path class="w-out" d="M260 400 H760"/><path class="w" stroke="var(--w-rojo)" d="M260 400 H760"/>
+        <path class="w-gap" d="M260 430 H760"/><path class="w-out" d="M260 430 H760"/><path class="w" stroke="var(--w-negro)" d="M260 430 H760"/>
+        <!-- Encoder−: azul al GND del C3 (pasa por encima) -->
+        <path class="w-gap" d="M760 490 H400 V330 H260"/><path class="w-out" d="M760 490 H400 V330 H260"/><path class="w" stroke="var(--w-azul)" d="M760 490 H400 V330 H260"/>
+        <!-- Encoder+: verde al 3V3 del C3 (pasa por encima) -->
+        <path class="w-gap" d="M760 460 H420 V300 H260"/><path class="w-out" d="M760 460 H420 V300 H260"/><path class="w" stroke="var(--w-verde)" d="M760 460 H420 V300 H260"/>
+        <!-- Motor: amarillo = Motor− -> OUT2, blanco = Motor+ -> OUT1 -->
+        <path class="w-gap" d="M680 250 H730 V520 H760"/><path class="w-out" d="M680 250 H730 V520 H760"/><path class="w" stroke="var(--w-amarillo)" d="M680 250 H730 V520 H760"/>
+        <path class="w-gap" d="M680 290 H710 V550 H760"/><path class="w-out" d="M680 290 H710 V550 H760"/><path class="w" stroke="var(--w-blanco)" d="M680 290 H710 V550 H760"/>
+      </g>
+
+      <!-- Uniones -->
+      <g fill="var(--ink)">
+        <circle cx="740" cy="110" r="5"/>
+      </g>
+
+      <!-- Sin pull-down en ENA: manda el orden de la fuente -->
+      <text x="275" y="222" class="tag">ENA sin pull-down:</text>
+      <text x="275" y="238" class="tag">12 V solo con el</text>
+      <text x="275" y="254" class="tag">firmware corriendo</text>
+
+      <!-- Etiquetas de cables -->
+      <text x="275" y="83" class="tag">azul · GND común</text>
+      <text x="275" y="113" class="tag">naranja</text>
+      <text x="275" y="143" class="tag">violeta</text>
+      <text x="275" y="173" class="tag">marrón · sin jumper ENA</text>
+      <text x="275" y="293" class="tag">verde</text>
+      <text x="275" y="323" class="tag">azul</text>
+      <text x="560" y="393" class="tag">rojo · Signal B</text>
+      <text x="560" y="423" class="tag">negro · Signal A</text>
+      <text x="560" y="453" class="tag">verde · Encoder+</text>
+      <text x="560" y="483" class="tag">azul · Encoder−</text>
+      <text x="566" y="515" class="tag">amarillo · Motor−</text>
+      <text x="566" y="545" class="tag">blanco · Motor+</text>
+      <text x="752" y="103" class="tag">GND</text>
+      <text x="752" y="138" class="tag">+12 V</text>
+
+      <!-- ===== ESP32-C3 ===== -->
+      <g>
+        <rect x="60" y="60" width="200" height="420" rx="10" fill="var(--board)"/>
+        <rect x="80" y="196" width="120" height="70" rx="4" fill="none" stroke="var(--board-ink)" stroke-opacity=".5" stroke-width="1.5"/>
+        <text x="140" y="226" text-anchor="middle" class="title" style="fill:var(--board-ink)">ESP32-C3</text>
+        <text x="140" y="246" text-anchor="middle" class="sub" style="fill:var(--board-ink)">4 MB · CH340</text>
+        <rect x="40" y="440" width="34" height="26" rx="4" fill="var(--outline)"/>
+        <text x="78" y="500" class="tag">USB → PC (/dev/ttyUSB0)</text>
+        <g class="pin" text-anchor="end">
+          <text x="246" y="94" style="fill:var(--board-ink)">GND</text>
+          <text x="246" y="124" style="fill:var(--board-ink)">GPIO 4</text>
+          <text x="246" y="154" style="fill:var(--board-ink)">GPIO 5</text>
+          <text x="246" y="184" style="fill:var(--board-ink)">GPIO 6</text>
+          <text x="246" y="304" style="fill:var(--board-ink)">3V3</text>
+          <text x="246" y="334" style="fill:var(--board-ink)">GND</text>
+          <text x="246" y="404" style="fill:var(--board-ink)">GPIO 10</text>
+          <text x="246" y="434" style="fill:var(--board-ink)">GPIO 7</text>
+        </g>
+        <g fill="var(--board-ink)">
+          <circle cx="260" cy="90" r="4"/><circle cx="260" cy="120" r="4"/><circle cx="260" cy="150" r="4"/><circle cx="260" cy="180" r="4"/>
+          <circle cx="260" cy="300" r="4"/><circle cx="260" cy="330" r="4"/><circle cx="260" cy="400" r="4"/><circle cx="260" cy="430" r="4"/>
+        </g>
+      </g>
+
+      <!-- ===== L298N ===== -->
+      <g>
+        <rect x="480" y="70" width="200" height="270" rx="8" fill="var(--ibt)"/>
+        <!-- disipador -->
+        <rect x="548" y="82" width="64" height="62" rx="3" fill="var(--motor)"/>
+        <path d="M558 86 V140 M570 86 V140 M582 86 V140 M594 86 V140 M604 86 V140" stroke="var(--motor-ink)" stroke-opacity=".35" stroke-width="2"/>
+        <text x="580" y="206" text-anchor="middle" class="title" style="fill:var(--ibt-ink)">L298N</text>
+        <text x="580" y="226" text-anchor="middle" class="sub" style="fill:var(--ibt-ink)">canal A</text>
+        <g class="pin">
+          <text x="494" y="124" style="fill:var(--ibt-ink)">IN1</text>
+          <text x="494" y="154" style="fill:var(--ibt-ink)">IN2</text>
+          <text x="494" y="184" style="fill:var(--ibt-ink)">ENA</text>
+          <text x="494" y="214" style="fill:var(--ibt-ink)" opacity=".7">IN3</text>
+          <text x="494" y="244" style="fill:var(--ibt-ink)" opacity=".7">IN4</text>
+          <text x="494" y="274" style="fill:var(--ibt-ink)" opacity=".7">ENB</text>
+        </g>
+        <g class="pin" text-anchor="end">
+          <text x="666" y="114" style="fill:var(--ibt-ink)">GND</text>
+          <text x="666" y="149" style="fill:var(--ibt-ink)">12V</text>
+          <text x="666" y="184" style="fill:var(--ibt-ink)" opacity=".7">5V</text>
+          <text x="666" y="254" style="fill:var(--ibt-ink)">OUT2</text>
+          <text x="666" y="294" style="fill:var(--ibt-ink)">OUT1</text>
+        </g>
+        <g fill="var(--ibt-ink)">
+          <circle cx="480" cy="120" r="4"/><circle cx="480" cy="150" r="4"/><circle cx="480" cy="180" r="4"/>
+          <circle cx="680" cy="110" r="4"/><circle cx="680" cy="145" r="4"/><circle cx="680" cy="250" r="4"/><circle cx="680" cy="290" r="4"/>
+        </g>
+        <!-- IN3, IN4, ENB y 5V sin conectar -->
+        <path d="M462 204 l12 12 M474 204 l-12 12 M462 234 l12 12 M474 234 l-12 12 M462 264 l12 12 M474 264 l-12 12" stroke="var(--ink)" stroke-width="2"/>
+        <path d="M688 174 l12 12 M700 174 l-12 12" stroke="var(--ink)" stroke-width="2"/>
+        <text x="494" y="304" class="tag" style="fill:var(--ibt-ink)" opacity=".8">sin conectar</text>
+        <text x="708" y="185" class="tag">5V sin conectar</text>
+        <text x="708" y="201" class="tag">jumper 5V-EN puesto</text>
+        <text x="580" y="358" text-anchor="middle" class="tag">L298 · regulador 78M05</text>
+      </g>
+
+      <!-- ===== Fuente 12 V ===== -->
+      <g>
+        <rect x="800" y="62" width="160" height="104" rx="8" fill="var(--supply)"/>
+        <text x="886" y="104" text-anchor="middle" class="title" style="fill:var(--supply-ink)">Fuente 12 V</text>
+        <text x="886" y="124" text-anchor="middle" class="sub" style="fill:var(--supply-ink)">límite 2 A</text>
+        <text x="886" y="152" text-anchor="middle" class="tag" style="fill:var(--supply-ink)">no la LiPo</text>
+        <g class="pin"><text x="812" y="114" style="fill:var(--supply-ink)">−</text><text x="812" y="149" style="fill:var(--supply-ink)">+</text></g>
+      </g>
+
+      <!-- ===== Motor 36-555 + SCX-555 ===== -->
+      <g>
+        <rect x="760" y="376" width="96" height="196" rx="4" fill="var(--sheet)" stroke="var(--outline)" stroke-width="2"/>
+        <text x="808" y="368" text-anchor="middle" class="tag">conector SCX-555</text>
+        <g class="pin" font-size="12">
+          <text x="772" y="404">Signal B</text>
+          <text x="772" y="434">Signal A</text>
+          <text x="772" y="464">Encoder+</text>
+          <text x="772" y="494">Encoder−</text>
+          <text x="772" y="524">Motor−</text>
+          <text x="772" y="554">Motor+</text>
+        </g>
+        <g fill="var(--ink)">
+          <circle cx="760" cy="400" r="4"/><circle cx="760" cy="430" r="4"/><circle cx="760" cy="460" r="4"/>
+          <circle cx="760" cy="490" r="4"/><circle cx="760" cy="520" r="4"/><circle cx="760" cy="550" r="4"/>
+        </g>
+        <rect x="866" y="400" width="96" height="150" rx="14" fill="var(--motor)"/>
+        <rect x="856" y="420" width="12" height="110" rx="2" fill="var(--board)"/>
+        <rect x="962" y="455" width="22" height="40" rx="3" fill="var(--motor)"/>
+        <text x="914" y="462" text-anchor="middle" class="title" style="fill:var(--motor-ink)" font-size="17">J3</text>
+        <text x="914" y="482" text-anchor="middle" class="sub" style="fill:var(--motor-ink)">36-555</text>
+        <text x="914" y="499" text-anchor="middle" class="sub" style="fill:var(--motor-ink)">58 rpm</text>
+        <text x="990" y="590" text-anchor="end" class="tag">139:1 · engranajes 15 → 75</text>
+      </g>
+
+      <text x="40" y="596" class="tag">Punto = unión. Un cable que pasa por encima de otro sin punto no lo toca.</text>
+    </svg>
+  </div>
+
+  <div class="grid2">
+    <section>
+      <h2>Cables del motor y del encoder SCX-555</h2>
+      <div class="tbl">
+        <table>
+          <thead><tr><th>Conector</th><th>Cable</th><th>Va a</th></tr></thead>
+          <tbody>
+            <tr><td>Signal B</td><td><span class="sw"><i style="background:var(--w-rojo)"></i>rojo</span></td><td class="mono">GPIO 10</td></tr>
+            <tr><td>Signal A</td><td><span class="sw"><i style="background:var(--w-negro)"></i>negro</span></td><td class="mono">GPIO 7</td></tr>
+            <tr><td>Encoder+</td><td><span class="sw"><i style="background:var(--w-verde)"></i>verde</span></td><td class="mono">3V3 del C3</td></tr>
+            <tr><td>Encoder−</td><td><span class="sw"><i style="background:var(--w-azul)"></i>azul</span></td><td class="mono">GND del C3</td></tr>
+            <tr><td>Motor−</td><td><span class="sw"><i style="background:var(--w-amarillo)"></i>amarillo</span></td><td class="mono">OUT2 del L298N</td></tr>
+            <tr><td>Motor+</td><td><span class="sw"><i style="background:var(--w-blanco)"></i>blanco</span></td><td class="mono">OUT1 del L298N</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <section>
+      <h2>C3 y fuente al L298N</h2>
+      <div class="tbl">
+        <table>
+          <thead><tr><th>Desde</th><th>L298N</th><th>Cable</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">GPIO 4</td><td class="mono">IN1</td><td><span class="sw"><i style="background:var(--w-naranja)"></i>naranja</span></td></tr>
+            <tr><td class="mono">GPIO 5</td><td class="mono">IN2</td><td><span class="sw"><i style="background:var(--w-violeta)"></i>violeta</span></td></tr>
+            <tr><td class="mono">GPIO 6</td><td class="mono">ENA (señal)</td><td><span class="sw"><i style="background:var(--w-marron)"></i>marrón</span> (sin jumper ni pull-down)</td></tr>
+            <tr><td class="mono">GND del C3</td><td class="mono">GND (bornera)</td><td><span class="sw"><i style="background:var(--w-azul)"></i>azul</span></td></tr>
+            <tr><td class="mono">Fuente −</td><td class="mono">GND (bornera)</td><td><span class="sw"><i style="background:var(--w-negro)"></i>negro</span></td></tr>
+            <tr><td class="mono">Fuente +</td><td class="mono">12V (bornera)</td><td><span class="sw"><i style="background:var(--w-rojo)"></i>rojo</span></td></tr>
+            <tr><td class="mono">—</td><td class="mono">5V, IN3, IN4, ENB</td><td>sin conectar</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <section>
+    <h2>Antes de prender los 12 V</h2>
+    <ul class="notes">
+      <li class="warn"><b>ENA tiene dos pines y un jumper.</b> Sacar el jumper y conectar el GPIO 6 solo al pin de
+        entrada. El otro pin es 5 V: con los 12 V prendidos y el jumper afuera, el que da ~5 V contra GND es ese, y
+        conectarle el GPIO lo daña.</li>
+      <li class="warn"><b>ENA va sin pull-down, así que el orden de la fuente es obligatorio.</b> Primero el USB,
+        esperar la ayuda y <code>PWM 1000 Hz OK</code> en el monitor, recién ahí prender los 12 V. Apagar los 12 V
+        <b>antes</b> de flashear, pulsar RST o desenchufar el USB. Para cubrir un reset inesperado, 10 kΩ del GPIO 6 a
+        GND.</li>
+      <li><b>El borne 5V del L298N queda libre</b> y el jumper 5V-EN puesto: el regulador del módulo alimenta su lógica
+        desde los 12 V. No unirlo al C3, que va por USB. El L298N toma como alto desde ~2,3 V: anda con 3,3 V.</li>
+      <li><b>Fuente con límite de 2 A</b> (lo máximo por canal del L298N). El L298N pierde ~2 V: hace falta más duty que
+        con el IBT-2 para que arranque, y el disipador calienta.</li>
+      <li><b>Guiarse por la etiqueta de la placa del encoder, no solo por el color.</b> En el SCX-555 el rojo y el negro
+        son señales, no alimentación. Con el comando <code>e</code>, A y B tienen que dar 0 o 1.</li>
+      <li><b>J3 no sostiene el antebrazo sin corriente</b> (reductora planetaria) y J2 queda suelta: apoyar el hombro en
+        un tope y tener el antebrazo con la mano.</li>
+    </ul>
+  </section>
+</div>

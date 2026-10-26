@@ -38,7 +38,8 @@ constexpr bool SENTIDO_INVERTIDO = false;
 
 // PWM del IBT-2: 20 kHz como J1 y el firmware del robot. Con el 5840 (10, 2026-10-03), a 20 kHz el IBT-2 entregaba
 // ~1/3 de la tensión esperada a duty bajo y a 1 kHz rendía 2-3 veces más: si pasa lo mismo, probar 1000.
-constexpr uint32_t PWM_FREQ_HZ = 20000;
+// 2026-10-26: en 13 (J2, mismo motor y driver) a 20 kHz no arrancaba con menos de 40 % y a 1 kHz sí → 1 kHz.
+constexpr uint32_t PWM_FREQ_HZ = 1000;
 constexpr uint8_t PWM_BITS = 10;
 
 // Límites PROVISORIOS desde la marca, simétricos para poder usar "ie"/"is" en el paso 0. Después del paso 0, medir

@@ -22,4 +22,6 @@
 - J2 (5840 en el IBT-2): `FRENO_EN_REPOSO = true` (el sin fin no se autobloquea con el peso); dither ±3 % (la mejor prueba).
 - `10` (2026-10-10): sale el L298N y el encoder 38S6G5; los tres motores pasan a 36-555 con encoder SCX-555, un IBT-2 por articulación, EN común en el GPIO 23.
 - `12`–`14` (2026-10-20): J1 con `FRENO_EN_REPOSO = true` (con el EN común, rueda libre suelta J2/J3); **VCC de los IBT-2 del brazo a 5 V, decisión del usuario**; si uno falla en `dg` o en el paso 0, probar ese con VCC a 3V3.
+- `12` (2026-10-26): J1 sigue a **20 kHz** aunque a 1 kHz arranca con la mitad del duty (10 % contra 20 %): no chilla y zona muerta, arranque y ganancias están medidos a 20 kHz. J2/J3 (`13`, `14`, `17`) a 1 kHz: a 20 kHz J2 no arrancaba con menos de 40 %.
+- `17` (2026-10-26): joystick en lazo abierto (el joystick da el duty) y freno al soltar, nunca rueda libre; puente en Python porque Firefox no tiene Web Serial; cero donde está el brazo al abrir el puente (lo pidió el usuario).
 - El firmware del robot vive en `~/Documentos/recolector_de_frutas`; `09-brazo-control` se movió allá (2026-09-27) y los arreglos de los drivers para el robot se hacen allá.

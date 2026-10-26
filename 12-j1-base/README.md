@@ -89,8 +89,8 @@ deshabilitados porque los límites son asimétricos.
 
 ## Estado
 
-- [ ] A: cableado, encoder y `dg`
-- [ ] 0: signos
+- [ ] A: cableado, encoder y `dg` (2026-10-26: motor y encoder andan; falta `dg`)
+- [x] 0: signos (2026-10-26: + antihorario, − horario, encoder de acuerdo)
 - [ ] 1: 44,44 cuentas por grado
 - [ ] 2: PI de velocidad
 - [ ] 3: posición
@@ -103,4 +103,5 @@ Los CSV y PNG quedan en `resultados/` (nombre con fecha y hora).
 
 | Fecha | Paso | Resultado |
 |---|---|---|
-| | | |
+| 2026-10-26 | PWM | `p` 200 ms: a 1 kHz arranca con ~8–10 %, a 20 kHz con ~20 % (15 % no). Queda en 20 kHz |
+| 2026-10-26 | 0 | `p 30 200`: +3,44° antihorario, `p -30 200`: −3,04° horario. Después de frenar sigue ~0,7–0,9° |
