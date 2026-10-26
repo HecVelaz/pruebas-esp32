@@ -37,7 +37,8 @@ constexpr float CUENTAS_POR_GRADO = CUENTAS_POR_VUELTA_SALIDA * RELACION_TRANSMI
 constexpr bool ENCODER_INVERTIDO = false;
 constexpr bool SENTIDO_INVERTIDO = true;   // prueba 0 (2026-10-02): duty + giraba horario
 
-// PWM del IBT-2 (igual que en 06)
+// PWM del IBT-2 (igual que en 06). Prueba del 2026-10-26 ("p" de 200 ms): a 1 kHz arranca con ~8-10 %, a 20 kHz
+// con ~20 % (15 % no la mueve). Queda en 20 kHz (sin chillido, el control está ajustado así); 1 kHz si vuelve a trabarse
 constexpr uint32_t PWM_FREQ_HZ = 20000;
 constexpr uint8_t PWM_BITS = 10;
 
@@ -45,7 +46,7 @@ constexpr uint8_t PWM_BITS = 10;
 // pedidos por el usuario (2026-10-02): +135° antihorario, -45° horario visto desde arriba.
 constexpr float LIMITE_POS_GRADOS = 135.0f;
 constexpr float LIMITE_NEG_GRADOS = -45.0f;
-constexpr float DUTY_MAX_PCT = 40.0f;      // ningún movimiento de estas pruebas pasa de este duty
+constexpr float DUTY_MAX_PCT = 70.0f;      // ningún movimiento pasa de este duty (40 -> 70 el 2026-10-22: J1 no arrancaba con 30 %)
 constexpr uint32_t PULSO_MAX_MS = 1000;    // duración máxima de un pulso
 constexpr uint32_t PULSO_DEF_MS = 200;     // duración de "p" si no se da
 constexpr int32_t CUENTAS_SIN_GIRO = 5;    // menos que esto en un pulso = no giró
