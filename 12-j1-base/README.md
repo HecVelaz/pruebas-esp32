@@ -13,10 +13,10 @@ recomendado: **J1 → J2 → J3**.
 | | J1: base giratoria |
 |---|---|
 | Motor | 36GP-555, 12 V, 160 rpm, reductora 50:1 |
-| Transmisión | correa GT2, polea de 18 dientes en el motor y 90 en la base (5:1) |
-| Encoder | SCX-555, 16 PPR x4 = 64 cuentas por vuelta del motor → **44,44 cuentas por grado de la base** |
+| Transmisión | correa GT2, polea de 18 dientes en el motor y **84** en la base (4,67:1; se creía 90) |
+| Encoder | SCX-555, 16 PPR x4 = 64 cuentas por vuelta del motor → **41,48 cuentas por grado de la base** (polea de 84, medido el 2026-10-30) |
 | Driver | IBT-2 (BTS7960), PWM 20 kHz |
-| Rango | **−45° (horario) / +135° (antihorario)** desde el cero (brazo hacia el costado del robot) |
+| Rango | **−30° (hacia el mástil de la visión; choca a −38°) / +90° (alejándose)** desde el cero: brazo hacia el frente del robot (fotos en [`CERO/`](CERO/), 2026-10-30) |
 | Ganancias (de 10) | PI de velocidad Kp 0,549, Ki 4, zona muerta 17 %; P de posición Kpp 2, v_max 30 °/s |
 
 ## Conexiones (v0.5, definitivas)
@@ -76,7 +76,7 @@ Orden de la fuente en cada paso: **12 V apagados → monitor → base en la marc
 | 1 | `m 45`, `m 0`, `m -30`, `m 0` | 45° contra una escuadra o un doblez de 45°; vuelve a la marca |
 | 2 | `python3 tools/escalon_velocidad.py -a j1 20 --ciclos 10` | ts 0,33–0,38 s, sobrepico 4–7 % |
 | 3 | `python3 tools/escalon_posicion.py -a j1 20 --ciclos 5` | llegada ~1,7 s, sobrepico 0, error ≤ 0,3°, sin zumbido |
-| 4 | `a 90`, `a 0`, `a 135`, `a -45`, `a 0` | todo el rango sin tocar nada (cables, mástil) |
+| 4 | `a 45`, `a 0`, `a 85`, `a -27`, `a 0` | todo el rango sin tocar nada (cables, mástil) |
 | 5 | Paso 3 otra vez con un limón en la pinza | igual que sin carga |
 
 Si el paso 0 da al revés: el motor está cableado al revés que en 10 (cambiar `SENTIDO_INVERTIDO` en
@@ -90,12 +90,12 @@ deshabilitados porque los límites son asimétricos.
 ## Estado
 
 - [ ] A: cableado, encoder y `dg` (2026-10-26: motor y encoder andan; falta `dg`)
-- [x] 0: signos (2026-10-26: + antihorario, − horario, encoder de acuerdo)
-- [ ] 1: 44,44 cuentas por grado
-- [ ] 2: PI de velocidad
-- [ ] 3: posición
-- [ ] 4: rango completo −45° / +135°
-- [ ] 5: con carga
+- [x] 0: signos (2026-10-30, cero al frente: `SENTIDO_INVERTIDO = false`, + se aleja del mástil, encoder de acuerdo)
+- [x] 1: 41,48 cuentas por grado (2026-10-30: polea de 84; `m 87` queda a ~90° a ojo)
+- [x] 2: PI de velocidad (2026-10-30: funciona, peor que en 10: ts ~0,63 s, sobrepico 14,5 %)
+- [x] 3: posición (2026-10-30: igual que en 10)
+- [x] 4: rango completo −30° / +90° (2026-10-30)
+- [x] 5: con carga (2026-10-30, limón)
 
 ## Resultados
 
@@ -105,3 +105,9 @@ Los CSV y PNG quedan en `resultados/` (nombre con fecha y hora).
 |---|---|---|
 | 2026-10-26 | PWM | `p` 200 ms: a 1 kHz arranca con ~8–10 %, a 20 kHz con ~20 % (15 % no). Queda en 20 kHz |
 | 2026-10-26 | 0 | `p 30 200`: +3,44° antihorario, `p -30 200`: −3,04° horario. Después de frenar sigue ~0,7–0,9° |
+| 2026-10-30 | cero | Cero nuevo: brazo hacia el frente (fotos en `CERO/`). Con `SENTIDO_INVERTIDO = true`, + iba hacia el mástil: pasa a `false` |
+| 2026-10-30 | 1 | `m 84` con la escala de 90/18: la base quedó a 90° a ojo con 3764 cuentas (41,8 por grado) → polea de **84** dientes (41,48 por grado). Con la escala nueva, `m 87` queda en +88,45° y a ojo a 90° |
+| 2026-10-30 | 2 | `escalon_vel_20261030_123837`: ±20 °/s ×10, Kp 0,549 Ki 4. ts 0,65 / 0,61 s (ida / vuelta, peor 0,78), sobrepico 14,5 %, error −0,6 °/s. Baja a ~15 °/s a los 0,1–0,2 s (correa con la inercia del brazo) y el integral se pasa. Dos corridas cortadas al arrancar por "sin cuentas" (28 → 39 % en 150 ms sin moverse); al reintentar arranca |
+| 2026-10-30 | 3 | `escalon_pos_20261030_124228`: ±20° ×5. Llegada 1,81–1,89 s, sobrepico 0, error ≤ 0,31°, zumbido 0. Al final, saltitos de stick-slip a la velocidad mínima (3 °/s) antes de entrar en ±0,3° |
+| 2026-10-30 | 4 | `a 45`, `a 85`, `a 0` con error ≤ 0,26°. `a -40` chocó con el soporte de la visión a −38,2° (corte por "sin cuentas") → límite negativo a **−30°** (comandos hasta −27°). `a -27` OK, `a -35` rechazado |
+| 2026-10-30 | 5 | `escalon_pos_20261030_135849` con un limón en la pinza: llegada 1,77–1,85 s, sobrepico ≤ 0,06°, error ≤ 0,27°, zumbido 0. Igual que sin carga; mismo stick-slip al final |

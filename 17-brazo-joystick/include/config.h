@@ -21,8 +21,9 @@ constexpr int N_ART = 3;
 
 constexpr ConfigJoystick CFG[N_ART] = {
     // J1 (base): valores de 12-j1-base. Signos medidos (paso 0, 2026-10-26). Arranca con ~20 % a 20 kHz.
-    // Escala (44,4 cuentas por grado) en duda: al ojo daba 41,5 (2026-10-26, falta la prueba de 180°).
-    {"J1", 16.0f * 4.0f * 50.0f * (90.0f / 18.0f) / 360.0f, false, true, 20000, -45.0f, 135.0f, 18.0f, 40.0f},
+    // Escala: polea de 84 dientes en la base (41,48 cuentas por grado, medido en 12 el 2026-10-30).
+    // Cero hacia el frente (2026-10-30): -30° (mástil, choca a -38°) / +90°; + se aleja del mástil (signos de 12).
+    {"J1", 16.0f * 4.0f * 50.0f * (84.0f / 18.0f) / 360.0f, false, false, 20000, -30.0f, 90.0f, 18.0f, 40.0f},
     // J2 (hombro): valores de 13-j2-hombro, todo PROVISORIO (signos sin medir; a 20 kHz arrancaba con 40 %).
     {"J2", 16.0f * 4.0f * 139.0f * (75.0f / 15.0f) / 360.0f, false, false, 1000, -15.0f, 15.0f, 15.0f, 50.0f},
     // J3 (codo): valores de 14-j3-codo, todo PROVISORIO.

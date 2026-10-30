@@ -10,9 +10,9 @@
 namespace cfg_j1 {
 constexpr const char *NOMBRE = "J1";
 constexpr const char *PIEZA = "base";
-constexpr const char *SENTIDO_POS = "ANTIHORARIO visto desde arriba";
-constexpr const char *SENTIDO_NEG = "HORARIO visto desde arriba";
-constexpr const char *MARCA = "brazo al costado del robot";
+constexpr const char *SENTIDO_POS = "alejándose del mástil de la visión";
+constexpr const char *SENTIDO_NEG = "hacia el mástil de la visión";
+constexpr const char *MARCA = "brazo hacia el frente del robot (fotos en CERO/)";
 constexpr bool SIGNOS_EN_VIVO = false;  // "ie"/"is" deshabilitados: los límites son asimétricos
 // En 10 era false (rueda libre al terminar: la base no carga peso). Con el EN común, rueda libre suelta también J2 y
 // J3, que no se autobloquean: frenado, el brazo cae mucho más despacio. Igual, apoyar el brazo en su tope.
@@ -20,13 +20,13 @@ constexpr bool FRENO_EN_REPOSO = true;
 constexpr bool SOSTENER_AUTO = false;  // "sa" al arrancar: se autobloquea por la correa y el 50:1 alcanza
 
 // Encoder Hall 16 PPR x4 en el eje del motor, reductora 50:1 -> 3200 cuentas por vuelta de la salida
-// de la reductora. De ahí a la base: correa GT2, polea de 18 dientes en el motor y 90 en la base (5:1).
+// de la reductora. De ahí a la base: correa GT2, polea de 18 dientes en el motor y 84 en la base (4,67:1).
 constexpr const char *MOTOR = "36GP-555 160 rpm";
 constexpr float REDUCTORA = 50.0f;
 constexpr float CUENTAS_POR_VUELTA_SALIDA = 16.0f * 4.0f * REDUCTORA;
-constexpr float RELACION_TRANSMISION = 90.0f / 18.0f;  // correa
-// 16 000 cuentas por vuelta de la base = 44,4 por grado. Verificado en el paso 1 (m 45 paralelo a un
-// doblez de 45°, error de pocos grados como mucho, a ojo).
+constexpr float RELACION_TRANSMISION = 84.0f / 18.0f;  // correa
+// 14 933 cuentas por vuelta de la base = 41,48 por grado. Se suponía 90/18 (44,44 por grado); el 2026-10-30,
+// "m 84" con 90/18 dejó la base a 90° a ojo (frente -> costado) con 3764 cuentas = 41,8 por grado -> polea de 84.
 constexpr float CUENTAS_POR_GRADO = CUENTAS_POR_VUELTA_SALIDA * RELACION_TRANSMISION / 360.0f;
 
 // Paso 0: signos. Se ajustan con los comandos "ie" e "is" y después se copian acá.
@@ -35,17 +35,18 @@ constexpr float CUENTAS_POR_GRADO = CUENTAS_POR_VUELTA_SALIDA * RELACION_TRANSMI
 //    revés del sentido positivo de q1 (antihorario visto desde arriba). Invierte motor y encoder juntos,
 //    así siguen de acuerdo.
 constexpr bool ENCODER_INVERTIDO = false;
-constexpr bool SENTIDO_INVERTIDO = true;   // prueba 0 (2026-10-02): duty + giraba horario
+constexpr bool SENTIDO_INVERTIDO = false;  // 2026-10-30, cero al frente: con true, + iba hacia el mástil
 
 // PWM del IBT-2 (igual que en 06). Prueba del 2026-10-26 ("p" de 200 ms): a 1 kHz arranca con ~8-10 %, a 20 kHz
 // con ~20 % (15 % no la mueve). Queda en 20 kHz (sin chillido, el control está ajustado así); 1 kHz si vuelve a trabarse
 constexpr uint32_t PWM_FREQ_HZ = 20000;
 constexpr uint8_t PWM_BITS = 10;
 
-// Seguridad mientras no haya finales de carrera. Límites de software desde el cero (brazo al costado),
-// pedidos por el usuario (2026-10-02): +135° antihorario, -45° horario visto desde arriba.
-constexpr float LIMITE_POS_GRADOS = 135.0f;
-constexpr float LIMITE_NEG_GRADOS = -45.0f;
+// Seguridad mientras no haya finales de carrera. Límites de software desde el cero (brazo hacia el frente),
+// pedidos por el usuario (2026-10-30): +90° alejándose del mástil de la visión, -30° hacia el mástil (a -38°
+// la base chocó con el soporte de la visión; antes era -45°).
+constexpr float LIMITE_POS_GRADOS = 90.0f;
+constexpr float LIMITE_NEG_GRADOS = -30.0f;
 constexpr float DUTY_MAX_PCT = 70.0f;      // ningún movimiento pasa de este duty (40 -> 70 el 2026-10-22: J1 no arrancaba con 30 %)
 constexpr uint32_t PULSO_MAX_MS = 1000;    // duración máxima de un pulso
 constexpr uint32_t PULSO_DEF_MS = 200;     // duración de "p" si no se da

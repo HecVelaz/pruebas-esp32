@@ -1,20 +1,22 @@
-# Estado de pruebas-esp32 (al 2026-10-26)
+# Estado de pruebas-esp32 (al 2026-10-30)
 
 Foto de hoy. La historia, las mediciones completas y los nombres de los CSV están en `BITACORA.md`; lo que sigue, en
 `PENDIENTES.md`; los pines de la S3, en `PINES_S3.md`.
 
 ## Lo próximo
 
-- **`12-j1-base` (J1 montada, en placa):** paso 0 (signos) OK; motor y encoder andan (falta `dg`). PWM en 20 kHz
-  (arranca con ~20 %; a 1 kHz con ~10 %, queda como recurso). **Escala en duda:** al ojo 41,5 cuentas por grado en
-  vez de 44,44 (¿polea de 84 dientes?): contar dientes o prueba de 180° antes de los pasos 2–5.
+- **`12-j1-base`: J1 terminada en el brazo montado (pasos 0–5 OK, 2026-10-30).** Cero al frente del robot, + se
+  aleja del mástil de la visión; rango **−30° / +90°** (choca con el soporte a −38°). Polea de la base de **84**
+  dientes: 41,48 cuentas/°. Posición: llega en ~1,8 s, sobrepico 0, error ≤ 0,31°, igual con el limón; saltitos de
+  stick-slip al final (inofensivos). Velocidad: ts ~0,63 s, sobrepico 14,5 % (peor que en `10`). Falta `dg`.
+- **Robot:** `recolector_de_frutas/firmware/brazo` sigue con la polea de 90, los límites y signos viejos de J1.
 - **`13-j2-hombro`, `14-j3-codo`:** a 1 kHz (a 20 kHz J2 no arrancaba con menos de 40 %); resto PROVISORIO (signos
   sin medir, límites ±15°, duty máx 60 %, ganancias de J1, ff 17/8 %, khp 3 / khi 8). Conexionado v0.5 (EN común 23,
   VCC de los IBT-2 a 5 V).
 - **`15`/`16` (J3 con un C3, IBT-2 o L298N):** preparadas el 22–23/10, resultados sin anotar.
 - **`17-brazo-joystick`:** las tres articulaciones con un joystick en Firefox (lazo abierto, puente
-  `tools/joystick.py`, cero al abrir el puente). Compila; puente probado con un puerto simulado; **sin probar en
-  placa**. Para fusionar después con la tracción en `recolector_de_frutas`.
+  `tools/joystick.py`, cero al abrir el puente). J1 con la escala, signos y límites del 30/10. Compila; puente
+  probado con un puerto simulado; **sin probar en placa**. Para fusionar después con la tracción en `recolector_de_frutas`.
 
 ## Máquinas
 

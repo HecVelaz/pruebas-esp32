@@ -1,16 +1,16 @@
-# Pendientes de pruebas-esp32 (al 2026-10-26)
+# Pendientes de pruebas-esp32 (al 2026-10-30)
 
 <!-- Movido desde CLAUDE.md (2026-10-22). Los bloques "Pendiente GPS", "Pendiente" de 08 y "Falta" se movieron
      tal cual; el resto se copió de los "Pendiente:" que siguen dentro de cada entrada de BITACORA.md. -->
 
 ## Brazo (12–14, 17, lo próximo)
 
-- J1 (`12`): resolver la escala (contar los dientes de las poleas de la base y del motor, o prueba de 180°: `m -42` → `m 126` → `m 0`); si es 84/18, `RELACION_TRANSMISION = 84.0f / 18.0f` en `12` y en `17`. Después `dg` y los pasos 2 (PI de velocidad), 3 (posición, `a` en vez de `m`), 4 (rango) y 5 (limón).
+- J1 al robot: pasar a `recolector_de_frutas/firmware/brazo/include/brazo_config.h` la polea de 84 (relación 84/18), el factor de las ganancias en rpm (×1,286 en vez de ×1,2), los límites −30° / +90° y los signos. Antes confirmar con el usuario que el cero al frente de `12` es el +X de `brazo_ik` y dónde queda el mástil (ahí dice "adelante-derecha"); actualizar también `cinematica.py` y el URDF.
+- J1 (`12`): `dg` (paso A). Opcional: `VMIN_POS` 3 → 5 °/s (o tolerancia 0,5°) para el stick-slip del final; subir `VMAX_POS` de a poco (45 / 90 °/s²) si hace falta más velocidad; video para la Entrega 6.
 - Probar en placa `13-j2-hombro` y `14-j3-codo` a 1 kHz: pasos A, 0 signos, 1 cuentas y cuatro barras, 2 barrido de carga, 3 PI, 4 posición, 5 carga, 6 al robot (plan en cada README). Todo lo de J2 y J3 es PROVISORIO (signos, límites ±15°, duty máx 60 %, ganancias, ff 17/8 %, khp 3 / khi 8).
-- `17-brazo-joystick`: flashear (12 V apagados) y probar en placa con la escala baja; anotar signos de J2/J3 (estado `SIGNO`) y si los `dutyMin`/`dutyMax` sirven. Mejora: sostener J2/J3 con el PI de posición al soltar el joystick (hoy frenadas bajan despacio). Después, fusionar con la tracción por joystick en `recolector_de_frutas`.
+- `17-brazo-joystick`: flashear (12 V apagados) y probar en placa con la escala baja (J1 ya con escala, signos y límites del 30/10); anotar signos de J2/J3 (estado `SIGNO`) y si los `dutyMin`/`dutyMax` sirven. Mejora: sostener J2/J3 con el PI de posición al soltar el joystick (hoy frenadas bajan despacio). Después, fusionar con la tracción por joystick en `recolector_de_frutas`.
 - `15`/`16`: anotar en sus README los resultados de J3 con el C3 (IBT-2 y L298N), si se hicieron.
 - Hombro (`10`, 2026-10-13): medir con `bc` el duty según el ángulo y hacer compensación de gravedad en el hombro; la USB se desconectó una vez con un pulso fuerte (revisar masas).
-- J1 (`10`): video para la Entrega 6; opcional tolerancia 0,1° / 0,3°; pasar ganancias a `recolector_de_frutas/firmware/brazo/include/brazo_config.h`.
 - J3 con el 5840 (`10`): probar `--bj 6 40 3` (dither), lubricar los engranajes, prueba con el limón, duty máx a ~70 %, resorte o contrapeso, pasar J3 al IBT-2 en `recolector_de_frutas` (cambiar J3 a IBT-2 en `recolector_de_frutas/firmware/brazo` y sus docs).
 - J2 con el 5840 (`10`): medir con una balanza de mano la fuerza para sostener el brazo y la geometría para dimensionar la compensación (resorte o contrapeso); duty máx en 80 % (temporal); la fuente tiene que volver a 2 A; probar bajar con duty fijo sin PI (`m -8 12`, `m -8 15`, `m -8 20`, volviendo con `m 0 60`); idea de Kp distinto para subir (0,35) y bajar (0,2); mecánico: resorte a gas o fricción en el eje del hombro, lubricar; después limón, duty máx a ~55 %, límites definitivos.
 - Informe (`10`): escalones de velocidad de J2 y J3 con Kp 0,35 / Ki 5; modelo de J2; el CSV de `ep` debería guardar todo el feedforward y `bj` (hoy se pasan con `--ff`/`--bj` al rehacer); `firmware_colab.md` todavía usa q en vez de J. Los simuladores de `tools/` todavía usan una sola zona muerta.
