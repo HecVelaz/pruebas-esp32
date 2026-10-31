@@ -26,6 +26,9 @@ bool frenada();               // llegó y el freno dentro de la banda está pren
 float uHold();                // duty aprendido que sostiene el peso (%)
 // Banda del integrador (°) y freno dentro de la banda (ver config.h)
 void opciones(float bandaInt, bool frenoEnBanda);
+// Compensación de fricción al sostener (%, ver FR_SOSTENER en config.h)
+void friccion(float pct);
+float friccion();
 // Frecuencia del PWM: la cambia la tarea en su próximo periodo (pasando por duty 0). pwmHz(): la vigente
 void pwm(uint32_t hz);
 uint32_t pwmHz();

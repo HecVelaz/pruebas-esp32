@@ -180,3 +180,13 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   apretado `p` negativo no empuja (avisa); la precarga descuenta también el proporcional del primer periodo
   (`kp·a_max·Ts_pos`); el sostener debajo de 0° no corre la referencia hacia donde cae y suelta (freno) si pasa el
   límite extendido; el corte en el límite extendido informa ese límite (no 0°).
+- **Prueba a 20 kHz (`-e j2`):** pulsos de 200 ms con J2 en 20° y J3 en 10°: subiendo, 20 % y 25 % no, **35 % sí**
+  (+1,05°); bajando, **−15 % no** (0 cuentas). `a 20` desde 21° y `a 12` llegan (arranque sin salto). **J3 a 20 kHz va
+  y viene**: pidiendo 10° queda entre 9,4° y 11,8° y no termina de llegar (`Esperando a J3` hasta cancelar,
+  `SIN ASENTAR`); el duty con que sostiene va de +13 % (en 10°) a −33 % (en 14°): la franja de duty en que la
+  fricción no la deja moverse es mucho más ancha que a 1 kHz y el integrador la cruza de a saltos. **Decisión del
+  usuario: seguir con 20 kHz y ajustar; si no anda, 5 kHz con `fb` (ruido al moverse, silencio quieta).**
+- **Compensación de fricción al sostener (compila `-e j2` y `-e j3`):** las dos suman
+  `FR·clamp(error / 0,3°, −1, 1)` al duty (`FR_SOSTENER` = 0, apagada; en vivo `fr` y `ofr`). Umbrales para 20 kHz
+  (PROVISORIOS): `ARRANQUE_PCT` 35 → 45 %, `ATASCO_DUTY_PCT` 50 → 60 %, `DUTY_MAX_PCT` 60 → 70 %, la otra: duty
+  máximo 50 → 60 % y atasco 45 → 55 %.

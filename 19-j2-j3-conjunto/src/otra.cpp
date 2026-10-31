@@ -42,6 +42,7 @@ volatile uint32_t tLlegada = 0;   // millis() al llegar
 volatile float uHoldV = 0.0f;
 volatile float bandaInt = BANDA_INT_HOLD;
 volatile bool frenoBanda = FRENO_EN_BANDA;
+volatile float fr = FR_SOSTENER;  // compensación de fricción (%)
 volatile uint32_t pedidoPwm = 0;          // != 0: la tarea cambia la frecuencia del PWM
 volatile uint32_t pwmVigente = OTRA.pwmHz;
 
@@ -151,7 +152,9 @@ void tarea(void *) {
     if (!frenada && fabsf(e) >= bandaInt) uHold += ki * e * dt;
     uHold = constrain(uHold, -OTRA.dutyMax, OTRA.dutyMax);
     uHoldV = uHold;
-    float v = frenada ? 0.0f : constrain(uHold + kp * e, -OTRA.dutyMax, OTRA.dutyMax);
+    // Compensación de fricción: empujón en el sentido del error (lleno desde FR_RAMPA_GRADOS)
+    const float comp = fr * constrain(e / FR_RAMPA_GRADOS, -1.0f, 1.0f);
+    float v = frenada ? 0.0f : constrain(uHold + kp * e + comp, -OTRA.dutyMax, OTRA.dutyMax);
     // Final de carrera apretado (está en el lado -): no empujar contra él
     if (fc && v < 0.0f) {
       v = 0.0f;
@@ -230,6 +233,8 @@ void pwm(uint32_t hz) {
   while (pedidoPwm && millis() - t0 < 5 * TS_MS) delay(1);
 }
 uint32_t pwmHz() { return pwmVigente; }
+void friccion(float pct) { fr = pct; }
+float friccion() { return fr; }
 void opciones(float b, bool f) {
   bandaInt = b;
   frenoBanda = f;

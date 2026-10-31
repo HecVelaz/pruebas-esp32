@@ -106,6 +106,7 @@ bool sostenerAuto = art::SOSTENER_AUTO;     // "sa" (ver sostenerPaso)
 float khP = art::KHP_SOSTENER;  // % por grado
 float khI = art::KHI_SOSTENER;  // % por grado y por segundo
 uint32_t pwmHz = art::PWM_FREQ_HZ;   // "pwm": frecuencia del PWM de las dos (en vivo; config.h tiene la medida)
+float frA = FR_SOSTENER;              // % ("fr"): compensación de fricción al sostener de la activa
 float bandaInt = BANDA_INT_HOLD;      // ° ("bi"): con |error| menor, uHold no integra (las dos)
 bool frenoEnBanda = FRENO_EN_BANDA;   // "fb": al llegar, freno (duty 0) hasta que se aleje más de TOL_SALIDA (las dos)
 
@@ -198,6 +199,7 @@ void ayuda() {
   Serial.println("  s [°]        sostener con el control de posición (sin número: donde está) hasta Enter. Ej: s, s 10");
   Serial.println("  sa           sostener automático sí/no: entre comando y comando mantiene el ángulo (x lo apaga)");
   Serial.println("  khp <x>, khi <x>  ganancias del sostener quieto (%/°, %/(°·s))");
+  Serial.println("  fr <%>, ofr <%>  compensación de fricción al sostener: la activa / la otra (0 = apagada)");
   Serial.println("  bi <°>       banda del integrador al sostener (las dos): con menos error no integra. Ej: bi 0.2");
   Serial.println("  fb           freno dentro de la banda sí/no (las dos): al llegar, duty 0 hasta que se aleje");
   Serial.println("  pwm <Hz>     frecuencia del PWM de las dos, en vivo (500 a 25000; ej. pwm 20000). Al reiniciar,");
@@ -659,8 +661,10 @@ void mostrarGanancias() {
   Serial.printf("P de posición: kpp = %.3f 1/s | v_max %.0f °/s, a_max %.0f °/s², llega a ±%.2f°, se despierta a "
                 "±%.2f° | %lu ms\n", kpp, art::VMAX_POS, art::AMAX_POS, art::TOL_POS, art::TOL_SALIDA,
                 (unsigned long)(art::TS_POS_US / 1000));
-  Serial.printf("Sostener quieto: khp = %.1f %%/°, khi = %.1f %%/(°·s) | automático (sa) %s\n", khP, khI,
-                sostenerAuto ? "PRENDIDO" : "apagado");
+  Serial.printf("Sostener quieto: khp = %.1f %%/°, khi = %.1f %%/(°·s), fricción (fr) %.1f %% | automático (sa) %s\n",
+                khP, khI, frA, sostenerAuto ? "PRENDIDO" : "apagado");
+  Serial.printf("Sostener de %s (la otra): okp = %.1f %%/°, oki = %.1f %%/(°·s), fricción (ofr) %.1f %%\n", OTRA.nombre,
+                otra::khp(), otra::khi(), otra::friccion());
   Serial.printf("PWM (pwm): %s %lu Hz, %s %lu Hz (config.h: %lu Hz)\n", art::NOMBRE, (unsigned long)pwmHz, OTRA.nombre,
                 (unsigned long)otra::pwmHz(), (unsigned long)art::PWM_FREQ_HZ);
   Serial.printf("Las dos al sostener: banda del integrador (bi) ±%.2f° | freno dentro de la banda (fb) %s | "
@@ -953,7 +957,9 @@ void sostenerPaso() {
     // Banda del integrador ("bi"): errores más chicos no integran (con la fricción el duty iba y venía)
     if (!hold.frenada && fabsf(e) >= bandaInt)
       hold.uHold = constrain(hold.uHold + khI * ts * e, -art::DUTY_MAX_PCT, art::DUTY_MAX_PCT);
-    u = hold.frenada ? 0.0f : constrain(hold.uHold + khP * e, -art::DUTY_MAX_PCT, art::DUTY_MAX_PCT);
+    // Compensación de fricción ("fr"): empujón en el sentido del error, lleno desde FR_RAMPA_GRADOS
+    const float comp = frA * constrain(e / FR_RAMPA_GRADOS, -1.0f, 1.0f);
+    u = hold.frenada ? 0.0f : constrain(hold.uHold + khP * e + comp, -art::DUTY_MAX_PCT, art::DUTY_MAX_PCT);
     hold.integral = 0.0f;
   } else {
     u = pasoPI(hold.wRef, wMed, grados(c), hold.integral);
@@ -1582,8 +1588,8 @@ void mostrarOtra() {
                                                                          : (!otra::llego() ? "LLEGANDO"
                                                                                            : (otra::frenada() ? "LLEGÓ (frenada)" : "LLEGÓ"))));
   if (otra::activa())
-    Serial.printf("   error %+.2f° (destino - medido) | duty aprendido %+.1f %%\n", otra::destino() - otra::grados(),
-                  otra::uHold());
+    Serial.printf("   error %+.2f° (destino - medido) | duty aprendido %+.1f %% | fricción (ofr) %.1f %%\n",
+                  otra::destino() - otra::grados(), otra::uHold(), otra::friccion());
   float mn, mx;
   intervaloOtra(mn, mx);
   Serial.printf("   Límites de %s con %s entre %+.1f° y %+.1f° (peor caso): %+.1f° / %+.1f°\n", art::NOMBRE, OTRA.nombre,
@@ -1832,6 +1838,13 @@ void ejecutarComando(char *l) {
     comandoGanancia(l + 3, kpp, "kpp");
   } else if (l[0] == 'a' && (l[1] == ' ' || l[1] == '\0')) {
     comandoIrA(l + 1);
+  } else if (strncmp(l, "ofr", 3) == 0 && (l[3] == ' ' || l[3] == '\0')) {
+    float v = otra::friccion();
+    comandoGanancia(l + 3, v, "ofr");  // muestra las ganancias antes de aplicarla: se confirma abajo
+    otra::friccion(v);
+    Serial.printf(">> Fricción de %s (ofr): %.1f %%\n", OTRA.nombre, otra::friccion());
+  } else if (strncmp(l, "fr", 2) == 0 && (l[2] == ' ' || l[2] == '\0')) {
+    comandoGanancia(l + 2, frA, "fr");
   } else if (strncmp(l, "khp", 3) == 0 && (l[3] == ' ' || l[3] == '\0')) {
     comandoGanancia(l + 3, khP, "khp");
   } else if (strncmp(l, "khi", 3) == 0 && (l[3] == ' ' || l[3] == '\0')) {

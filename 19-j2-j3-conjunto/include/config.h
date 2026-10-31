@@ -58,7 +58,9 @@ constexpr uint8_t PWM_BITS = 10;
 // (abajo, BANDA_*) los achica según dónde esté J3.
 constexpr float LIMITE_POS_GRADOS = 97.0f;
 constexpr float LIMITE_NEG_GRADOS = 0.0f;
-constexpr float DUTY_MAX_PCT = 60.0f;      // PROVISORIO. A 12 V el motor trabado pide hasta 10 A: fuente con límite de 3 A
+// 2026-10-31: 60 -> 70 % para 20 kHz (más duty por la misma fuerza). PROVISORIO. A 12 V el motor trabado pide hasta
+// 10 A: fuente con límite de 3 A
+constexpr float DUTY_MAX_PCT = 70.0f;
 constexpr uint32_t PULSO_MAX_MS = 500;     // a 100 % el hombro va a ~70 °/s (58 rpm / 5 x 6)
 constexpr uint32_t PULSO_DEF_MS = 100;
 constexpr int32_t CUENTAS_SIN_GIRO = 5;
@@ -80,7 +82,7 @@ constexpr float ZONA_MUERTA_PCT = 17.0f;      // PROVISORIO: de 1 kHz (medir a 2
 constexpr float ZONA_MUERTA_NEG_PCT = 8.0f;   // PROVISORIO: de 1 kHz
 constexpr float DESPEGUE_PCT = ZONA_MUERTA_PCT;
 constexpr float DESPEGUE_NEG_PCT = ZONA_MUERTA_NEG_PCT;
-constexpr float ARRANQUE_PCT = 35.0f;      // PROVISORIO: debajo de esto no actúa el corte "sin cuentas" (sostener el
+constexpr float ARRANQUE_PCT = 45.0f;      // PROVISORIO (35 -> 45 para 20 kHz: J2 arranca con 35 %): debajo de esto no actúa el corte "sin cuentas" (sostener el
                                            // peso ya pide duty sin moverse). Ajustar con el paso 0
 constexpr uint32_t TS_VEL_US = 10000;
 constexpr int VENTANA_VEL = 4;
@@ -92,7 +94,7 @@ constexpr uint32_t ESCALON_MAX_MS = 3000;
 constexpr uint32_t PAUSA_MS = 500;
 constexpr uint32_t CICLOS_MAX = 60;
 constexpr float ATASCO_VEL = 2.0f;
-constexpr float ATASCO_DUTY_PCT = 50.0f;   // debajo de DUTY_MAX_PCT
+constexpr float ATASCO_DUTY_PCT = 60.0f;   // debajo de DUTY_MAX_PCT (50 -> 60 para 20 kHz, PROVISORIO)
 constexpr uint32_t ATASCO_MS = 300;
 
 // Paso 3: P de posición (como J1)
@@ -166,7 +168,9 @@ constexpr uint8_t PWM_BITS = 10;
 // (abajo, BANDA_*) los achica según dónde esté J2.
 constexpr float LIMITE_POS_GRADOS = 113.0f;
 constexpr float LIMITE_NEG_GRADOS = 0.0f;
-constexpr float DUTY_MAX_PCT = 60.0f;      // PROVISORIO. A 12 V el motor trabado pide hasta 10 A: fuente con límite de 3 A
+// 2026-10-31: 60 -> 70 % para 20 kHz (más duty por la misma fuerza). PROVISORIO. A 12 V el motor trabado pide hasta
+// 10 A: fuente con límite de 3 A
+constexpr float DUTY_MAX_PCT = 70.0f;
 constexpr uint32_t PULSO_MAX_MS = 500;     // a 100 % el codo va a ~70 °/s (58 rpm / 5 x 6)
 constexpr uint32_t PULSO_DEF_MS = 100;
 constexpr int32_t CUENTAS_SIN_GIRO = 5;
@@ -189,7 +193,7 @@ constexpr float ZONA_MUERTA_PCT = 17.0f;      // PROVISORIO: de 1 kHz (medir a 2
 constexpr float ZONA_MUERTA_NEG_PCT = 8.0f;   // PROVISORIO: de 1 kHz
 constexpr float DESPEGUE_PCT = ZONA_MUERTA_PCT;
 constexpr float DESPEGUE_NEG_PCT = ZONA_MUERTA_NEG_PCT;
-constexpr float ARRANQUE_PCT = 35.0f;      // PROVISORIO: debajo de esto no actúa el corte "sin cuentas" (sostener el
+constexpr float ARRANQUE_PCT = 45.0f;      // PROVISORIO (35 -> 45 para 20 kHz: J2 arranca con 35 %): debajo de esto no actúa el corte "sin cuentas" (sostener el
                                            // peso ya pide duty sin moverse). Ajustar con el paso 0
 constexpr uint32_t TS_VEL_US = 10000;
 constexpr int VENTANA_VEL = 4;
@@ -201,7 +205,7 @@ constexpr uint32_t ESCALON_MAX_MS = 3000;
 constexpr uint32_t PAUSA_MS = 500;
 constexpr uint32_t CICLOS_MAX = 60;
 constexpr float ATASCO_VEL = 2.0f;
-constexpr float ATASCO_DUTY_PCT = 50.0f;   // debajo de DUTY_MAX_PCT
+constexpr float ATASCO_DUTY_PCT = 60.0f;   // debajo de DUTY_MAX_PCT (50 -> 60 para 20 kHz, PROVISORIO)
 constexpr uint32_t ATASCO_MS = 300;
 
 // Paso 3: P de posición (como J1)
@@ -246,12 +250,14 @@ struct ConfigOtra {
   float vel;             // °/s de la referencia
 };
 constexpr ConfigOtra OTRA_J2 = {"J2", 16.0f * 4.0f * 139.0f * (75.0f / 15.0f) / 360.0f, false, false, cfg_j2::PWM_FREQ_HZ,
-                                0.0f, 97.0f, 3.0f, 8.0f, 50.0f, 5.0f};
+                                0.0f, 97.0f, 3.0f, 8.0f, 60.0f, 5.0f};
 constexpr ConfigOtra OTRA_J3 = {"J3", 16.0f * 4.0f * 139.0f * (75.0f / 15.0f) / 360.0f, true, true, cfg_j3::PWM_FREQ_HZ,
-                                0.0f, 113.0f, 3.0f, 8.0f, 50.0f, 5.0f};
+                                0.0f, 113.0f, 3.0f, 8.0f, 60.0f, 5.0f};
 constexpr float OTRA_ERROR_AVISO = 5.0f;   // ° de error durante OTRA_ERROR_MS: avisa (sigue sosteniendo)
 constexpr uint32_t OTRA_ERROR_MS = 1000;
-constexpr float OTRA_ATASCO_DUTY = 45.0f;  // con este duty o más y sin moverse OTRA_ATASCO_MS: deja de empujar (freno)
+// Con este duty o más y sin moverse OTRA_ATASCO_MS: deja de empujar (freno). 45 -> 55 % y el duty máximo de la otra
+// 50 -> 60 % para 20 kHz (2026-10-31: J3 sostenía con -34 % en (10°, 3°)). PROVISORIO.
+constexpr float OTRA_ATASCO_DUTY = 55.0f;
 constexpr uint32_t OTRA_ATASCO_MS = 1500;
 // Mientras la otra va a su destino, los movimientos de la activa esperan como mucho esto (a 5 °/s, 113° son ~23 s).
 // PROVISORIO.
@@ -270,6 +276,12 @@ constexpr bool FRENO_EN_BANDA = false;
 // "p" negativo con el final de carrera de la activa SUELTO puede pasar su límite propio (0°) para llegar a él (lo
 // corta al apretarse), como mucho esto más abajo (por si el final de carrera no anda). La franja se respeta siempre.
 constexpr float HASTA_FC_MAX_GRADOS = 10.0f;
+// Compensación de fricción al sostener (las dos): suma FR·clamp(error / FR_RAMPA_GRADOS, -1, 1) al duty. A 20 kHz la
+// franja de duty en la que la fricción no deja moverse es ancha (J3 en ~10°: de +13 a -33 %) y el integrador la
+// cruzaba de a saltos (J3 iba y venía ±1°). Con 0,3° de error o más suma FR entero; cerca de 0 casi nada (no tiembla).
+// PROVISORIO: arranca apagada; ajustar en vivo con "fr" (activa) y "ofr" (otra).
+constexpr float FR_SOSTENER = 0.0f;       // %
+constexpr float FR_RAMPA_GRADOS = 0.3f;
 // Asentamiento: después de llegar, cuánto sigue sosteniendo antes de informar la posición final ("Asentado").
 constexpr uint32_t ASENTAMIENTO_MS = 2000;  // PROVISORIO
 

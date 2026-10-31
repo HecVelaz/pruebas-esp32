@@ -87,7 +87,9 @@ no arrancaba con menos de 40 % (con la fuente por el XT60 de contacto malo). Con
 duty arranca subiendo y bajando) y `o 12` → `oc` (¿J3 llega? ¿con qué duty sostiene? ¿pita?). Si a 20 kHz arranca con
 ≤ ~25 %, pasar las dos a 20 kHz y volver a medir la zona muerta antes del mapa. **Resultado (2026-10-31):** a 1 kHz
 arranca subiendo con 25 % y bajando con 15 %; a 20 kHz J2 va y sostiene bien (error ≤ 0,20°, duty estable) y no pita
-→ **20 kHz** (`PWM_FREQ_HZ`). Falta: los pulsos a 20 kHz (arranque) y J3.
+→ **20 kHz** (`PWM_FREQ_HZ`). A 20 kHz (pulsos): J2 arranca subiendo con 35 %, bajando con más de 15 %; J3 sostenida
+va y viene ±1° (fricción ancha en duty) → compensación de fricción `fr` / `ofr` (ajuste en placa: alternar `o 10` /
+`o 14` con `ofr 10`, `15`, `20`; J2 con `a 20` / `a 25` y `fr`). Si no anda: 5 kHz con `fb`.
 
 **Prueba F3a (captura del mapa de gravedad, con `-e j2`):** **abrir el puerto serie puede reiniciar la WROOM**
 (2026-10-31: al volver a abrir el monitor, cero perdido y las dos sueltas), así que el cero lo hace el script: J2 y
@@ -104,7 +106,8 @@ que la mueva) puede pasar de 0° y se corta al apretarse (`FINAL DE CARRERA APRE
 
 **Comandos nuevos:** `o <°>` llevar la otra y sostenerla · `oc` dónde está la otra (medido, referencia, destino,
 `EN CAMINO` / `LLEGANDO` / `LLEGÓ`, error, duty aprendido) y los límites de la activa con el peor caso · `bi <°>` banda
-del integrador · `fb` freno dentro de la banda sí/no · `an [nota]` anotar el duty de las dos asentadas (línea
+del integrador · `fb` freno dentro de la banda sí/no · `fr <%>`, `ofr <%>` compensación de fricción al sostener (activa /
+otra) · `an [nota]` anotar el duty de las dos asentadas (línea
 `MAPA,...`, para `tools/mapa_gravedad.py`) · `pwm <Hz>` frecuencia del PWM de las dos en vivo (al reiniciar vuelve
 la de `config.h`, 1 kHz) ·
 `okp`, `oki` ganancias del sostener de la otra · `x` suelta las dos. El resto, como `12`–`14` (`?`).
