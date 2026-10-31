@@ -33,7 +33,8 @@ tools/monitor.sh                            # salir con Ctrl+]
 
 ## Comandos (fase 5a)
 
-`h` homing de las tres · `j <n> <°>` mover una (1, 2 o 3) dentro de sus límites y de la franja · `s` sostener las
+`h` homing de las tres · `j <n> <°>` mover una (1, 2 o 3) dentro de sus límites y de la franja · `mv <q1> <q2> <q3>`
+las tres a la vez (5b) · `s` sostener las
 tres donde están · `z` cero acá (en los finales de carrera; mejor `h`) · `c` estado · `fb` freno en banda sí/no ·
 `ff <n> <desp+> <marcha+> <desp-> <marcha->` feedforward de una (en vivo) · `x` rueda libre de las tres · `?`.
 
@@ -47,12 +48,22 @@ brazo apoyado → 12 V apagados**. Fuente a la bornera, 3 A.
 3. `j 2 15` → `j 3 10` → `j 1 30` → `j 1 3` → `j 3 3` → `j 2 3` (cada una mientras las otras se sostienen). J3 con el
    feedforward PROVISORIO: si no arranca o se pasa, `ff 3 ...`.
 
+## Prueba 5b
+
+Después de `h` (las tres en 3°), con poses que se sepa que **no chocan con la caja**:
+`mv 20 15 10` → `mv 3 3 3` → `mv 40 30 20` → `mv 20 20 24` → `mv 3 3 3`. Mirar que **arranquen y terminen juntas**,
+que las que bajan **se pasen 2° y vuelvan subiendo despacio**, y anotar cada `LLEGO,...` (errores). Repetir un mismo
+`mv` varias veces desde poses distintas y comparar los `LLEGO` (adelanto de la fase 6).
+
 ## Estado
 
 - [x] 5a: biblioteca, sostener las tres, homing de las tres, `j` (**probada en placa 2026-10-31**: flancos al nivel
   de una cuenta del encoder; `j` firmes con error ≤ 0,25°)
-- [ ] 5b: `mv q1 q2 q3`: las tres a la vez, terminan juntas, camino recto dentro de la franja, llegada siempre con
-  el ángulo creciendo (2° antes y el último tramo despacio)
+- [x] 5b (compila 2026-10-31; **sin probar en placa**): `mv q1 q2 q3`: las tres siguen el mismo perfil quíntico
+  (terminan juntas; recta en (q2, q3) dentro de la franja), a la mitad de su vMax/aMax (`MV_FACTOR_VEL`,
+  PROVISORIO); las que bajan terminan 2° por debajo y suben el último tramo a 2 °/s (llegada siempre con el ángulo
+  creciendo); a los 2 s firmes: `LLEGO,t,q1,q2,q3,e1,e2,e3`. Corta si alguna se aleja más de 5° de su referencia, con
+  la franja o con cualquier comando. **No esquiva la caja.**
 - [ ] 5c: telemetría (`t`) y `tools/trayectoria.py`
 - [ ] Zona prohibida: que el brazo no choque con la caja (después)
 

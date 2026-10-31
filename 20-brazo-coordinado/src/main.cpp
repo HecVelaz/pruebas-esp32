@@ -3,7 +3,8 @@
 // las tres (J3 -> J2 -> J1) con el cero en el flanco, y movimientos de a una ("j") dentro de la franja del cuatro
 // barras. Los comandos llegan por Serial (loop) a una cola; la tarea los ejecuta entre periodos y deja los mensajes
 // en otra cola que imprime loop(): la tarea nunca espera a Serial.
-// Pendiente: 5b movimientos coordinados ("mv", llegada desde el mismo lado), 5c telemetría; zona prohibida (la caja).
+// Fase 5b: "mv q1 q2 q3": las tres a la vez, terminan juntas, camino recto en (q2, q3) dentro de la franja, llegada
+// siempre con el ángulo creciendo; al asentarse, línea LLEGO. Pendiente: 5c telemetría; zona prohibida (la caja).
 #include <Arduino.h>
 
 #include "Articulacion.h"
@@ -151,6 +152,191 @@ void homingPaso() {
       hm.conCero[I1] ? 1 : 0, hm.conCero[I2] ? 1 : 0, hm.conCero[I3] ? 1 : 0);
 }
 
+// ---------- Fase 5b: movimiento coordinado ("mv") ----------
+// Etapas: 1 recorrido (hasta el objetivo, o APROX_GRADOS por debajo para las que bajan), 2 aproximación (esas suben
+// el último tramo despacio), 3 llegada (las tres sostienen el objetivo hasta quedar firmes), 4 asentamiento.
+struct {
+  bool activo = false;
+  int etapa = 0;
+  float desde[N], hasta[N], obj[N];
+  bool mueve[N];       // en la etapa: esta se mueve
+  bool aprox[N];       // llega desde abajo (bajaba)
+  float T = 1.0f;      // s, duración de la etapa
+  uint32_t k = 0;      // periodos desde el comienzo de la etapa
+  uint32_t tEtapa = 0, tFirme = 0;
+} mv;
+
+// Duración del perfil quíntico para que ninguna pase su velocidad ni su aceleración (con el factor de "mv"):
+// pico de velocidad 1,875·D/T, pico de aceleración 5,774·D/T²
+float duracion(const float d[N], float factorVel, float velFija) {
+  float T = 0.0f;
+  for (int i = 0; i < N; i++) {
+    const float D = fabsf(d[i]);
+    if (D < 1e-3f) continue;
+    const float v = velFija > 0.0f ? velFija : factorVel * art[i].cfg().vMax;
+    const float a = factorVel * art[i].cfg().aMax;
+    T = fmaxf(T, fmaxf(1.875f * D / v, sqrtf(5.774f * D / a)));
+  }
+  return T;
+}
+
+void mvEtapa(int etapa) {
+  mv.etapa = etapa;
+  mv.k = 0;
+  mv.tEtapa = millis();
+  float d[N];
+  for (int i = 0; i < N; i++) {
+    mv.desde[i] = art[i].referencia();
+    if (etapa == 1) {
+      mv.hasta[i] = mv.aprox[i] ? mv.obj[i] - APROX_GRADOS : mv.obj[i];
+    } else {
+      mv.hasta[i] = mv.obj[i];
+    }
+    d[i] = mv.hasta[i] - mv.desde[i];
+    mv.mueve[i] = (etapa == 1 || etapa == 2) && fabsf(d[i]) >= 0.01f;
+    if (!mv.mueve[i]) d[i] = 0.0f;
+  }
+  if (etapa == 1) mv.T = fmaxf(duracion(d, MV_FACTOR_VEL, 0.0f), MV_T_MIN);
+  if (etapa == 2) mv.T = duracion(d, 1.0f, VEL_APROX);
+  if (etapa >= 3)
+    for (int i = 0; i < N; i++) art[i].sostener(mv.obj[i]);
+}
+
+void mvCortar(const char *causa) {
+  // Todas se quedan donde están: las que se movían, frenadas; las que ya sostenían, en su lugar actual (si no,
+  // seguían yendo al objetivo del movimiento cortado)
+  for (auto &a : art) {
+    if (a.modo() == Articulacion::Modo::Seguir || (a.modo() == Articulacion::Modo::Sostener && !a.llego()))
+      a.frenarAqui();
+    else if (a.modo() == Articulacion::Modo::Sostener)
+      a.sostenerAqui();
+  }
+  mv.activo = false;
+  msg(">> mv CORTADO: %s. Quedan sosteniendo donde están.", causa);
+  msg("MV_ERROR,%s", causa);
+}
+
+void mvIniciar(const float obj[N]) {
+  enAlto();
+  for (int i = 0; i < N; i++) {
+    art[i].reiniciarEstado();
+    if (art[i].modo() != Articulacion::Modo::Sostener || !art[i].llego()) art[i].sostenerAqui();
+    mv.obj[i] = obj[i];
+    mv.aprox[i] = obj[i] < art[i].q() - 0.05f;  // baja: llega desde abajo
+  }
+  mv.activo = true;
+  bool algunaAprox = false;
+  for (bool b : mv.aprox) algunaAprox = algunaAprox || b;
+  mvEtapa(1);
+  msg(">> mv a (%+.2f, %+.2f, %+.2f) en %.1f s%s.", obj[I1], obj[I2], obj[I3], mv.T,
+      algunaAprox ? " + la aproximación desde abajo" : "");
+}
+
+void mvPaso() {
+  if (!mv.activo) return;
+  for (int i = 0; i < N; i++) {
+    if (art[i].error()) {
+      mvCortar(art[i].error());
+      return;
+    }
+  }
+  if (mv.etapa == 1 || mv.etapa == 2) {
+    mv.k++;
+    const float tau = fminf(mv.k * Articulacion::TS / fmaxf(mv.T, 1e-3f), 1.0f);
+    const float t2 = tau * tau, t3 = t2 * tau;
+    const float sp = t3 * (10.0f - 15.0f * tau + 6.0f * t2);                 // posición normalizada
+    const float vp = 30.0f * t2 * (1.0f - 2.0f * tau + t2) / fmaxf(mv.T, 1e-3f);  // su derivada (1/s)
+    for (int i = 0; i < N; i++) {
+      // Todas, también las quietas: ninguna se puede alejar más de MV_ERROR_MAX de su referencia
+      if (fabsf(art[i].referencia() - art[i].q()) > MV_ERROR_MAX) {
+        mvCortar("no sigue la trayectoria (más de 5° de error)");
+        return;
+      }
+      if (!mv.mueve[i]) continue;
+      const float D = mv.hasta[i] - mv.desde[i];
+      art[i].seguir(mv.desde[i] + D * sp, D * vp);
+    }
+    if (tau >= 1.0f) {
+      if (mv.etapa == 1) {
+        // Antes de subir el último tramo, las que bajan tienen que estar de verdad por debajo del objetivo (si no,
+        // la llegada podía terminar siendo desde arriba): esperar en el punto previo, hasta 3 s
+        for (int i = 0; i < N; i++) {
+          if (mv.aprox[i] && art[i].q() > mv.obj[i] - 0.5f * APROX_GRADOS) {
+            if (mv.k * Articulacion::TS > mv.T + 3.0f) {
+              mvCortar("no bajó por debajo del objetivo para llegar desde abajo");
+            }
+            return;  // la referencia ya está en el punto previo (tau = 1): sigue ahí
+          }
+        }
+        bool algunaAprox = false;
+        for (bool b : mv.aprox) algunaAprox = algunaAprox || b;
+        mvEtapa(algunaAprox ? 2 : 3);
+      } else {
+        mvEtapa(3);
+      }
+      // Las que terminaron su parte se quedan donde las dejó la trayectoria (sostener sin salto)
+      for (int i = 0; i < N; i++)
+        if (!mv.mueve[i] && art[i].modo() == Articulacion::Modo::Seguir) art[i].sostener(art[i].referencia());
+    }
+    return;
+  }
+  // 3: las tres sostienen el objetivo hasta quedar firmes; 4: firmes ASENTAMIENTO_MS
+  bool firmes = true;
+  for (auto &a : art) firmes = firmes && a.firme();
+  if (mv.etapa == 3) {
+    if (firmes) {
+      mv.etapa = 4;
+      mv.tFirme = millis();
+    } else if (millis() - mv.tEtapa > MV_LLEGADA_MAX_MS) {
+      mvCortar("no quedan firmes");
+    }
+    return;
+  }
+  if (!firmes) {
+    mv.etapa = 3;
+    return;
+  }
+  if (millis() - mv.tFirme < ASENTAMIENTO_MS) return;
+  mv.activo = false;
+  float q[N];
+  for (int i = 0; i < N; i++) q[i] = art[i].q();
+  msg(">> Llegó: J1 %+.2f° J2 %+.2f° J3 %+.2f° (errores %+.2f %+.2f %+.2f°).", q[I1], q[I2], q[I3],
+      mv.obj[I1] - q[I1], mv.obj[I2] - q[I2], mv.obj[I3] - q[I3]);
+  msg("LLEGO,%lu,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f", (unsigned long)millis(), q[I1], q[I2], q[I3], mv.obj[I1] - q[I1],
+      mv.obj[I2] - q[I2], mv.obj[I3] - q[I3]);
+}
+
+// "mv <q1> <q2> <q3>": valida el destino (límites con margen, franja con margen entre los destinos de J2 y J3)
+void comandoMv(const char *args) {
+  float obj[N];
+  if (sscanf(args, "%f %f %f", &obj[I1], &obj[I2], &obj[I3]) != 3) {
+    msg("Uso: mv <q1> <q2> <q3>  (grados)");
+    return;
+  }
+  for (int i = 0; i < N; i++) {
+    if (!cero[i]) {
+      msg("%s sin cero: primero \"h\".", art[i].cfg().nombre);
+      return;
+    }
+    const ConfigArticulacion &c = art[i].cfg();
+    if (!isfinite(obj[i]) || obj[i] < c.limNeg + MARGEN_LIMITE || obj[i] > c.limPos - MARGEN_LIMITE) {
+      msg("Fuera de rango: %s entre %+.1f° y %+.1f°.", c.nombre, c.limNeg + MARGEN_LIMITE, c.limPos - MARGEN_LIMITE);
+      return;
+    }
+  }
+  const float d = obj[I3] - obj[I2];
+  if (d < -Q2_MENOS_Q3_MAX + MARGEN_LIMITE || d > Q3_MENOS_Q2_MAX - MARGEN_LIMITE) {
+    msg("Fuera de la franja: q3 - q2 = %+.1f°, tiene que estar entre %+.1f° y %+.1f° (con margen).", d,
+        -Q2_MENOS_Q3_MAX + MARGEN_LIMITE, Q3_MENOS_Q2_MAX - MARGEN_LIMITE);
+    return;
+  }
+  if (fueraFranjaAhora()) {
+    msg("J2 y J3 fuera de la franja ahora (q3 - q2 = %+.2f°): volver adentro con \"j\" antes.", dFranja());
+    return;
+  }
+  mvIniciar(obj);
+}
+
 // ---------- Comandos (los ejecuta la tarea) ----------
 
 void ayuda() {
@@ -158,6 +344,8 @@ void ayuda() {
   msg("  h            homing: J3, J2 y J1 a sus finales de carrera despacio, cero en el flanco, retroceden %.0f°",
       HOMING_RETROCESO);
   msg("  j <n> <°>    mover una articulación (1, 2 o 3) a un ángulo, dentro de sus límites y de la franja");
+  msg("  mv <q1> <q2> <q3>  las tres a la vez, terminan juntas (recta en q2-q3), llegan con el ángulo creciendo;");
+  msg("               al asentarse: LLEGO,t,q1,q2,q3,e1,e2,e3. Ojo: no esquiva la caja (zona prohibida pendiente)");
   msg("  s            sostener las tres donde están");
   msg("  z            cero de las tres acá (tienen que estar en sus finales de carrera; mejor \"h\")");
   msg("  c            estado de las tres");
@@ -257,6 +445,10 @@ void ejecutar(char *l) {
     homingCortar("comando");
     if (strcmp(l, "x") != 0) return;
   }
+  if (mv.activo && strcmp(l, "c") != 0) {  // y el movimiento coordinado
+    mvCortar("comando");
+    if (strcmp(l, "x") != 0) return;
+  }
   if (strcmp(l, "?") == 0) {
     ayuda();
   } else if (strcmp(l, "x") == 0) {
@@ -292,6 +484,8 @@ void ejecutar(char *l) {
     msg(">> Freno dentro de la banda %s (las tres).", frenoBanda ? "PRENDIDO" : "APAGADO");
   } else if (l[0] == 'j' && l[1] == ' ') {
     comandoMover(l + 2);
+  } else if (strncmp(l, "mv ", 3) == 0) {
+    comandoMv(l + 3);
   } else if (strncmp(l, "ff ", 3) == 0) {
     comandoFF(l + 3);
   } else {
@@ -316,6 +510,7 @@ void control(void *) {
     while (xQueueReceive(colaComandos, &ln, 0) == pdTRUE) ejecutar(ln.t);
     for (auto &a : art) a.paso();
     homingPaso();
+    mvPaso();
     // Franja del cuatro barras: si la medición sale (con holgura) con J2 o J3 controladas (moviéndose o sosteniendo:
     // sosteniendo también pueden corregir una caída), frenar las dos donde están. Una vez por episodio.
     static bool fueraFranja = false;
@@ -330,6 +525,7 @@ void control(void *) {
                                       art[I3].modo() == Articulacion::Modo::Seguir);
       if ((fuera && !fueraFranja) || alejando) {
         if (hm.activo) homingCortar("saldría de la franja del cuatro barras");
+        if (mv.activo) mvCortar("saldría de la franja del cuatro barras");
         art[I2].frenarAqui();
         art[I3].frenarAqui();
         if (!fueraFranja)
@@ -405,7 +601,7 @@ void setup() {
   colaComandos = xQueueCreate(16, sizeof(Linea));
   colaMensajes = xQueueCreate(24, sizeof(Mensaje));
   Serial.println();
-  Serial.println("== 20 · J1, J2 y J3 con el mismo controlador (fase 5a: sostener, homing, \"j\") · WROOM, 20 kHz ==");
+  Serial.println("== 20 · J1, J2 y J3 con el mismo controlador (5a: homing, \"j\"; 5b: \"mv\") · WROOM, 20 kHz ==");
   Serial.printf("Franja: q2 - %.1f° <= q3 <= q2 + %.1f°. J1 0-%.0f° (PROVISORIO: estirado choca antes), J2 0-%.0f°, "
                 "J3 0-%.0f°.\n", Q2_MENOS_Q3_MAX, Q3_MENOS_Q2_MAX, CFG_J1.limPos, CFG_J2.limPos, CFG_J3.limPos);
   if (!hwOk) Serial.println("ERROR: no se pudo configurar algún PWM o encoder.");

@@ -318,3 +318,12 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   del encoder (a la mañana J2 daba ±0,20°). `j` de a una: J2 15° (14,88), J3 10° (10,23; se pasó ~1° y volvió, con
   el feedforward PROVISORIO), J1 30° (29,77) y 3° (3,13), J3 3° (3,09), J2 3° (2,75): firmes y frenadas, errores
   ≤ 0,25°. Se ve el acople: J2 cambia su duty para sostenerse mientras J3 se mueve.
+- **5b (compila, sin probar en placa):** `mv q1 q2 q3`: las tres siguen el mismo perfil quíntico normalizado
+  (terminan juntas; J2 y J3 al mismo ritmo → recta en (q2, q3) dentro de la franja); duración según vMax/aMax de cada
+  una × `MV_FACTOR_VEL` (0,5, PROVISORIO), mínimo 1 s; llegada siempre con el ángulo creciendo (las que bajan terminan
+  2° por debajo y suben a 2 °/s); después sostienen el objetivo hasta quedar firmes y a los 2 s: `LLEGO,t,q1,q2,q3,
+  e1,e2,e3`. Corta con error de seguimiento > 5°, franja o cualquier comando. No esquiva la caja (pendiente).
+- Revisión de Codex de la 5b, tres arreglos: al cortar un `mv` todas se quedan donde están (las que ya sostenían el
+  objetivo seguían yendo a él); antes de subir el último tramo, las que bajan tienen que estar de verdad por debajo
+  del objetivo (espera hasta 3 s en el punto previo; si no, podía terminar llegando desde arriba); el error de
+  seguimiento (> 5°) se controla en las tres, también las quietas.

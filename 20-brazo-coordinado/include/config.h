@@ -20,6 +20,18 @@ constexpr float HOMING_Q2_MAX_ARRANQUE = 20.0f;  // con el cero conocido, J2 má
 constexpr uint32_t ASENTAMIENTO_MS = 2000;
 constexpr bool FRENO_EN_BANDA = true;      // 19, 2026-10-31: frenadas, quietas y sin ruido
 
+// ---------- Fase 5b: movimientos coordinados ("mv") ----------
+// Las tres siguen el MISMO perfil normalizado (quíntico: velocidad y aceleración 0 en los extremos) y terminan juntas;
+// J2 y J3 avanzan al mismo ritmo, así que el camino en (q2, q3) es una recta y la franja (convexa) se cumple.
+constexpr float MV_FACTOR_VEL = 0.5f;      // fracción de vMax/aMax de cada una para "mv" (PROVISORIO: empezar despacio)
+constexpr float MV_T_MIN = 1.0f;           // s, duración mínima de un movimiento
+// Llegada siempre con el ángulo creciendo (el juego de los engranajes queda del mismo lado): la que baja termina
+// APROX_GRADOS por debajo y sube el último tramo a VEL_APROX (las que suben ya llegan así).
+constexpr float APROX_GRADOS = 2.0f;
+constexpr float VEL_APROX = 2.0f;          // °/s (pico del perfil del último tramo)
+constexpr float MV_ERROR_MAX = 5.0f;       // ° entre la referencia y la medición: corta (no sigue la trayectoria)
+constexpr uint32_t MV_LLEGADA_MAX_MS = 20000;  // después de la trayectoria, tiempo para quedar las tres firmes
+
 // ---------- J1 (base): 36GP-555 160 rpm (50:1), correa 18 -> 84 (12-j1-base)
 constexpr ConfigArticulacion CFG_J1 = {
     "J1",
