@@ -161,4 +161,5 @@ la de `config.h`, 1 kHz) ·
 |---|---|---|
 | 2026-10-31 | F1 (`-e j2`) | `a 28` 28,02° (2,26 s), `a 50` 50,21° (1,92 s), `a 48` 48,21°; la franja rechaza `a 75` (J3 en 30°), `a 26` (J3 atrasada en ~31,5°) y `o 7` (J2 en 48°); `x` → `o 23` vuelve a sostener. J2 sostenida queda 0,9–1,4° abajo |
 | 2026-10-31 | F4 homing (`-e j2`, 20 kHz) | flanco respecto del anterior, 4 veces: J3 σ ≈ 0,02°, J2 σ ≈ 0,20° (a 1 °/s); un retroceso de J2 cortado ("sin cuentas", feedforward de 1 kHz) → J2: feedforward de 20 kHz y homing a 0,5 °/s |
+| 2026-10-31 | F4 homing, J2 a 0,5 °/s | flanco respecto del anterior, 4 veces: J2 σ ≈ 0,10°, J3 σ ≈ 0,06° (cada flanco ~0,07° / ~0,04°); sin cortes; `a` con el feedforward de 20 kHz llega y queda frenada |
 | 2026-10-31 | F2 (`-e j2`, cero de J2 ~4° corrido) | `a 20` → 19,94° (error 0,06°, duty 0,2 %); `bi 0.1`: J3 en 25° pasa a 24,2° y no llega (`LLEGANDO`), en 10° va y viene 8,9 ↔ 10,6°; `bi 0.2`: J3 9,96° fija (duty −24,5 %); `fb`: las dos frenadas, J3 con 0,39° de error congelado, sin pitido; `a 25` → 25,57° y después 27,10° (`uHold` de otra pose) |

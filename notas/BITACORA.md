@@ -260,3 +260,7 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
 - **J2 a 20 kHz:** feedforward despegue subiendo 35 % (medido), bajando 22 %, marcha 25 % / 8 % (PROVISORIOS) y
   homing de J2 a 0,5 °/s (`HOMING_VEL_BUSCAR` por articulación; J3 sigue en 1 °/s). J1: va con la fase 5 (`20`); el
   test de repetibilidad, primero en el plano de J2 y J3 con J1 frenada en su cero.
+- **Homing con J2 a 0,5 °/s y feedforward de 20 kHz (`-e j2`):** flanco respecto del anterior, 4 veces (la última
+  después de mover J2 a 20°, 10°, 18°, 20°): **J2 0,00 / −0,01 / +0,15 / −0,09° (σ ≈ 0,10°, antes 0,20°)**; J3 −0,08 /
+  +0,02 / +0,05 / −0,05° (σ ≈ 0,06°). Repetibilidad de cada flanco ≈ σ/√2: ~0,07° J2, ~0,04° J3. Sin cortes en el
+  retroceso. `a 20` / `a 10` / `a 18` / `a 20` llegan sin cortarse (error ≤ 0,3°) y quedan frenadas (`fb`).

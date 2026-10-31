@@ -24,7 +24,8 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
   hecha** (el sostener suma el modelo simple, `gm`; sin probar en placa: prueba F3b del README). Prueba F3b: el
   modelo empeora el sostener de J2 (propuesto `gm` apagado y `fb` prendido por defecto). Los ceros corridos del 31/10
   eran los finales de carrera girando por el golpe (un solo punto de apoyo); la pose del cero es la del 30/10 y la
-  franja vale. **Fase 4 (homing `h`) hecha, sin probar en placa.** Pendiente mecánico: fijar los finales de carrera.
+  franja vale. **Fase 4 (homing `h`) probada:** flanco de J2 ~0,07°, de J3 ~0,04° (J2 a 0,5 °/s, J3 a 1 °/s). Sigue la fase 5
+  (control conjunto; propuesta: carpeta `20`, con J1). Pendiente mecánico: fijar los finales de carrera.
   Abrir el puerto serie reinicia la WROOM (cero perdido, brazo suelto).
 - **Fuente:** conectada a la bornera del bus de 12 V (el adaptador al XT60 tiene un contacto malo: J1/J3 no se
   movían). Así no pasa por el fusible ni la seta: límite de 3 A y apagar la fuente como parada.
