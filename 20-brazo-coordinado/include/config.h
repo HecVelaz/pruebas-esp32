@@ -58,7 +58,7 @@ constexpr ConfigArticulacion CFG_J2 = {
     0.0f, 97.0f, 70.0f,
     0.549f, 4.0f,
     35.0f, 25.0f, 22.0f, 8.0f, 8.0f,      // despegue 35 % (medido a 20 kHz), resto PROVISORIO (19)
-    2.0f, 20.0f, 60.0f, 3.0f, 0.3f, 0.6f, 200,
+    2.0f, 20.0f, 60.0f, 3.0f, 0.3f, 0.6f, 200,  // 2026-10-31: con tolPos 0,15 y bandaInt 0,1 J2 repetía peor (0,29°; una vez "no quedan firmes")
     3.0f, 8.0f, 0.0f, 0.2f,               // sin compensación de fricción (19: llega sin ella)
     // homing a 0,5 °/s (19: flanco ~0,07°). Duty máximo 65 % (PROVISORIO): con 50 % no la levantaba desde el final
     // de carrera (2026-10-31: subió 1,5° y se trabó; sostenerla abajo pide ~25 % más el despegue)
@@ -77,8 +77,8 @@ constexpr ConfigArticulacion CFG_J3 = {
     0.0f, 113.0f, 70.0f,
     0.549f, 4.0f,
     20.0f, 10.0f, 40.0f, 30.0f, 0.0f,     // PROVISORIO (sin medir)
-    2.0f, 20.0f, 60.0f, 3.0f, 0.3f, 0.6f, 200,
-    3.0f, 8.0f, 15.0f, 0.2f,              // compensación de fricción 15 % (19: no se pasa, 0,09°)
+    2.0f, 20.0f, 60.0f, 3.0f, 0.15f, 0.6f, 200,  // tolPos 0,3 -> 0,15 (2026-10-31: repite en 0,03° en vez de 0,30°)
+    3.0f, 8.0f, 15.0f, 0.1f,              // compensación de fricción 15 % (19: no se pasa, 0,09°); bandaInt 0,2 -> 0,1
     1.0f, 2.0f, 2.0f, 50.0f, 120.0f, 1500, 2.0f, 1.5f,  // homing a 1 °/s (19: flanco ~0,04°)
     2.0f, 60.0f, 300, 45.0f, 150, 5.0f, 100, 30.0f,
     false};

@@ -59,7 +59,7 @@ que las que bajan **se pasen 2° y vuelvan subiendo despacio**, y anotar cada `L
 
 - [x] 5a: biblioteca, sostener las tres, homing de las tres, `j` (**probada en placa 2026-10-31**: flancos al nivel
   de una cuenta del encoder; `j` firmes con error ≤ 0,25°)
-- [x] 5b (compila 2026-10-31; **sin probar en placa**): `mv q1 q2 q3`: las tres siguen el mismo perfil quíntico
+- [x] 5b (**probada en placa 2026-10-31**: terminan juntas, las que bajan se pasan y vuelven subiendo; errores ≤ 0,46°): `mv q1 q2 q3`: las tres siguen el mismo perfil quíntico
   (terminan juntas; recta en (q2, q3) dentro de la franja), a la mitad de su vMax/aMax (`MV_FACTOR_VEL`,
   PROVISORIO); las que bajan terminan 2° por debajo y suben el último tramo a 2 °/s (llegada siempre con el ángulo
   creciendo); a los 2 s firmes: `LLEGO,t,q1,q2,q3,e1,e2,e3`. Corta si alguna se aleja más de 5° de su referencia, con
@@ -71,5 +71,10 @@ que las que bajan **se pasen 2° y vuelvan subiendo despacio**, y anotar cada `L
 
 | Fecha | Prueba | Resultado |
 |---|---|---|
+| 2026-10-31 | 5b `mv` (`b5a0763`) | Arrancan y terminan juntas; las que bajan se pasan ~2° y vuelven subiendo despacio. `LLEGO` (J1 · J2 · J3): `mv 20 15 10` 19,94 · 14,77 · 10,17 · `mv 3 3 3` 2,82 · 3,00 · 3,46 · `mv 40 30 20` 39,68 · 30,21 · 20,02 · `mv 20 20 24` 19,94 · 20,11 · 24,16 · `mv 3 3 3` 2,99 · 3,00 · 3,04. Error máx 0,46° (J3, primer `mv 3 3 3`); el resto ≤ 0,32° |
+| 2026-10-31 | 5b con `khi` 4 en J2 y J3 (en vez de 8) | Peor: 3 de 7 `mv` cortados por `no quedan firmes`; J2 llega con +0,30° de error (19,70 dos veces) y el tambaleo no mejora a la vista. → `khi` vuelve a 8 |
+| 2026-10-31 | 5b con J2 en 0,3° / 0,2° y J3 en 0,15° / 0,1° | 8 `mv` sin cortes. 4 llegadas a `mv 20 20 24`: J1 19,94 ×4 (0,00°), J2 19,94 · 20,05 · 19,83 · 20,00 (0,22°), **J3 24,18 ×4 (0,008°, una cuenta)**; J3 queda siempre 0,18° por encima (después de frenar). Sigue el tambaleo en la punta (sin saber de cuál: falta la telemetría) |
+| 2026-10-31 | 5b con J2/J3 `tolPos` 0,15°, `bandaInt` 0,1° | 3 llegadas a `mv 20 20 24`: J1 20,08 (rango 0,00°), J2 20,14 · 19,99 · 19,85 (**0,29°**, peor), **J3 24,18 · 24,14 · 24,18 (0,03°)**. Una vez `no quedan firmes`. Al final se ve un tambaleo en la punta: se traba por fricción, el integrador sube el duty, despega de golpe y se pasa (stick-slip), y el juego de los engranajes y el brazo largo lo amplifican. → J2 vuelve a 0,3° / 0,2°; J3 queda en 0,15° / 0,1° |
+| 2026-10-31 | 5b repetir `mv 20 20 24` desde poses distintas | 5 llegadas (J1 · J2 · J3): 19,94 · 20,11 · 24,16 / 19,96 · 20,05 · 23,88 / 19,96 · 20,11 · 24,18 / 19,96 · 20,09 · 24,17 / 20,03 · 20,11 · 23,91. Rango J1 0,09°, J2 0,06°, **J3 0,30°** (cae en cualquier lugar de la tolerancia `tolPos` 0,3°: al quedar firme frena y no corrige más). Correcciones chicas en la punta (stick-slip). → J2/J3 `tolPos` 0,15°, `bandaInt` 0,1° |
 | 2026-10-31 | 5a homing de las tres (`a89d415`) | 4 vueltas: J1 0,000°, J2 ±0,008°, J3 ±0,010° (1 cuenta: J1 0,024°, J2/J3 0,008°). `j 2 15` 14,88 · `j 3 10` 10,23 · `j 1 30` 29,77 · `j 1 3` 3,13 · `j 3 3` 3,09 · `j 2 3` 2,75, firmes y frenadas |
 | 2026-10-31 | 5a homing de las tres | flanco respecto del anterior (6 vueltas): J3 σ ≈ 0,013°, J2 σ ≈ 0,014°, J1 σ ≈ 0,03° (3 vueltas). J1 iba y venía en 3° después del retroceso → `autobloqueo` (freno al llegar, como 12) |
