@@ -317,7 +317,10 @@ void Articulacion::paso() {
           // (0 -> 3°) quedaba en 5-6° trabada por la fricción.
           if (fabsf(e) < c_.tolPos && fabsf(w_) < VEL_LLEGADA) {
             llegado_ = true;
-            uHold_ = u_;  // arranca del duty con que venía
+            // Arranca del duty que sostiene el peso, estimado del feedforward: el medio entre la marcha subiendo y
+            // bajando (J2 +8,5 %, J3 -10 %, J1 0). Antes arrancaba del duty con que venía: al final de un recorrido
+            // puede estar frenando (2026-10-31, telemetría: J2 llegaba con -20 % y caía 1,7° antes de volver)
+            uHold_ = 0.5f * (c_.ffMarchaPos - c_.ffMarchaNeg);
             integral_ = 0.0f;
           } else {
             const float vP = fmaxf(fabsf(c_.kpp * e), c_.vMin);
