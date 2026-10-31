@@ -92,6 +92,12 @@ va y viene ±1° (fricción ancha en duty) → compensación de fricción `fr` /
 `o 14` con `ofr 10`, `15`, `20`; J2 con `a 20` / `a 25` y `fr`). **Resultado:** J3 con 15 % no se pasa y queda con
 0,09°; J2 no la necesita (0,19° / 0,05°); con `fb`, frenadas y sin ruido → `FR_SOSTENER` J3 15 %, J2 0 %, 20 kHz.
 
+**Prueba F4 (homing, con `-e j2`):** los finales de carrera tienen un solo punto de apoyo y el golpe al llegar rápido los
+giraba (2026-10-31: el cero se corrió ~9° en J3 y ~30° en J2; fijarlos mejor). Desde el cero (los dos apretados, `z`):
+`h` → tiene que salir `Homing listo` con los flancos cerca de 0° (respecto del `z`) y quedar las dos en 3°. Repetir
+`h` 5 veces sin tocar nada: los "flancos respecto del cero anterior" miden la repetibilidad del homing (cada línea
+`HOMING,t,dq2,dq3,1`). Después, desde una pose más alta (`a 15` → `o 10` → `h`).
+
 **Prueba F3b (con `-e j2`):** desde el cero, subir a una pose alta y volver (secuencia verificada contra la franja):
 `a 20` → `o 10` → `a 31` → `o 30` → `a 50` → `o 52` → `a 70` → `o 62` (esperar cada `Asentado`, anotar error y duty de
 las dos) y bajar con `o 50` → `a 50` → `o 30` → `a 28` → `o 10` → `a 20`. Repetir con `gm` apagado y comparar: con el modelo, J2 no tendría que subir ni bajar sola
@@ -114,7 +120,7 @@ que la mueva) puede pasar de 0° y se corta al apretarse (`FINAL DE CARRERA APRE
 `EN CAMINO` / `LLEGANDO` / `LLEGÓ`, error, duty aprendido) y los límites de la activa con el peor caso · `bi <°>` banda
 del integrador · `fb` freno dentro de la banda sí/no · `gm` modelo del sostener sí/no (fase 3b) · `fr <%>`, `ofr <%>` compensación de fricción al sostener (activa /
 otra) · `an [nota]` anotar el duty de las dos asentadas (línea
-`MAPA,...`, para `tools/mapa_gravedad.py`) · `pwm <Hz>` frecuencia del PWM de las dos en vivo (al reiniciar vuelve
+`MAPA,...`, para `tools/mapa_gravedad.py`) · `h` homing (fase 4) · `pwm <Hz>` frecuencia del PWM de las dos en vivo (al reiniciar vuelve
 la de `config.h`, 1 kHz) ·
 `okp`, `oki` ganancias del sostener de la otra · `x` suelta las dos. El resto, como `12`–`14` (`?`).
 
@@ -138,7 +144,9 @@ la de `config.h`, 1 kHz) ·
     signo cerca de q2 = 54° (+25 % → −20 %); J3 ~−17 %. `resultados/mapa_gravedad_20261031_135400.csv/.png`.
   - [x] 3b mínima (2026-10-31): el sostener suma el modelo simple (J2 `31,4 − 0,58·q2` %, J3 −16,8 %) y `uHold`
     aprende la diferencia; `gm` sí/no. Compila; **sin probar en placa** (prueba F3b abajo).
-- [ ] Fase 4: homing automático
+- [x] Fase 4 (2026-10-31): homing `h` (J3 y después J2, a 1 °/s, cero en el flanco, retroceden 3°, informa cuánto
+  se corrió cada flanco). Compila; **sin probar en placa** (prueba F4 abajo). `fb` prendido y `gm` apagado por
+  defecto.
 - [ ] 1: cero, la otra sostiene, signos, cuentas por grado (J2 / J3)
 - [ ] 2: sostener (J2 / J3)
 - [ ] 3: barrido de carga → feedforward (J2 / J3)

@@ -63,6 +63,14 @@ volatile uint32_t pwmVigente = OTRA.pwmHz;
 int64_t ceroCuentas = 0;
 float uHold = 0.0f;
 
+// Homing (fase 4): 0 nada, 1 arrancar (decide), 2 alejarse (estaba apretado), 3 buscar el flanco
+volatile uint8_t hModo = 0;
+volatile Homing hEstado = Homing::Nada;
+volatile const char *hError = nullptr;
+volatile int64_t flancoCuentas = 0;
+volatile bool pedidoCeroFlanco = false;
+volatile bool pedidoCancelarHoming = false;  // lo pide main; lo hace la tarea (sin carrera con hModo)
+
 float leerGrados() {
   int64_t c = enc.count() - ceroCuentas;
   if (OTRA.invCuentas) c = -c;
@@ -77,6 +85,7 @@ void aplicar(float pct) {
 void tarea(void *) {
   TickType_t ultimo = xTaskGetTickCount();
   uint32_t msError = 0, msAtasco = 0, msQuieta = 0, pedidoVisto = 0;
+  float hInicio = 0.0f, hSoltado = NAN;
   bool modeloAnt = usarModelo;
   float rampaModelo = 1.0f;  // 0 -> 1 en 1 s al empezar a sostener: el modelo entra sin salto
   float qAtasco = 0.0f;
@@ -97,6 +106,12 @@ void tarea(void *) {
       ref = 0.0f;
       pedidoCero = false;
     }
+    if (pedidoCeroFlanco) {  // cero en el flanco del homing: la referencia sigue donde está la articulación
+      ceroCuentas = flancoCuentas;
+      ref = dest = leerGrados();
+      pedido = pedido + 1;  // vuelve a llegar con el cero nuevo
+      pedidoCeroFlanco = false;
+    }
     if (pedidoPwm) {  // cambiar la frecuencia del PWM (los dos canales comparten el timer): freno, cambio, sigue
       const uint32_t hz = pedidoPwm;
       if (activo) motor.setDuty(0.0f);  // sin sostener no: setDuty() puede subir el EN común (después de "x")
@@ -110,6 +125,11 @@ void tarea(void *) {
     hist[VENTANA] = g;
     const float w = (hist[VENTANA] - hist[0]) / (VENTANA * TS_MS / 1000.0f);
     if (!activo) {
+      if (hModo) {  // dejó de sostener en medio del homing ("x"): se corta
+        hModo = 0;
+        hError = "se dejó de sostener";
+        hEstado = Homing::Error;
+      }
       modeloAnt = usarModelo;  // "gm" con la otra parada: no hay nada que compensar al volver
       uHold = uHoldV = 0.0f;
       llegoV = frenadaV = false;
@@ -139,9 +159,57 @@ void tarea(void *) {
       qAtasco = g;
       destrabar = false;
     }
-    // Referencia hacia el destino a OTRA.vel °/s
+    // Homing: la referencia se mueve sola (alejarse o buscar el flanco); el destino la sigue
+    if (pedidoCancelarHoming) {
+      if (hModo) {
+        ref = dest = g;  // se queda donde está
+        hModo = 0;
+        hError = "cancelado";
+        hEstado = Homing::Error;
+      }
+      pedidoCancelarHoming = false;
+    }
+    if (hModo == 1) {
+      hInicio = g;
+      hSoltado = NAN;
+      ref = g;
+      hModo = fc ? 2 : 3;
+    }
+    if (hModo == 2) {  // apretado al empezar: alejarse hasta soltarlo y HOMING_SALIDA_GRADOS más (para llegar siempre igual)
+      if (fc) {
+        hSoltado = NAN;
+      } else if (isnan(hSoltado)) {
+        hSoltado = g;
+      }
+      if (!isnan(hSoltado) && g - hSoltado >= HOMING_SALIDA_GRADOS) {
+        hModo = 3;
+      } else {
+        ref = ref + HOMING_VEL_ALEJAR * dt;
+      }
+    }
+    if (hModo == 3) {  // buscar: bajar despacio hasta el flanco
+      if (fc) {
+        flancoCuentas = enc.count();
+        ref = dest = g;  // quieta en el flanco
+        hModo = 0;
+        hEstado = Homing::Listo;
+      } else {
+        ref = ref - HOMING_VEL_BUSCAR * dt;
+      }
+    }
+    if (hModo && (fabsf(g - hInicio) > HOMING_RECORRIDO_MAX || fabsf(ref - g) > HOMING_SIGUE_MAX || atascada)) {
+      hError = atascada ? "atasco" : (fabsf(ref - g) > HOMING_SIGUE_MAX ? "no sigue a la referencia (¿trabada?)"
+                                                                         : "recorrido máximo sin el final de carrera");
+      ref = dest = g;  // quieta donde quedó
+      hModo = 0;
+      hEstado = Homing::Error;
+    }
+    if (hModo) dest = ref;  // mientras busca, el destino sigue a la referencia
+    // Referencia hacia el destino a OTRA.vel °/s (buscando el final de carrera con "o" negativo, más despacio)
     const uint32_t pe = pedido;  // leído antes que dest: si llega uno nuevo en el medio, se ve en el próximo periodo
-    const float de = dest, r = ref, paso = OTRA.vel * dt, d = de - r;
+    const float de = dest, r = ref;
+    const float vel = (de < OTRA.limNeg && !fc) ? OTRA_VEL_BUSCAR_FC : OTRA.vel;
+    const float paso = vel * dt, d = de - r;
     ref = r + (d > paso ? paso : (d < -paso ? -paso : d));
     const float e = ref - g;
     // Llegada (mismo criterio que la activa): referencia en el destino, cerca y quieta LLEGADA_MS; con histéresis
@@ -149,6 +217,10 @@ void tarea(void *) {
     // (2026-10-31: J3 se aprieta en ~0,6° y "o 0" no llegaba nunca; la activa esperaba 30 s)
     const float eDest = (fc && de < g) ? 0.0f : de - g;
     bool llego = llegoV;
+    if (hModo) {  // homing en curso: ni llegada ni freno
+      llego = false;
+      msQuieta = 0;
+    }
     if (pe != pedidoVisto) {  // pedido nuevo: tiene que volver a llegar
       llego = false;
       msQuieta = 0;
@@ -162,7 +234,7 @@ void tarea(void *) {
         llego = false;
         msQuieta = 0;
       }
-    } else {
+    } else if (!hModo) {
       msQuieta = (fabsf(eDest) < otra_cfg::TOL_POS && fabsf(w) < 1.0f) ? msQuieta + TS_MS : 0;
       if (msQuieta >= otra_cfg::LLEGADA_MS) {
         llego = true;
@@ -237,6 +309,7 @@ bool begin() {
 void cero() { pedidoCero = true; }
 
 void sostener(float g) {
+  if (hModo == 0 && hEstado != Homing::EnCurso) hEstado = Homing::Nada;  // un "o" nuevo deja el homing atrás
   pedido = pedido + 1;  // antes que dest: la tarea no puede dar por llegado el destino nuevo con el pedido viejo
   // Más abajo que el límite propio solo para buscar el final de carrera (main.cpp lo permite si está suelto)
   dest = constrain(g, OTRA.limNeg - HASTA_FC_MAX_GRADOS, OTRA.limPos);
@@ -274,6 +347,24 @@ void pwm(uint32_t hz) {
   while (pedidoPwm && millis() - t0 < 5 * TS_MS) delay(1);
 }
 uint32_t pwmHz() { return pwmVigente; }
+void homingIniciar() {
+  hError = nullptr;
+  hEstado = Homing::EnCurso;
+  hModo = 1;
+}
+Homing homingEstado() { return hEstado; }
+const char *homingError() { return (const char *)hError; }
+void homingCancelar() { pedidoCancelarHoming = true; }
+float flancoGrados() {
+  int64_t c = flancoCuentas - ceroCuentas;
+  if (OTRA.invCuentas) c = -c;
+  return (float)c / OTRA.cuentasPorGrado;
+}
+void ceroEnFlanco() {
+  pedidoCeroFlanco = true;
+  const uint32_t t0 = millis();
+  while (pedidoCeroFlanco && millis() - t0 < 5 * TS_MS) delay(1);
+}
 void anguloActiva(float g) { qActiva = g; }
 void modelo(bool usar) { usarModelo = usar; }
 bool modelo() { return usarModelo; }

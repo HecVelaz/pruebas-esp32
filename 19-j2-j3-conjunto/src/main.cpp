@@ -95,7 +95,7 @@ float vminBaja = art::VMIN_BAJA_POS;
 uint32_t trabadaMs = art::TRABADA_MS;
 float ditherPct = art::DITHER_PCT;
 
-void irAControlado(float g, bool informar);  // paso 3, la usa también "ev" al terminar
+const char *irAControlado(float g, bool informar);  // paso 3, la usa también "ev" al terminar; nullptr si llegó
 // Arranque sin salto: si el comando empezó con la activa sosteniéndose, la cascada arranca desde el duty que la
 // sostenía (antes arrancaba de 0 con el feedforward de marcha: a 20 kHz, J2 en (10°, 3°) sostenía con 27 % y "a 12"
 // se cortó por "sin cuentas" mientras el PI subía desde 17 %). Lo pone ejecutar() y lo usa la primera cascada.
@@ -119,11 +119,13 @@ bool descartando = false;  // una línea cortó un movimiento o el monitor: el r
 uint8_t escape = 0;        // secuencia de escape de la terminal (flechas): 1 = llegó ESC, 2 = dentro de ESC [
 
 // Cuentas de la articulación con los signos aplicados
+// Cero de la activa: "z" pone el contador en 0; el homing ("h") corre el cero al flanco con este desplazamiento
+int64_t ceroOffset = 0;
 int64_t cuentas() {
   int64_t c = enc.count();
   if (encInvertido) c = -c;
   if (sentidoInvertido) c = -c;
-  return c;
+  return c - ceroOffset;
 }
 
 float grados(int64_t c) { return (float)c / art::CUENTAS_POR_GRADO; }
@@ -219,6 +221,9 @@ void ayuda() {
   Serial.println("  fb           freno dentro de la banda sí/no (las dos): al llegar, duty 0 hasta que se aleje");
   Serial.println("  pwm <Hz>     frecuencia del PWM de las dos, en vivo (500 a 25000; ej. pwm 20000). Al reiniciar,");
   Serial.println("               vuelve la de config.h. Cambia el duty de arranque: la zona muerta medida es de 1 kHz");
+  Serial.printf("  h            homing: J3 y J2 a sus finales de carrera a %.1f °/s, cero en el flanco, retroceden %.0f°\n",
+                HOMING_VEL_BUSCAR, HOMING_RETROCESO);
+  Serial.println("               y quedan sosteniendo; informa cuánto se corrió cada flanco (repetibilidad)");
   Serial.println("  an [nota]    anotar (mapa de gravedad): espera que se asienten, promedia 1 s el duty de las dos");
   Serial.println("               y manda una línea MAPA,... (tools/mapa_gravedad.py)");
   Serial.println("  kpp <x>      cambiar el P de posición");
@@ -827,7 +832,7 @@ const char *cascada(Referencia ref, uint32_t nTotal, bool salirAlLlegar, bool cs
 }
 
 // "a <grados>": ir a un ángulo con el control de posición
-void irAControlado(float g, bool informar) {
+const char *irAControlado(float g, bool informar) {
   refFija = g;
   uint32_t ms = 0;
   const char *corte = cascada(refConstante, art::IR_MAX_MS * 1000 / art::TS_VEL_US, true, false, ms);
@@ -837,6 +842,7 @@ void irAControlado(float g, bool informar) {
   } else if (informar) {
     Serial.printf(">> Llegó a %+.2f° en %.2f s (error %+.2f°).\n", fin, ms / 1000.0f, g - fin);
   }
+  return corte;
 }
 
 // "s [grados]": sostener. Para los motores que no se autobloquean (J2 con el 36GP-555 o el 36-555, planetarios):
@@ -1726,6 +1732,185 @@ void comandoOtra(const char *args) {
   pedirInformeAsentado();
 }
 
+// ---------- Fase 4: homing ("h") ----------
+
+// Homing de la activa: si está apretada se aleja hasta soltarlo y HOMING_SALIDA_GRADOS más; después baja a
+// HOMING_VEL_BUSCAR hasta el flanco. Lazo de velocidad a 100 Hz (pasoPI) con el duty limitado, arrancando desde el duty
+// con que se sostenía; el final de carrera se mira cada ~0,2 ms. Devuelve nullptr y la cuenta del flanco, o la causa.
+// Con el cero conocido: ¿activa - otra fuera de la franja? (durante el homing la tarea de la otra no la mira)
+bool fueraDeFranja() { const float d = grados(cuentas()) - otra::grados(); return d < BANDA_MIN || d > BANDA_MAX; }
+
+const char *homingActiva(int64_t &cFlanco, bool conCero) {
+  const float ts = art::TS_VEL_US / 1e6f;
+  int64_t hist[art::VENTANA_VEL + 1];
+  const int64_t c0 = cuentas();
+  for (auto &h : hist) h = c0;
+  int modo = fcApretado() ? 2 : 3;  // 2 alejarse, 3 buscar
+  float soltado = NAN, uUlt = hold.uAnt;
+  // Arranque sin salto: el primer duty = el que la sostenía (ver cascada)
+  float integral = modo == 2 ? uUlt - fmaxf(ffMarchaPos, FF_MIN_PCT) : uUlt + ffMarchaNeg;
+  int64_t cVentana = c0;
+  uint32_t tVentana = millis();
+  hold.activo = false;
+  arranqueDesdeHold = false;
+  uint32_t tick = micros();
+  for (;;) {
+    while (micros() - tick < art::TS_VEL_US) {  // entre periodos, mirar el final de carrera (el flanco, al instante)
+      if (modo == 3 && fcApretado()) {
+        cFlanco = cuentas();
+        aplicarDuty(0.0f);
+        return nullptr;
+      }
+      delayMicroseconds(200);
+    }
+    tick += art::TS_VEL_US;
+    const int64_t c = cuentas();
+    for (int i = 0; i < art::VENTANA_VEL; i++) hist[i] = hist[i + 1];
+    hist[art::VENTANA_VEL] = c;
+    const float wMed = grados(hist[art::VENTANA_VEL] - hist[0]) / (art::VENTANA_VEL * ts);
+    const float g = grados(c);
+    if (modo == 2) {
+      if (fcApretado()) {
+        soltado = NAN;
+      } else if (isnan(soltado)) {
+        soltado = g;
+      }
+      if (!isnan(soltado) && g - soltado >= HOMING_SALIDA_GRADOS) {
+        modo = 3;
+        integral = uUlt + ffMarchaNeg;  // sin salto al cambiar de sentido
+      }
+    }
+    const float wRef = modo == 2 ? HOMING_VEL_ALEJAR : -HOMING_VEL_BUSCAR;
+    const float u = constrain(pasoPI(wRef, wMed, g, integral), -HOMING_DUTY_MAX, HOMING_DUTY_MAX);
+    uUlt = u;
+    aplicarDuty(u);
+    if (fabsf(grados(c - c0)) > HOMING_RECORRIDO_MAX) {
+      aplicarDuty(0.0f);
+      return "recorrido máximo sin el final de carrera";
+    }
+    // Trabada: con el duty al tope, sin avanzar durante HOMING_TRABADA_MS (antes de llegar al tope, el PI va subiendo)
+    if (fabsf(u) < HOMING_DUTY_MAX - 1.0f || llabs(c - cVentana) >= art::CUENTAS_SIN_GIRO) {
+      cVentana = c;
+      tVentana = millis();
+    } else if (millis() - tVentana >= HOMING_TRABADA_MS) {
+      aplicarDuty(0.0f);
+      return "no avanza con el duty al tope (¿trabada?)";
+    }
+    if (conCero && fueraDeFranja()) {
+      aplicarDuty(0.0f);
+      return "saldría de la franja del cuatro barras";
+    }
+    if (hayEntrada()) {
+      aplicarDuty(0.0f);
+      return "Enter";
+    }
+  }
+}
+
+// Homing completo de la activa: acercarse (si hay cero), buscar el flanco, cero ahí, retroceder y sostener.
+// delta = dónde estaba el flanco con el cero anterior.
+// Sin acercamiento rápido: si el flanco se corrió, ir a velocidad normal podía golpearlo. ceroFijado lo pone
+// comandoHoming() cuando terminan las dos.
+const char *homingActivaCompleto(bool conCero, float &delta) {
+  int64_t cFlanco = 0;
+  const char *err = homingActiva(cFlanco, conCero);
+  if (err) {
+    sostenerIniciar(grados(cuentas()));
+    return err;
+  }
+  delay(FRENO_MS);
+  delta = grados(cFlanco);
+  ceroOffset += cFlanco;  // el flanco pasa a ser 0
+  hold.uHoldValido = false;
+  const char *corte = irAControlado(HOMING_RETROCESO, false);
+  sostenerIniciar(corte ? grados(cuentas()) : HOMING_RETROCESO);
+  return corte ? "se cortó el retroceso" : nullptr;
+}
+
+// Homing completo de la otra (lo hace su tarea); mientras, la activa sigue sosteniéndose.
+const char *homingOtraCompleto(bool conCero, float &delta) {
+  if (!otra::activa()) otra::sostener(otra::grados());
+  const char *motivo = nullptr;
+  otra::homingIniciar();
+  const uint32_t t0 = millis();
+  uint32_t tInforme = t0;
+  while (otra::homingEstado() == otra::Homing::EnCurso) {
+    sostenerPaso();
+    if (const char *av = otra::aviso()) Serial.printf(">> %s: %s\n", OTRA.nombre, av);
+    if (hayEntrada()) {
+      motivo = "Enter";
+      otra::homingCancelar();
+    }
+    if (conCero && fueraDeFranja() && !motivo) {
+      motivo = "saldría de la franja del cuatro barras";
+      otra::homingCancelar();
+    }
+    if (millis() - tInforme >= 2000) {
+      tInforme = millis();
+      Serial.printf("   %s en %+.2f°, buscando el final de carrera...\n", OTRA.nombre, otra::grados());
+    }
+    delay(1);
+  }
+  if (otra::homingEstado() != otra::Homing::Listo) {
+    return motivo ? motivo : (otra::homingError() ? otra::homingError() : "error");
+  }
+  delta = otra::flancoGrados();
+  otra::ceroEnFlanco();
+  otra::sostener(HOMING_RETROCESO);
+  if (!esperarOtra()) {
+    otra::sostener(otra::grados());  // cancelado: se queda donde está
+    return "se cortó el retroceso";
+  }
+  return nullptr;
+}
+
+// "h": homing de J3 y después J2 (con el codo abajo, bajar el hombro no viola la franja). Cada una llega a su final de
+// carrera siempre desde el mismo lado y a HOMING_VEL_BUSCAR, el cero va en el flanco, retrocede HOMING_RETROCESO y
+// queda sosteniendo. Informa cuánto se corrió cada flanco respecto del cero anterior (repetibilidad del homing).
+void comandoHoming() {
+  const bool conCero = ceroFijado;
+  const float qa = grados(cuentas()), qo = otra::grados();
+#if defined(ARTICULACION_J3)
+  const float q2 = qo;
+#else
+  const float q2 = qa;
+#endif
+  if (conCero && q2 > HOMING_Q2_MAX_ARRANQUE) {
+    Serial.printf("Homing: J2 en %+.1f°; con J2 más arriba de %.0f° el codo no llega a su final de carrera (franja). "
+                  "Bajarla antes.\n", q2, HOMING_Q2_MAX_ARRANQUE);
+    sostenerIniciar(qa);
+    return;
+  }
+  if (!conCero) Serial.println(">> Sin cero: el brazo tiene que estar abajo (J2 y J3 cerca de sus finales de carrera).");
+  Serial.printf(">> Homing: J3 y después J2, a %.1f °/s hacia el final de carrera (Enter corta).\n", HOMING_VEL_BUSCAR);
+  sostenerIniciar(qa);  // la activa sostiene mientras va la otra
+  if (!otra::activa()) otra::sostener(qo);  // y la otra mientras va la activa (con -e j3 va primero la activa)
+  float d2 = NAN, d3 = NAN;
+  const char *err = nullptr;
+#if defined(ARTICULACION_J3)
+  err = homingActivaCompleto(conCero, d3);
+  if (!err) err = homingOtraCompleto(conCero, d2);
+#else
+  err = homingOtraCompleto(conCero, d3);
+  if (!err) err = homingActivaCompleto(conCero, d2);
+#endif
+  if (err) {
+    Serial.printf(">> Homing CORTADO: %s. J2/J3 quedan sosteniendo donde están; el cero no se tocó (o solo el de J3: "
+                  "repetir \"h\").\n", err);
+    Serial.printf("HOMING_ERROR,%s\n", err);
+    return;
+  }
+  ceroFijado = true;  // recién con las dos calibradas
+  if (conCero) {
+    Serial.printf(">> Homing listo. Flancos respecto del cero anterior: J2 %+.2f°, J3 %+.2f°. Cero en los flancos; las "
+                  "dos en %+.1f°.\n", d2, d3, HOMING_RETROCESO);
+  } else {
+    Serial.printf(">> Homing listo (sin cero anterior para comparar). Cero en los flancos; las dos en %+.1f°.\n",
+                  HOMING_RETROCESO);
+  }
+  Serial.printf("HOMING,%lu,%.3f,%.3f,%d\n", (unsigned long)millis(), d2, d3, conCero ? 1 : 0);
+}
+
 // Ejecuta un comando y, con el sostener automático, después vuelve a sostener
 void ejecutar(char *l) {
   while (*l == ' ') l++;
@@ -1818,6 +2003,7 @@ void ejecutarComando(char *l) {
     comandoOtra(l + 1);
   } else if (strcmp(l, "z") == 0) {
     enc.reset();
+    ceroOffset = 0;
     otra::cero();
     ceroFijado = true;
     Serial.println(">> Cero fijado en la marca. Movimientos habilitados.");
@@ -1914,6 +2100,8 @@ void ejecutarComando(char *l) {
                     art::NOMBRE, (unsigned long)pwmHz, OTRA.nombre, (unsigned long)otra::pwmHz(),
                     (unsigned long)art::PWM_FREQ_HZ);
     }
+  } else if (strcmp(l, "h") == 0) {
+    comandoHoming();
   } else if (strcmp(l, "gm") == 0) {
     // Sin salto: lo aprendido absorbe la diferencia (la otra lo hace en su tarea)
     const float q = grados(cuentas());

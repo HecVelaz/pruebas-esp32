@@ -26,6 +26,15 @@ bool frenada();               // llegó y el freno dentro de la banda está pren
 float uHold();                // duty aprendido (%): con el modelo (fase 3b), la diferencia con el modelo
 // Banda del integrador (°) y freno dentro de la banda (ver config.h)
 void opciones(float bandaInt, bool frenoEnBanda);
+// Fase 4: homing de la otra. homingIniciar(): si está apretada se aleja hasta soltarlo y HOMING_SALIDA_GRADOS más,
+// después baja a HOMING_VEL_BUSCAR hasta que se aprieta (flanco) y se queda ahí sosteniendo. La tarea lo hace.
+enum class Homing : uint8_t { Nada, EnCurso, Listo, Error };
+void homingIniciar();
+Homing homingEstado();
+const char *homingError();
+void homingCancelar();
+float flancoGrados();         // dónde quedó el flanco, con el cero que había
+void ceroEnFlanco();          // pone el cero en el flanco (lo hace la tarea; vuelve cuando está hecho)
 // Fase 3b: ángulo de la activa (lo publica main.cpp; el modelo del sostener depende de q2 y q3) y modelo sí/no
 void anguloActiva(float grados);
 void modelo(bool usar);

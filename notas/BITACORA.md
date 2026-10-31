@@ -235,3 +235,20 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   Con el cero nuevo, la franja de `config.h` (medida desde el cero viejo y solo con J2 ≥ 0°) ya no vale: pasada al
   cero nuevo sería ~`q2 − 46° ≤ q3 ≤ q2 − 13,6°` y la pose del cero nuevo queda fuera de lo medido. Hay que revisar el
   final de carrera de J2 y volver a medir la franja antes de mover el brazo a poses altas.
+- **Causa de los ceros corridos (usuario):** los finales de carrera tienen un solo punto de apoyo y el golpe al
+  llegar rápido (pulsos de 25 %, joystick) los hace girar. La pose del cero nuevo es la misma de la foto del 30/10:
+  el brazo y los encoders estaban bien, se movían los finales de carrera. Con este cero, la franja de `config.h`
+  vuelve a valer. Pendiente mecánico: fijarlos con un segundo punto de apoyo.
+- **Fase 4, homing `h` (compila `-e j2` y `-e j3`, sin probar en placa):** primero J3 (codo) y después J2 (hombro);
+  cada una, si está apretada, se aleja hasta soltarlo y 2° más, después baja a 1 °/s hasta el flanco (la activa con el
+  lazo de velocidad y el duty limitado a 50 %, mirando el final de carrera cada ~0,2 ms; la otra, su tarea mueve la
+  referencia y guarda el contador al apretarse), cero en el flanco, retrocede 3° y queda sosteniendo. Informa cuánto
+  se corrió cada flanco respecto del cero anterior (`HOMING,t,dq2,dq3,con_cero`). Con cero: si J2 está más arriba de
+  20° no arranca. La otra busca su final de carrera con `o` negativo a
+  2 °/s. Por defecto: `FRENO_EN_BANDA` = true, `MODELO_SOSTEN` = false. No limité `p` hacia el final de carrera a 15 %
+  (a 20 kHz J2 no baja con 15 %): para el cero, usar `h`.
+- Revisión de Codex de la fase 4, siete arreglos: sin acercamiento rápido (si el flanco se corrió, a velocidad
+  normal podía golpearlo; busca a 1 °/s desde donde esté); `irAControlado()` devuelve el corte y el homing lo
+  respeta; al empezar, las dos se sostienen donde están (con `-e j3` J2 quedaba suelta); cancelar lo hace la tarea
+  (carrera con el estado del homing); con Enter la otra se queda donde está; con el cero conocido, corta si
+  activa − otra sale de la franja; `ceroFijado` recién cuando terminan las dos.

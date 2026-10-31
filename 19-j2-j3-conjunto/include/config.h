@@ -294,7 +294,8 @@ constexpr float BANDA_INT_HOLD = 0.2f;  // °
 // Freno dentro de la banda: llegada (|error| < TOL_POS y quieta LLEGADA_MS) -> duty 0 (freno, sin pitido ni
 // corriente); si se aleja más de TOL_SALIDA vuelve a corregir con el uHold aprendido. Con la reductora (~695:1) el
 // brazo se quedó quieto frenado (2026-10-31, J2 en 48°): falta ver si en todas las poses. PROVISORIO. En vivo: "fb".
-constexpr bool FRENO_EN_BANDA = false;
+// 2026-10-31: prendido por defecto (a 20 kHz las dos quedan frenadas, quietas y sin ruido; error al llegar 0,07-0,19°).
+constexpr bool FRENO_EN_BANDA = true;
 // "p" negativo con el final de carrera de la activa SUELTO puede pasar su límite propio (0°) para llegar a él (lo
 // corta al apretarse), como mucho esto más abajo (por si el final de carrera no anda). La franja se respeta siempre.
 constexpr float HASTA_FC_MAX_GRADOS = 10.0f;
@@ -305,7 +306,28 @@ constexpr float HASTA_FC_MAX_GRADOS = 10.0f;
 constexpr float FR_RAMPA_GRADOS = 0.3f;
 // Fase 3b: el sostener de las dos suma el modelo de cfg_jX (SOST_*) según la pose, y uHold aprende solo la diferencia
 // (antes se arrastraba el duty de la pose anterior: en 1 kHz J2 subió sola de 25° a 27,1°). En vivo: "gm".
-constexpr bool MODELO_SOSTEN = true;
+// 2026-10-31 (prueba F3b): apagado por defecto. A 20 kHz la fricción sostiene J2 en todo un rango de duty y el modelo
+// la empeoraba (en 50° cayó 1,2°: el residuo para compensar el modelo se arrastraba a la pose siguiente).
+constexpr bool MODELO_SOSTEN = false;
+// ---------- Fase 4: homing ("h") ----------
+// Los finales de carrera tienen un solo punto de apoyo y el golpe al llegar rápido los giraba (2026-10-31: el cero se
+// corrió ~9° en J3 y ~30° en J2). El homing llega siempre desde el mismo lado (+, alejado) y despacio, pone el cero
+// en el flanco (el instante en que se aprieta), retrocede y queda sosteniendo. Primero J3 (la otra o la activa, según
+// el entorno, siempre el codo primero: con el codo abajo, bajar el hombro no viola la franja), después J2. PROVISORIO.
+constexpr float HOMING_VEL_BUSCAR = 1.0f;     // °/s hacia el final de carrera
+constexpr float HOMING_VEL_ALEJAR = 2.0f;     // °/s para soltarlo si arranca apretado
+constexpr float HOMING_SALIDA_GRADOS = 2.0f;  // se aleja esto más allá de donde se suelta, antes de buscarlo
+constexpr float HOMING_RETROCESO = 3.0f;      // ° donde queda sosteniendo después del cero
+constexpr float HOMING_RECORRIDO_MAX = 120.0f;  // ° como mucho buscando
+constexpr float HOMING_DUTY_MAX = 50.0f;      // % (la activa; la otra, con su duty máximo)
+constexpr uint32_t HOMING_TRABADA_MS = 1500;  // sin avanzar (con el duty al tope) esto: corta
+constexpr float HOMING_SIGUE_MAX = 3.0f;      // la otra: si la articulación queda más atrás que esto de la referencia
+// Sin acercamiento rápido (si el flanco se corrió, a velocidad normal podía golpearlo): busca a HOMING_VEL_BUSCAR
+// desde donde esté. Con el cero conocido, J2 más alto que esto: bajarla antes (si no, el codo no llega a su final de
+// carrera sin salir de la franja); y si durante la búsqueda la franja se viola, corta.
+constexpr float HOMING_Q2_MAX_ARRANQUE = 20.0f;
+// La otra buscando su final de carrera con "o" negativo: a esta velocidad (no a OTRA.vel)
+constexpr float OTRA_VEL_BUSCAR_FC = 2.0f;
 // Asentamiento: después de llegar, cuánto sigue sosteniendo antes de informar la posición final ("Asentado").
 constexpr uint32_t ASENTAMIENTO_MS = 2000;  // PROVISORIO
 
