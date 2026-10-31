@@ -134,6 +134,11 @@ void Articulacion::sostenerAqui() {
   atascoTicks_ = sinCuentasTicks_ = contrarioTicks_ = 0;
 }
 
+void Articulacion::frenarAqui() {
+  aplicar(0.0f);
+  sostenerAqui();  // uHold = 0: el PI de posición sostiene desde ahí
+}
+
 void Articulacion::seguir(float qRef, float wRef) {
   if (modo_ != Modo::Seguir) {
     const int sg = wRef > 0 ? 1 : (wRef < 0 ? -1 : (qRef >= q() ? 1 : -1));
@@ -248,6 +253,20 @@ void Articulacion::paso() {
           integral_ = integralSinSalto(c_, u_, -1, c_.homingVelBuscar);
         }
       }
+      // Flanco en la etapa rápida: el final de carrera se corrió hacia arriba. No se acepta (se tomó rápido): alejarse
+      // y volver a buscarlo, todo despacio
+      if (hFase_ == 3 && fc_ && hConCero_ && g > c_.homingZonaLenta) {
+        hConCero_ = false;
+        hFase_ = 2;
+        hSoltadoValido_ = false;
+        signoAnt_ = 1;
+        despegada_ = false;
+        ffRampa_ = 0.0f;
+        integral_ = 0.0f;
+        aviso_ = "homing: el final de carrera se apretó antes de lo esperado; lo busco de nuevo despacio";
+        aplicar(0.0f);
+        return;
+      }
       if (hFase_ == 3 && fc_) {  // flanco
         flanco_ = c;
         hEstado_ = Homing::Listo;
@@ -318,8 +337,10 @@ void Articulacion::paso() {
           return;
         }
       }
-      // Se alejó mucho (se pasó o cayó): volver a la cascada para acercarse otra vez, sin salto desde el duty actual
-      if (fabsf(e) > REENTRADA_GRADOS) {
+      // Se alejó mucho (se pasó o cayó): volver a la cascada para acercarse otra vez, sin salto desde el duty actual.
+      // Con autobloqueo (freno, sin PI que corrija) desde tolSalida: si no, entre tolSalida y 1,5° quedaba frenada
+      // para siempre, ni firme ni corrigiendo
+      if (fabsf(e) > (c_.autobloqueo ? c_.tolSalida : REENTRADA_GRADOS)) {
         llegado_ = firme_ = frenada_ = false;
         quietoTicks_ = 0;
         wRefPos_ = 0.0f;
@@ -340,7 +361,6 @@ void Articulacion::paso() {
           firme_ = true;
           tFirme_ = millis();
         }
-        if (firme_ && fabsf(e) > c_.tolSalida) firme_ = false;
         frenada_ = true;
         aplicar(0.0f);
         return;

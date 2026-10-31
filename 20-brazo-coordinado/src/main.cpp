@@ -21,6 +21,7 @@ bool frenoBanda = FRENO_EN_BANDA;
 const char *ultimoError[N] = {nullptr, nullptr, nullptr};
 
 QueueHandle_t colaComandos;  // líneas de Serial -> tarea
+volatile bool xPendiente = false;  // llegó "x": la tarea descarta lo que esté en la cola antes (no sube el EN)
 QueueHandle_t colaMensajes;  // tarea -> Serial
 struct Linea {
   char t[48];
@@ -71,7 +72,16 @@ void homingCortar(const char *causa) {
   msg("HOMING_ERROR,%s", causa);
 }
 
+bool fueraFranjaAhora() {
+  const float d = dFranja();
+  return cerosJ2J3() && (d < -Q2_MENOS_Q3_MAX - FRANJA_HOLGURA || d > Q3_MENOS_Q2_MAX + FRANJA_HOLGURA);
+}
+
 void homingIniciar() {
+  if (fueraFranjaAhora()) {
+    msg("Homing: J2 y J3 fuera de la franja (q3 - q2 = %+.2f°): volver adentro con \"j\" antes.", dFranja());
+    return;
+  }
   for (int i = 0; i < N; i++) hm.conCero[i] = cero[i];
   if (cero[I2] && art[I2].q() > HOMING_Q2_MAX_ARRANQUE) {
     msg("Homing: J2 en %+.1f°; más arriba de %.0f° el codo no llega a su final de carrera sin salir de la franja. "
@@ -296,6 +306,13 @@ void control(void *) {
   for (;;) {
     if (xTaskDelayUntil(&ultimo, pdMS_TO_TICKS(10)) == pdFALSE) perdidos++;
     Linea ln;
+    if (xPendiente) {  // "x" manda: lo anterior en la cola se descarta (podía volver a subir el EN)
+      while (xQueueReceive(colaComandos, &ln, 0) == pdTRUE) {
+      }
+      xPendiente = false;
+      char x[] = "x";
+      ejecutar(x);
+    }
     while (xQueueReceive(colaComandos, &ln, 0) == pdTRUE) ejecutar(ln.t);
     for (auto &a : art) a.paso();
     homingPaso();
@@ -305,11 +322,18 @@ void control(void *) {
     if (cerosJ2J3() && (art[I2].modo() != Articulacion::Modo::Suelta || art[I3].modo() != Articulacion::Modo::Suelta)) {
       const float d = dFranja();
       const bool fuera = d < -Q2_MENOS_Q3_MAX - FRANJA_HOLGURA || d > Q3_MENOS_Q2_MAX + FRANJA_HOLGURA;
-      if (fuera && !fueraFranja) {
+      // Al salir, y mientras siga afuera, cualquier movimiento de J2/J3 que la aleje se frena (no solo la primera vez).
+      // Un "j" que vuelve adentro sí se permite (su destino está adentro: lo valida rango()).
+      const bool alejando = fuera && (art[I2].modo() == Articulacion::Modo::Homing ||
+                                      art[I3].modo() == Articulacion::Modo::Homing ||
+                                      art[I2].modo() == Articulacion::Modo::Seguir ||
+                                      art[I3].modo() == Articulacion::Modo::Seguir);
+      if ((fuera && !fueraFranja) || alejando) {
         if (hm.activo) homingCortar("saldría de la franja del cuatro barras");
-        art[I2].sostenerAqui();
-        art[I3].sostenerAqui();
-        msg(">> FRANJA: q3 - q2 = %+.2f°, fuera de la franja. J2 y J3 sostenidas donde están: volver con \"j\".", d);
+        art[I2].frenarAqui();
+        art[I3].frenarAqui();
+        if (!fueraFranja)
+          msg(">> FRANJA: q3 - q2 = %+.2f°, fuera de la franja. J2 y J3 frenadas donde están: volver con \"j\".", d);
       }
       fueraFranja = fuera;
     }
@@ -349,8 +373,10 @@ void leerSerial() {
       l.t[sizeof(l.t) - 1] = '\0';
       if (lineaLen) {
         // "x": el EN se baja acá mismo (no depende de la cola); la tarea después las pone sueltas
-        if (strcmp(l.t, "x") == 0) digitalWrite(PIN_BRAZO_EN, LOW);
-        if (xQueueSend(colaComandos, &l, pdMS_TO_TICKS(50)) != pdTRUE)
+        if (strcmp(l.t, "x") == 0) {
+          digitalWrite(PIN_BRAZO_EN, LOW);
+          xPendiente = true;  // la tarea descarta la cola y suelta las tres
+        } else if (xQueueSend(colaComandos, &l, pdMS_TO_TICKS(50)) != pdTRUE)
           Serial.printf("Comando perdido (la placa está ocupada): \"%s\". Repetirlo.\n", l.t);
       }
       lineaLen = 0;

@@ -73,6 +73,7 @@ class Articulacion {
   void rueda();                        // rueda libre: baja el EN (común: suelta las tres; solo para "x")
   void sostener(float q);              // ir a q con la cascada y quedarse; sin salto desde el duty actual
   void sostenerAqui();                 // sostener donde está
+  void frenarAqui();                   // duty 0 y sostener donde está desde ahí (sin el duty con que se movía)
   void seguir(float qRef, float wRef); // un periodo de trayectoria (el coordinador lo llama en cada paso)
   void homing(bool conCero = false);  // conCero: rápido hasta homingZonaLenta sobre el cero anterior, después lento
   void homingCancelar();

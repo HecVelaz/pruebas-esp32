@@ -308,3 +308,8 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   orden de 1–2 cuentas del encoder. En 3 vueltas J1 no quedó firme después del retroceso (iba y venía alrededor de
   3°: el PI de posición del sostener empuja contra el juego de la correa; J1 no carga peso y se autobloquea).
   Arreglo: `autobloqueo` en la configuración (J1): al llegar, freno (duty 0), como 12; firme con `tolSalida`.
+- Revisión completa de Codex de la `20` (HEAD `00fde16`), cinco arreglos: con autobloqueo vuelve a la cascada desde
+  `tolSalida` (entre 0,6° y 1,5° quedaba frenada para siempre); si el final de carrera se aprieta en la etapa rápida
+  del homing (se corrió), el flanco no se acepta: se aleja y lo busca de nuevo despacio; el corte por la franja frena
+  (duty 0) en vez de seguir con el duty del movimiento; mientras siga fuera de la franja frena cualquier movimiento de
+  J2/J3 y `h` no arranca; `x` descarta los comandos que estaban en la cola (podían volver a subir el EN).
