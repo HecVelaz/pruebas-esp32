@@ -46,6 +46,9 @@ POSES = [(10, 3), (10, 13),
          (70, 50), (70, 62), (70, 73),
          (90, 70), (90, 82), (90, 93)]
 
+# El mismo puerto que tools/monitor.sh: no cambia si el USB se reconecta (ttyUSB0 -> ttyUSB1)
+PUERTO = "/dev/serial/by-id/usb-1a86_USB_Serial-if00-port0"
+
 CAMPOS_MAPA = ["t_ms", "q2", "q3", "duty2", "std2", "duty3", "std3", "uhold2", "uhold3", "err2", "err3",
                "lado2", "lado3", "estable", "nota"]
 CAMPOS_CSV = ["q2_obj", "q3_obj", "lado_pedido"] + CAMPOS_MAPA
@@ -204,7 +207,16 @@ def capturar(args):
     DIR_RESULTADOS.mkdir(exist_ok=True)
     ruta = DIR_RESULTADOS / f"mapa_gravedad_{datetime.now():%Y%m%d_%H%M%S}.csv"
     filas, cortado = [], True
-    s = serial.Serial(args.puerto, 115200, timeout=0.2)
+    # Sin tocar DTR/RTS al abrir (como tools/monitor.sh): en la DevKit pueden reiniciar la WROOM, y un reinicio borra
+    # el cero y suelta el brazo
+    s = serial.Serial()
+    s.port, s.baudrate, s.timeout = args.puerto, 115200, 0.2
+    s.dtr = s.rts = False
+    try:
+        s.open()
+    except serial.SerialException as e:
+        print(f"No se pudo abrir {args.puerto}: {e}\n¿Está conectada la placa? ¿El monitor está cerrado? (ls /dev/ttyUSB*)")
+        sys.exit(1)
     try:
         time.sleep(0.3)
         s.reset_input_buffer()
@@ -418,7 +430,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="modo", required=True)
     c = sub.add_parser("capturar", help="medir en la placa")
-    c.add_argument("--puerto", default="/dev/ttyUSB0")
+    c.add_argument("--puerto", default=PUERTO, help="def. el de tools/monitor.sh (por id, no cambia)")
     c.add_argument("--paso", action="store_true", help="esperar Enter antes de cada pose")
     p = sub.add_parser("plan", help="mostrar los comandos sin tocar la placa")
     p.add_argument("--desde", type=float, nargs=2, default=(4.0, 0.0), metavar=("Q2", "Q3"))
