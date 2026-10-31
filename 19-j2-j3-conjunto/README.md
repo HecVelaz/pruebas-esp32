@@ -99,6 +99,9 @@ e imprime `MAPA_J2` / `MAPA_J3` para `config.h` (fase 3b). Mano cerca: en q2 = 9
 
 Los scripts: **sin `--cero`** (mandaría `z` lejos de los finales de carrera); cerrar el monitor antes.
 
+**Volver al final de carrera:** `a` no baja de 3°; con el final de carrera de la activa suelto, `p -15 200` (o el %
+que la mueva) puede pasar de 0° y se corta al apretarse (`FINAL DE CARRERA APRETADO`) → `z`.
+
 **Comandos nuevos:** `o <°>` llevar la otra y sostenerla · `oc` dónde está la otra (medido, referencia, destino,
 `EN CAMINO` / `LLEGANDO` / `LLEGÓ`, error, duty aprendido) y los límites de la activa con el peor caso · `bi <°>` banda
 del integrador · `fb` freno dentro de la banda sí/no · `an [nota]` anotar el duty de las dos asentadas (línea

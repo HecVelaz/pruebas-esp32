@@ -164,3 +164,19 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   (error 0,20°), `a 4` → 3,88° (0,12°), `a 20` → 20,02° (0,02°), duty de sostener estable 16-17 %. **Decisión del
   usuario: J2 y J3 a 20 kHz** (`PWM_FREQ_HZ`, `DECISIONES.md`); zona muerta y arranque quedan PROVISORIOS (de 1 kHz)
   hasta medirlos a 20 kHz. J3 a 20 kHz y el arranque a 20 kHz (pulsos), sin medir.
+- **Primera captura del mapa (20 kHz), cortada en la 2.ª medición:** (10°, 3°) desde abajo → J2 +27,4 %, J3 −34,0 %
+  (a 1 kHz, en poses parecidas, ~17 % y ~−23 %: a 20 kHz el IBT-2 rinde menos por % de duty). Después `a 12` se cortó
+  por "sin cuentas": la cascada arrancaba desde 0 con el feedforward de 1 kHz (17 %), por debajo del 27 % que ya
+  pedía sostener J2, y a los 150 ms con más de `ARRANQUE_PCT` (35 %) sin moverse cortó. CSV
+  `resultados/mapa_gravedad_20261031_131027_cortado.csv` (1 medición).
+- **Arreglos (compila `-e j2` y `-e j3`, sin probar en placa):** arranque sin salto (si el comando empieza con la
+  activa sosteniéndose, la primera cascada arranca desde el duty que la sostenía: integral = uHold − feedforward de
+  marcha del sentido; `p` y `ev` consumen la marca); `p` negativo con el final de carrera de la activa suelto puede
+  pasar de 0° hasta apretarlo (`HASTA_FC_MAX_GRADOS` = 10° más abajo como mucho, la franja vale igual) y avisa
+  `FINAL DE CARRERA APRETADO` → `z`. Falta: medir el arranque a 20 kHz y subir zona muerta, `ARRANQUE_PCT`, atasco y
+  duty máximo antes de capturar el mapa.
+- Revisión de Codex del arranque sin salto y de `p` hasta el final de carrera, cinco arreglos: el límite de abajo
+  extendido se recalcula en cada vuelta (la otra puede moverse) y también corta arriba; con el final de carrera ya
+  apretado `p` negativo no empuja (avisa); la precarga descuenta también el proporcional del primer periodo
+  (`kp·a_max·Ts_pos`); el sostener debajo de 0° no corre la referencia hacia donde cae y suelta (freno) si pasa el
+  límite extendido; el corte en el límite extendido informa ese límite (no 0°).

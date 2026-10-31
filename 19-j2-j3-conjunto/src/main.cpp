@@ -96,6 +96,11 @@ uint32_t trabadaMs = art::TRABADA_MS;
 float ditherPct = art::DITHER_PCT;
 
 void irAControlado(float g, bool informar);  // paso 3, la usa también "ev" al terminar
+// Arranque sin salto: si el comando empezó con la activa sosteniéndose, la cascada arranca desde el duty que la
+// sostenía (antes arrancaba de 0 con el feedforward de marcha: a 20 kHz, J2 en (10°, 3°) sostenía con 27 % y "a 12"
+// se cortó por "sin cuentas" mientras el PI subía desde 17 %). Lo pone ejecutar() y lo usa la primera cascada.
+bool arranqueDesdeHold = false;
+float uArranque = 0.0f;
 bool sostenerAuto = art::SOSTENER_AUTO;     // "sa" (ver sostenerPaso)
 // Sostener quieto: duty = uHold + khP * error, y uHold aprende el duty que sostiene el peso (integrador de posición)
 float khP = art::KHP_SOSTENER;  // % por grado
@@ -180,6 +185,7 @@ void ayuda() {
                 art::DUTY_MOVER_PCT);
   Serial.printf("  p <%%> [ms]   pulso de duty fijo, |%%| <= %.0f, por defecto %lu ms (máx %lu). Ej: p 30 100\n",
                 art::DUTY_MAX_PCT, (unsigned long)art::PULSO_DEF_MS, (unsigned long)art::PULSO_MAX_MS);
+  Serial.println("               Negativo con el final de carrera suelto: puede pasar de 0° hasta apretarlo (después \"z\")");
   Serial.printf("  ev <°/s> [ms] [ciclos]  escalones de velocidad: +v ms, 0 %lu ms, -v ms, 0 %lu ms, repetido (CSV).\n"
                 "               Ej: ev 20 1000 40 (2 min)\n", (unsigned long)art::PAUSA_MS, (unsigned long)art::PAUSA_MS);
   Serial.println("  kp <x>, ki <x>  cambiar las ganancias del PI de velocidad · g  mostrarlas");
@@ -276,9 +282,10 @@ bool listaParaMover() {
 }
 
 // Resultado de un movimiento con duty fijo
-enum class Corte { Tiempo, Objetivo, Limite, HaciaAfuera, SinAvance, Enter };
+enum class Corte { Tiempo, Objetivo, Limite, HaciaAfuera, SinAvance, Enter, FinalCarrera };
 struct Movimiento {
   Corte corte;
+  bool hastaFc;   // buscaba el final de carrera (pasando el límite propio de abajo)
   int64_t c0;     // cuentas al empezar
   int64_t cFin;   // al cortar el duty
   int64_t c1;     // después de frenar
@@ -288,10 +295,31 @@ struct Movimiento {
 // Aplica pct durante como mucho msMax. Si conObjetivo, frena al alcanzar o pasar el objetivo.
 // Protecciones: límite de ángulo (fuera de él solo se permite volver, y un movimiento hacia afuera
 // ni arranca), avance mínimo en el sentido pedido y Enter.
-Movimiento mover(float pct, uint32_t msMax, bool conObjetivo, int64_t objetivo) {
-  Movimiento m{Corte::Tiempo, cuentas(), 0, 0, 0};
+// Con hastaFc (solo "p" negativo): si el final de carrera de la activa está SUELTO, puede pasar el límite propio de
+// abajo para llegar a él (corta al apretarse), hasta HASTA_FC_MAX_GRADOS más abajo; la franja vale igual.
+bool fcApretado() { return digitalRead(PIN_FC) == LOW; }
+float limNegFranjaG() {  // solo la franja (sin el límite propio)
+  if (!ceroFijado) return -1e9f;
+  float mn, mx;
+  intervaloOtra(mn, mx);
+  return mx + BANDA_MIN;
+}
+Movimiento mover(float pct, uint32_t msMax, bool conObjetivo, int64_t objetivo, bool hastaFc = false) {
+  Movimiento m{Corte::Tiempo, false, cuentas(), 0, 0, 0};
+  arranqueDesdeHold = false;  // duty fijo: el arranque sin salto es solo para la primera cascada del comando
   const int dir = pct > 0 ? 1 : -1;
-  if (haciaAfuera(m.c0, dir)) {
+  // Límite de abajo buscando el final de carrera: la franja (se recalcula: la otra puede moverse) o el extendido
+  auto limFcC = []() {
+    return (int64_t)(fmaxf(limNegFranjaG(), art::LIMITE_NEG_GRADOS - HASTA_FC_MAX_GRADOS) * art::CUENTAS_POR_GRADO);
+  };
+  if (hastaFc && dir < 0 && fcApretado()) {  // ya está en el final de carrera: no empujar contra él
+    m.corte = Corte::FinalCarrera;
+    m.cFin = m.c1 = m.c0;
+    return m;
+  }
+  hastaFc = hastaFc && dir < 0;
+  m.hastaFc = hastaFc;
+  if (hastaFc ? m.c0 <= limFcC() : haciaAfuera(m.c0, dir)) {
     m.corte = Corte::HaciaAfuera;  // sin energizar el motor
     m.cFin = m.c1 = m.c0;
     return m;
@@ -323,11 +351,23 @@ Movimiento mover(float pct, uint32_t msMax, bool conObjetivo, int64_t objetivo) 
       m.corte = Corte::Objetivo;
       break;
     }
-    // Fuera del rango solo se permite volver: corta si ya había entrado o si se aleja más
-    if (excesoLimite(c) == 0) dentro = true;
-    if (excesoLimite(c) > 0 && (dentro || excesoLimite(c) > excesoLimite(m.c0))) {
-      m.corte = Corte::Limite;
-      break;
+    if (hastaFc) {
+      // Buscando el final de carrera: corta al apretarse o al pasar el límite extendido (o la franja)
+      if (fcApretado()) {
+        m.corte = Corte::FinalCarrera;
+        break;
+      }
+      if (c <= limFcC() || c > limPosC()) {
+        m.corte = Corte::Limite;
+        break;
+      }
+    } else {
+      // Fuera del rango solo se permite volver: corta si ya había entrado o si se aleja más
+      if (excesoLimite(c) == 0) dentro = true;
+      if (excesoLimite(c) > 0 && (dentro || excesoLimite(c) > excesoLimite(m.c0))) {
+        m.corte = Corte::Limite;
+        break;
+      }
     }
     // Sin avance: el motor no arrancó, está trabado o el encoder no cuenta bien. En todos los casos, parar.
     if (ahora - tUltimaCuenta >= art::SIN_CUENTAS_MS) {
@@ -385,7 +425,19 @@ bool informarCorte(const Movimiento &m) {
 void pulso(float pct, uint32_t ms) {
   if (!listaParaMover()) return;
   Serial.printf(">> Pulso %+.0f %% durante %lu ms\n", pct, (unsigned long)ms);
-  const Movimiento m = mover(pct, ms, false, 0);
+  const Movimiento m = mover(pct, ms, false, 0, true);  // negativo: puede llegar al final de carrera (ver mover)
+  if (m.corte == Corte::FinalCarrera) {
+    Serial.printf("   %+.2f° -> %+.2f° tras frenar: FINAL DE CARRERA APRETADO. \"z\" para poner el cero acá.\n",
+                  grados(m.c0), grados(m.c1));
+    return;
+  }
+  if (m.hastaFc && (m.corte == Corte::Limite || m.corte == Corte::HaciaAfuera)) {
+    Serial.printf("   %+.2f° -> %+.2f° tras frenar: CORTADO sin apretar el final de carrera, en el límite de abajo "
+                  "(%+.1f°: %.0f° debajo de 0° o la franja). ¿Anda el final de carrera? Ver \"z\".\n",
+                  grados(m.c0), grados(m.c1), fmaxf(limNegFranjaG(), art::LIMITE_NEG_GRADOS - HASTA_FC_MAX_GRADOS),
+                  HASTA_FC_MAX_GRADOS);
+    return;
+  }
   const int64_t d = m.cFin - m.c0;
   Serial.printf("   %+.2f° -> %+.2f° al cortar el duty (%+lld cuentas, %+.2f°); %+.2f° tras frenar\n", grados(m.c0),
                 grados(m.cFin), (long long)d, grados(d), grados(m.c1));
@@ -501,6 +553,7 @@ void escalonVelocidad(float v, uint32_t ms, uint32_t ciclos) {
     return;
   }
   if (!listaParaMover()) return;
+  arranqueDesdeHold = false;  // arranca el PI de velocidad: la cascada de vuelta, del final, no es "desde el sostener"
 
   const uint32_t nIda = ms * 1000 / art::TS_VEL_US, nPausa = art::PAUSA_MS * 1000 / art::TS_VEL_US;
   const uint32_t nCiclo = 2 * (nIda + nPausa), nTotal = ciclos * nCiclo + 300000 / art::TS_VEL_US;
@@ -648,6 +701,19 @@ const char *cascada(Referencia ref, uint32_t nTotal, bool salirAlLlegar, bool cs
   const int64_t c0 = cuentas();
   for (auto &h : hist) h = c0;
   float integral = 0.0f, wRef = 0.0f, e = 0.0f, thRefAnt = NAN;
+  if (arranqueDesdeHold) {
+    // El primer duty (feedforward de marcha en el sentido del movimiento + integral) = el que la sostenía
+    arranqueDesdeHold = false;
+    const float th0 = grados(c0), d0 = ref(0) - th0;
+    if (fabsf(d0) >= art::TOL_POS) {
+      // Primer periodo: wRef = ±a_max·Ts_pos (rampa de aceleración) y w medida 0 -> proporcional kp·wRef. Sin dither
+      // (con dither, ±ditherPct de diferencia).
+      const int sg = d0 > 0 ? 1 : -1;
+      const float marcha = sg > 0 ? fmaxf(ffMarchaPos + ffPendPos * th0, FF_MIN_PCT) : ffMarchaNeg;
+      const float w0 = sg * art::AMAX_POS * art::TS_POS_US / 1e6f;
+      integral = uArranque - sg * marcha - kpVel * w0;
+    }
+  }
   bool llegado = false;  // histéresis: llega a menos de art::TOL_POS, se despierta a más de art::TOL_SALIDA
   uint32_t atascoTicks = 0, contrarioTicks = 0, sinCuentasTicks = 0, quietoTicks = 0;
   const char *corte = salirAlLlegar ? "no llegó a tiempo" : nullptr;
@@ -896,7 +962,15 @@ void sostenerPaso() {
   aplicarDuty(u);
   // Trabado (o el ángulo pedido no se puede alcanzar) o fuera del límite: no suelta (el brazo caería), se queda
   // sosteniendo donde está
-  if (excesoLimite(c) > 0 && fabsf(hold.ref - grados(c)) > art::TOL_POS) {
+  // Debajo del límite propio de abajo por haber buscado el final de carrera ("p" negativo): ahí se sostiene en la
+  // referencia (no se corre hacia donde cae). Más abajo que el límite extendido: deja de sostener (freno).
+  const float g = grados(c);
+  if (g < art::LIMITE_NEG_GRADOS - HASTA_FC_MAX_GRADOS) {
+    sostenerParar("pasar el límite de abajo extendido sin apretar el final de carrera");
+    return;
+  }
+  const bool debajoPropio = c < limNegC() && g > limNegFranjaG() && excesoLimite(c) > 0 && c <= limPosC();
+  if (excesoLimite(c) > 0 && !debajoPropio && fabsf(hold.ref - g) > art::TOL_POS) {
     sostenerAqui(c, "fuera del límite de ángulo");
     return;
   }
@@ -1642,9 +1716,12 @@ void ejecutar(char *l) {
     aplicarDuty(0.0f);  // freno mientras corre el comando
   }
   saltarQuieto = sosteniendo;
+  arranqueDesdeHold = sosteniendo && mueveActiva(l);
+  uArranque = hold.uAnt;
   const float qAntesCmd = hwOk ? grados(cuentas()) : 0.0f;
   ejecutarComando(l);
   saltarQuieto = false;
+  arranqueDesdeHold = false;
   if (hwOk && mueveActiva(l)) {
     const float dq = grados(cuentas()) - qAntesCmd;
     if (fabsf(dq) > 0.5f) ladoActiva = dq > 0 ? 1 : -1;

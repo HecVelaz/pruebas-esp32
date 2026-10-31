@@ -267,6 +267,9 @@ constexpr float BANDA_INT_HOLD = 0.2f;  // °
 // corriente); si se aleja más de TOL_SALIDA vuelve a corregir con el uHold aprendido. Con la reductora (~695:1) el
 // brazo se quedó quieto frenado (2026-10-31, J2 en 48°): falta ver si en todas las poses. PROVISORIO. En vivo: "fb".
 constexpr bool FRENO_EN_BANDA = false;
+// "p" negativo con el final de carrera de la activa SUELTO puede pasar su límite propio (0°) para llegar a él (lo
+// corta al apretarse), como mucho esto más abajo (por si el final de carrera no anda). La franja se respeta siempre.
+constexpr float HASTA_FC_MAX_GRADOS = 10.0f;
 // Asentamiento: después de llegar, cuánto sigue sosteniendo antes de informar la posición final ("Asentado").
 constexpr uint32_t ASENTAMIENTO_MS = 2000;  // PROVISORIO
 
