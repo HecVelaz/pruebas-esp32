@@ -122,7 +122,11 @@ void homingPaso() {
     return;
   }
   if (!a.firme()) {
-    if (millis() - hm.tEtapa > 15000) homingCortar("no termina de retroceder (15 s)");
+    if (millis() - hm.tEtapa > 15000) {
+      msg("   %s no queda firme: en %+.2f° (pedido %+.2f°), duty %+.1f %%, w %+.2f °/s, %s.", a.cfg().nombre, a.q(),
+          a.referencia(), a.duty(), a.w(), a.llego() ? "llegó pero no quieta" : "no llegó");
+      homingCortar("no termina de retroceder (15 s)");
+    }
     return;
   }
   msg("   %s: flanco %+.3f° del cero anterior%s; en %+.2f°.", a.cfg().nombre, hm.delta[i],
