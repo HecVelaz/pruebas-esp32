@@ -78,6 +78,7 @@ de frutas. El **firmware del robot** (lo que ya no es una prueba de un component
 | `17-brazo-joystick` | J1, J2 y J3 a la vez con un joystick en el navegador (lazo abierto; `tools/joystick.py` hace de puente serie), en la WROOM |
 | `18-finales-de-carrera` | Los tres finales de carrera del brazo (J1 · J2 · J3 en GPIO 32 · 27 · 33): suelto / apretado y rebotes, sin mover motores, en la WROOM |
 | `19-j2-j3-conjunto` | Lazo cerrado de J2 y J3 juntas (cuatro barras): una activa con los comandos de 12–14 y la otra sostenida sola en segundo plano, en la WROOM |
+| `20-brazo-coordinado` | J1, J2 y J3 con el mismo controlador (`lib/Articulacion`) en un lazo no bloqueante a 100 Hz: homing de las tres, movimientos dentro de la franja; base del test de repetibilidad, en la WROOM |
 | `notas/` | Estado, decisiones, pendientes, pines y flujo de trabajo (no es una prueba) |
 
 `12`–`14`: `tools/` es un enlace a `10-control-lazo-cerrado/tools`.

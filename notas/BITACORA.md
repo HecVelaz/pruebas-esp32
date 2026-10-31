@@ -264,3 +264,19 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   después de mover J2 a 20°, 10°, 18°, 20°): **J2 0,00 / −0,01 / +0,15 / −0,09° (σ ≈ 0,10°, antes 0,20°)**; J3 −0,08 /
   +0,02 / +0,05 / −0,05° (σ ≈ 0,06°). Repetibilidad de cada flanco ≈ σ/√2: ~0,07° J2, ~0,04° J3. Sin cortes en el
   retroceso. `a 20` / `a 10` / `a 18` / `a 20` llegan sin cortarse (error ≤ 0,3°) y quedan frenadas (`fb`).
+
+## 2026-10-31 (noche) — 20-brazo-coordinado: fase 5a
+
+- Plan de la fase 5 aprobado: carpeta nueva `20-brazo-coordinado` con J1 (y su homing); llegada siempre con el ángulo
+  creciendo (+) en las tres; J1 0–90° PROVISORIO (estirado choca antes con el soporte de la visión, sin medir); la
+  zona prohibida (que el brazo no choque con la caja) queda para después.
+- **5a (compila, sin probar en placa):** `lib/Articulacion` (sin `Serial` ni pines fijos): el mismo controlador para
+  las tres (cascada, PI de velocidad con feedforward y rampa de despegue, sostener con banda del integrador,
+  compensación de fricción y freno en banda, homing en el flanco, protecciones), portado de `12`/`19`. `src/main.cpp`:
+  tarea de control a 100 Hz que ejecuta los comandos (cola desde `loop()`) y deja los mensajes en otra cola; homing
+  J3 → J2 → J1; `j <n> <°>` dentro de los límites y la franja (3° de margen); la franja se vigila en cada periodo.
+  J3 en cascada con feedforward PROVISORIO (en 19 se sostenía con su lazo simple; `ff 3 ...` en vivo).
+- Revisión de Codex de la 5a, seis arreglos: el primer periodo de `sostener()` ya corre el P de posición (si no,
+  `pasoPI(0)` borraba la integral precargada: se perdía el arranque sin salto); límites propios mientras va al
+  destino; la franja se vigila también sosteniendo (una vez por episodio); `j` frena a las otras si iban a otro lado;
+  `h` deja todo quieto antes de empezar; `x` baja el EN desde `loop()` sin depender de la cola (que pasó a 16).

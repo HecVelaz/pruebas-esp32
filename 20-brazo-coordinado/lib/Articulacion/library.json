@@ -1,0 +1,8 @@
+{
+  "name": "Articulacion",
+  "version": "0.1.0",
+  "description": "Controlador de una articulación del brazo (cascada posición -> velocidad, sostener con compensación de fricción y freno en banda, homing en el flanco del final de carrera). Sin Serial ni pines fijos.",
+  "frameworks": "arduino",
+  "platforms": "espressif32",
+  "dependencies": []
+}

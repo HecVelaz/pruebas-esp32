@@ -6,6 +6,10 @@
 ## Brazo (12, 17, 19, lo próximo)
 
 - **`12`: repetir el paso 3** (`escalon_posicion.py -a j1 20 --ciclos 5`, desde unos 40–60° para tener lugar) con el cero en el final de carrera (`z` con J1 apretándolo); flasheado nuevo, sin probar.
+- **`20-brazo-coordinado`:** probar la 5a en placa (README); después 5b (`mv` coordinado), 5c (telemetría y
+  `tools/trayectoria.py`), la **zona prohibida** (que el brazo no choque con la caja: medir con el joystick dónde
+  choca) y el límite de J1 con el brazo estirado (hoy 90° PROVISORIO). Mecánico: fijar los finales de carrera con un
+  segundo punto de apoyo (el golpe los giraba).
 - **`19`, fases (2026-10-31):** fases 1 y 2 probadas. Antes de la fase 3, cero de J2 con el joystick (J2 al final de
   carrera, `z` con los dos apretados). Después fase 3 (mapa de gravedad), 4 (homing), 5 (control conjunto en `20`), 6 (preparar la repetibilidad).
 - **Adaptador fuente → XT60:** contacto con resistencia (con él J1/J3 no se mueven). Rehacerlo (≥ 14 AWG, soldado)
