@@ -41,6 +41,9 @@ MARGEN_ACTIVA = 3.0  # "a" deja 3° hasta el límite (propio o de la franja)
 HOLGURA = 0.7        # además, por lo que la otra puede estar corrida de lo pedido (TOL_SALIDA 0,6°)
 
 # Poses (q2, q3): 3° adentro de la franja, q3 - q2 entre -20 y +3
+# Al terminar, el brazo vuelve abajo: abrir el monitor reinicia la placa y lo suelta (estirado, caería)
+POSE_FINAL = {"j2": 5.0, "j3": 0.0}
+
 POSES = [(10, 3), (10, 13),
          (30, 10), (30, 22), (30, 33),
          (50, 30), (50, 42), (50, 53),
@@ -284,6 +287,11 @@ def capturar(args):
             print(f"   J2 {float(mapa['q2']):+.2f}° duty {float(mapa['duty2']):+.1f} %, "
                   f"J3 {float(mapa['q3']):+.2f}° duty {float(mapa['duty3']):+.1f} %")
             guardar(ruta, filas)  # en cada pose: si algo se corta, queda lo medido
+        if args.volver:
+            pos = {"j2": float(sec[-1][0][0]), "j3": float(sec[-1][0][1])}
+            print(f"\nVuelvo abajo (q2 {POSE_FINAL['j2']:g}°, q3 {POSE_FINAL['j3']:g}°)...")
+            for art, x in planear(pos, POSE_FINAL, args.activa):
+                mover(s, art, x, args.activa)
         cortado = False
     except KeyboardInterrupt:
         print("\nCortado con Ctrl+C.")
@@ -467,6 +475,8 @@ def main():
     c = sub.add_parser("capturar", help="medir en la placa")
     c.add_argument("--puerto", default=PUERTO, help="def. el de tools/monitor.sh (por id, no cambia)")
     c.add_argument("--paso", action="store_true", help="esperar Enter antes de cada pose")
+    c.add_argument("--no-volver", dest="volver", action="store_false",
+                   help="al terminar, no volver a q2 5°, q3 0° (por defecto vuelve: abrir el monitor suelta el brazo)")
     c.add_argument("--cero", action="store_true",
                    help='mandar "z" al empezar (J2 y J3 en sus finales de carrera; abrir el puerto puede reiniciar la '
                         'placa y borrar el cero)')
