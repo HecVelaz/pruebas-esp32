@@ -6,8 +6,8 @@
 ## Brazo (12, 17, 19, lo próximo)
 
 - **`12`: repetir el paso 3** (`escalon_posicion.py -a j1 20 --ciclos 5`, desde unos 40–60° para tener lugar) con el cero en el final de carrera (`z` con J1 apretándolo); flasheado nuevo, sin probar.
-- **`19`, fases (2026-10-31):** prueba F2 en placa (README de 19; incluye ver `Esperando a J3`, pendiente de la
-  fase 1); después fase 3 (mapa de gravedad), 4 (homing), 5 (control conjunto en `20`), 6 (preparar la repetibilidad).
+- **`19`, fases (2026-10-31):** fases 1 y 2 probadas. Antes de la fase 3, cero de J2 con el joystick (J2 al final de
+  carrera, `z` con los dos apretados). Después fase 3 (mapa de gravedad), 4 (homing), 5 (control conjunto en `20`), 6 (preparar la repetibilidad).
 - **Adaptador fuente → XT60:** contacto con resistencia (con él J1/J3 no se mueven). Rehacerlo (≥ 14 AWG, soldado)
   para volver a tener el fusible y la seta con la fuente; mientras, la fuente va directo a la bornera del bus.
 - **`19-j2-j3-conjunto`** (pasos del README): probar en placa con `-e j2` y después `-e j3`: paso 1 (cero, la otra sostiene, signos, cuentas por grado), 2 sostener, 3 barrido de carga → feedforward de gravedad, 4 PI de velocidad, 5 posición; programar el paso 6 (movimientos coordinados: llegan juntas) y 7 limón. Antes, revisión de Codex (solo lectura) si se quiere.

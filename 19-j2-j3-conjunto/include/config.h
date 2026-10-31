@@ -252,7 +252,9 @@ constexpr uint32_t OTRA_ESPERA_MAX_MS = 30000;
 // ---------- Sostener quieto (las dos: la activa en main.cpp y la otra en otra.cpp) ----------
 // Banda del integrador: con |error| menor que esto, uHold no integra (con la fricción, la zona muerta de 8-17 % y
 // KHP 3 %/°, integrar errores de décimas hacía que el duty fuera y viniera entre dos puntos). PROVISORIO. En vivo: "bi".
-constexpr float BANDA_INT_HOLD = 0.1f;  // °
+// 2026-10-31 (prueba F2, -e j2): con 0,1° J3 iba y venía ±1° (stick-slip: 8,9° ↔ 10,6° pidiendo 10°, duty de −22 a
+// −4 %); con 0,2° quedó quieta a 0,04° con el duty fijo (−24,5 %). Queda 0,2° (revisar con las fases 3 y 6).
+constexpr float BANDA_INT_HOLD = 0.2f;  // °
 // Freno dentro de la banda: llegada (|error| < TOL_POS y quieta LLEGADA_MS) -> duty 0 (freno, sin pitido ni
 // corriente); si se aleja más de TOL_SALIDA vuelve a corregir con el uHold aprendido. Con la reductora (~695:1) el
 // brazo se quedó quieto frenado (2026-10-31, J2 en 48°): falta ver si en todas las poses. PROVISORIO. En vivo: "fb".

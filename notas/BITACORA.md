@@ -122,3 +122,11 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   los movimientos con `sa` apagado también piden el informe; si a los 15 s no se asentó, informa `SIN ASENTAR` con
   los mismos datos; `barrido_carga.py`, `escalon_posicion.py` y `escalon_velocidad.py` (en `10/tools`) reconocen los
   rechazos `Fuera de rango` y `>> RECHAZADO`.
+- **Prueba en placa de la fase 2 (`-e j2`)**, con `z` hecho con J2 `SUELTO` (~4° arriba de su final de carrera: los
+  ángulos de J2 de esta prueba marcan ~4° menos que los reales; hay que rehacer el cero antes de la fase 3). Andan
+  `Asentado`, la espera (`a 25` → `Esperando a J3` sin mover J2), los estados `EN CAMINO` / `LLEGANDO` / `LLEGÓ`, `fb`
+  (las dos frenadas, sin pitido; congela el error al frenar: J3 con 0,39°) y los mensajes de rechazo. **Banda del
+  integrador: con 0,1° J3 oscila ±1° (stick-slip, no termina de llegar); con 0,2° queda a 0,04° con duty fijo →
+  `BANDA_INT_HOLD` = 0,2° (PROVISORIO).** J2 en 25° subió sola a 27,1° con el `uHold` aprendido en otra pose (lo
+  ataca la fase 3). J2 no puede apretar su final de carrera con `a` (3° de margen sobre el límite de 0°; la otra sí,
+  con `o 0`, porque no tiene margen y no empuja con el final de carrera apretado): lo resuelve la fase 4 (homing).

@@ -17,7 +17,7 @@ frenada (y frenadas, J2 y J3 bajan solas).
   (la activa sigue sosteniéndose); Enter cancela (`x` durante la espera suelta las dos) y a los 30 s (`OTRA_ESPERA_MAX_MS`, PROVISORIO) se rechazan.
   "Llegó" = la referencia en el destino, a menos de `TOL_POS` (0,3°) y quieta `LLEGADA_MS` (200 ms), como la activa
   (fase 2; en la fase 1 bastaba la referencia).
-- **Al sostener (las dos, fase 2):** con |error| < `BANDA_INT_HOLD` (0,1°, `bi`) el integrador no integra; opcional,
+- **Al sostener (las dos, fase 2):** con |error| < `BANDA_INT_HOLD` (0,2°, `bi`) el integrador no integra; opcional,
   **freno dentro de la banda** (`fb`, apagado al arrancar): al llegar, duty 0 (sin pitido ni corriente) hasta que se
   aleje más de `TOL_SALIDA` (0,6°). A los 2 s de llegar (`ASENTAMIENTO_MS`) informa `>> Asentado: ...` (posición
   final, error y duty de las dos). Todo PROVISORIO.
@@ -96,8 +96,10 @@ del integrador · `fb` freno dentro de la banda sí/no ·
   en las dos direcciones y usa el medido de J3 cuando va atrasada; `x` → `o` vuelve a sostener. Falta ver la espera
   (`Esperando a J3`): va en la prueba de la fase 2.
 - [x] Fase 2 (2026-10-31): banda del integrador, "llegó" de la otra con el criterio de la activa, freno dentro de la
-  banda opcional, asentamiento, `o` destraba el ATASCO, mensajes de rechazo con el rango y la franja. Compila;
-  **sin probar en placa** (prueba F2 abajo).
+  banda opcional, asentamiento, `o` destraba el ATASCO, mensajes de rechazo con el rango y la franja. **Probada en
+  placa con `-e j2`** (2026-10-31, con el cero de J2 corrido ~4°): `Asentado`, `Esperando a J3`, estados de J3 y `fb`
+  (sin pitido) andan; banda 0,1° → J3 oscila ±1°, 0,2° → quieta (queda 0,2°). J2 sube sola ~2° después de llegar con
+  el `uHold` de otra pose (fase 3).
 - [ ] Fase 3: mapa de gravedad (J2 y J3 se cargan mutuamente)
 - [ ] Fase 4: homing automático
 - [ ] 1: cero, la otra sostiene, signos, cuentas por grado (J2 / J3)
@@ -112,4 +114,5 @@ del integrador · `fb` freno dentro de la banda sí/no ·
 
 | Fecha | Paso | Resultado |
 |---|---|---|
-| | | |
+| 2026-10-31 | F1 (`-e j2`) | `a 28` 28,02° (2,26 s), `a 50` 50,21° (1,92 s), `a 48` 48,21°; la franja rechaza `a 75` (J3 en 30°), `a 26` (J3 atrasada en ~31,5°) y `o 7` (J2 en 48°); `x` → `o 23` vuelve a sostener. J2 sostenida queda 0,9–1,4° abajo |
+| 2026-10-31 | F2 (`-e j2`, cero de J2 ~4° corrido) | `a 20` → 19,94° (error 0,06°, duty 0,2 %); `bi 0.1`: J3 en 25° pasa a 24,2° y no llega (`LLEGANDO`), en 10° va y viene 8,9 ↔ 10,6°; `bi 0.2`: J3 9,96° fija (duty −24,5 %); `fb`: las dos frenadas, J3 con 0,39° de error congelado, sin pitido; `a 25` → 25,57° y después 27,10° (`uHold` de otra pose) |
