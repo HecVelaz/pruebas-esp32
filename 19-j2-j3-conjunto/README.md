@@ -81,11 +81,12 @@ sin soltarse (y J1 no se suelta).
 → `o 10` y enseguida `a 25` (`Esperando a J3`, J2 quieta) → `Asentado`. Repetir `a 20` / `a 25` con `fb` prendido
 (¿pita? ¿se queda?) y, si el duty todavía va y viene, con `bi 0.2`. Volver: `a 12` → `o 0` → `a 4`.
 
-**Prueba F3a (captura del mapa de gravedad, con `-e j2`):** antes, el cero bien hecho (J2 al final de carrera con el
-joystick de `17`, flashear 19, `z` con los **dos** `apretado`). Fuente a la bornera con 3 A, `fb` apagado. Con el
-monitor **cerrado**: `python3 tools/mapa_gravedad.py plan` (ver los movimientos), después
-`python3 tools/mapa_gravedad.py capturar` (14 poses × desde abajo y desde arriba, ~8 min; `--paso` espera Enter
-antes de cada pose; Ctrl+C corta y guarda). Al final ajusta y grafica (`resultados/mapa_gravedad_<fecha>.csv/.png`)
+**Prueba F3a (captura del mapa de gravedad, con `-e j2`):** **abrir el puerto serie puede reiniciar la WROOM**
+(2026-10-31: al volver a abrir el monitor, cero perdido y las dos sueltas), así que el cero lo hace el script: J2 y
+J3 a sus finales de carrera con el joystick de `17` → 12 V apagados → flashear 19 → 12 V encendidos → **sin abrir el
+monitor**, `python3 tools/mapa_gravedad.py capturar --cero --paso` (espera que la placa arranque, `z` —corta si algún
+final de carrera está suelto—, apaga `fb`; 14 poses × desde abajo y desde arriba, ~10 min; `--paso` espera Enter
+antes de cada pose; Ctrl+C corta y guarda). `plan` muestra los movimientos sin tocar la placa. Al final ajusta y grafica (`resultados/mapa_gravedad_<fecha>.csv/.png`)
 e imprime `MAPA_J2` / `MAPA_J3` para `config.h` (fase 3b). Mano cerca: en q2 = 90° el brazo está estirado.
 
 Los scripts: **sin `--cero`** (mandaría `z` lejos de los finales de carrera); cerrar el monitor antes.

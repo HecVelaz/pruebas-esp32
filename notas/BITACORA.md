@@ -146,3 +146,8 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   (antes un aviso `>> J3: ATASCO` pasaba como confirmación del `o`); el ajuste deja afuera las mediciones que se
   movieron durante el promedio y las poses con un solo lado (tienen la fricción adentro), salvo
   `--incluir-inestables` / `--incluir-un-lado`.
+- **Abrir el puerto serie reinicia la WROOM (probable):** después de cerrar y volver a abrir `tools/monitor.sh`, `c`
+  dio J2 en 0 cuentas, J3 `SIN SOSTENER` y `fb` (que estaba prendido) se prendió de nuevo: arrancó de cero (el brazo
+  quedó suelto; en esa pose baja la fricción lo aguantó). `mapa_gravedad.py capturar --cero`: abre sin tocar DTR/RTS,
+  espera que termine de arrancar, hace `z` (corta si un final de carrera está suelto) y apaga `fb`; puerto por id
+  (la placa estaba en `ttyUSB1` y el script buscaba `ttyUSB0`).

@@ -11,12 +11,13 @@ diferencia, la fricción. Después ajusta, para cada una,
 y lo compara con modelos más simples. Guarda el CSV y el PNG en resultados/ e imprime los coeficientes para
 config.h.
 
-Antes: cero bien hecho ("z" con los dos finales de carrera apretados), monitor cerrado, fuente con 3 A, "fb"
-apagado, sostener automático prendido (como arranca). Activa J2 (-e j2): mide las dos.
+Antes: J2 y J3 en sus finales de carrera, monitor cerrado, fuente con 3 A, 12 V encendidos, y correrlo con --cero:
+abrir el puerto serie puede reiniciar la WROOM (borra el cero y suelta el brazo), así que el script espera que
+arranque, hace "z" (y corta si algún final de carrera está suelto) y apaga "fb". Activa J2 (-e j2): mide las dos.
 
 Uso:
-    python3 tools/mapa_gravedad.py capturar                  # las 14 poses, desde abajo y desde arriba (~8 min)
-    python3 tools/mapa_gravedad.py capturar --paso           # espera Enter antes de cada pose
+    python3 tools/mapa_gravedad.py capturar --cero           # las 14 poses, desde abajo y desde arriba (~10 min)
+    python3 tools/mapa_gravedad.py capturar --cero --paso    # espera Enter antes de cada pose
     python3 tools/mapa_gravedad.py ajustar resultados/mapa_gravedad_....csv
     python3 tools/mapa_gravedad.py plan                      # muestra los comandos, sin tocar la placa
 Ctrl+C manda Enter (corta lo que esté haciendo la activa; las dos siguen sosteniéndose) y guarda lo medido.
@@ -180,6 +181,33 @@ def mover(s, art, x, activa):
         esperar_otra(s)
 
 
+def drenar(s, quieto=0.6, maximo=6.0):
+    """Lee y muestra hasta que la placa deje de mandar (si abrir el puerto la reinició, el arranque tarda ~2 s y
+    al final tira lo que haya llegado: no hay que mandarle nada antes)."""
+    t_fin, t_ult = time.time() + maximo, time.time()
+    while time.time() < t_fin and time.time() - t_ult < quieto:
+        l = s.readline().decode(errors="replace").strip()
+        if l:
+            t_ult = time.time()
+            if l.startswith("=="):
+                print("   (la placa arrancó de nuevo: el cero se perdió)")
+
+
+def preparar(s, args):
+    """Con --cero: "z" (los dos finales de carrera tienen que estar apretados). Siempre: "fb" apagado."""
+    if args.cero:
+        mandar(s, "z")
+        l = esperar(s, ("   Final de carrera",), 3)
+        if "SUELTO" in l:
+            raise RuntimeError("al hacer el cero algún final de carrera está SUELTO: llevarlos ahí (joystick) y repetir")
+    s.reset_input_buffer()
+    mandar(s, "g")
+    l = esperar(s, ("Las dos al sostener",), 3, eco=False)
+    if "(fb) PRENDIDO" in l:
+        mandar(s, "fb")
+        esperar(s, (">> Freno dentro de la banda",), 3)
+
+
 def leer_posicion(s, activa):
     """Manda "c" y devuelve {"j2": q2, "j3": q3} y si la otra está sosteniéndose."""
     s.reset_input_buffer()
@@ -218,10 +246,8 @@ def capturar(args):
         print(f"No se pudo abrir {args.puerto}: {e}\n¿Está conectada la placa? ¿El monitor está cerrado? (ls /dev/ttyUSB*)")
         sys.exit(1)
     try:
-        time.sleep(0.3)
-        s.reset_input_buffer()
-        s.write(b"\n")
-        time.sleep(0.3)
+        drenar(s)
+        preparar(s, args)
         inicio, sostiene = leer_posicion(s, args.activa)
         print(f"Inicio: q2 {inicio['j2']:+.2f}°, q3 {inicio['j3']:+.2f}°"
               f"{'' if sostiene else ' (la otra sin sostener: el primer \"o\" la toma)'}")
@@ -432,6 +458,9 @@ def main():
     c = sub.add_parser("capturar", help="medir en la placa")
     c.add_argument("--puerto", default=PUERTO, help="def. el de tools/monitor.sh (por id, no cambia)")
     c.add_argument("--paso", action="store_true", help="esperar Enter antes de cada pose")
+    c.add_argument("--cero", action="store_true",
+                   help='mandar "z" al empezar (J2 y J3 en sus finales de carrera; abrir el puerto puede reiniciar la '
+                        'placa y borrar el cero)')
     p = sub.add_parser("plan", help="mostrar los comandos sin tocar la placa")
     p.add_argument("--desde", type=float, nargs=2, default=(4.0, 0.0), metavar=("Q2", "Q3"))
     for x in (c, p):
