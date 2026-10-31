@@ -4,7 +4,9 @@
 // barras. Los comandos llegan por Serial (loop) a una cola; la tarea los ejecuta entre periodos y deja los mensajes
 // en otra cola que imprime loop(): la tarea nunca espera a Serial.
 // Fase 5b: "mv q1 q2 q3": las tres a la vez, terminan juntas, camino recto en (q2, q3) dentro de la franja, llegada
-// siempre con el ángulo creciendo; al asentarse, línea LLEGO. Pendiente: 5c telemetría; zona prohibida (la caja).
+// siempre con el ángulo creciendo; al asentarse, línea LLEGO.
+// Fase 5c: "t": telemetría a 50 Hz (líneas T,...; tools/trayectoria.py la captura y la grafica). Pendiente: zona
+// prohibida (la caja).
 #include <Arduino.h>
 
 #include "Articulacion.h"
@@ -31,6 +33,20 @@ struct Mensaje {
   char t[120];
 };
 
+// ---------- Fase 5c: telemetría ----------
+// La tarea deja muestras binarias en su propia cola (no compite con los mensajes: un LLEGO no se pierde por la
+// telemetría); loop() las formatea. Si la cola se llena se pierden muestras y se cuentan.
+constexpr int TELE_DIV = 2;  // una muestra cada 2 periodos: 50 Hz
+struct Muestra {
+  uint32_t ms;
+  uint8_t etapa;       // del mv (1 recorrido, 2 aproximación, 3 llegada, 4 asentamiento), 9 homing, 0 nada
+  float q[3], r[3], u[3], w[3];
+  uint8_t est[3];      // 0 suelta, 1 sosteniendo yendo, 2 llegó, 3 firme, 4 frenada, 5 siguiendo, 6 homing
+};
+QueueHandle_t colaTele;
+volatile bool tele = false;
+volatile uint32_t telePerdidas = 0;
+
 void msg(const char *fmt, ...) {
   Mensaje m;
   va_list ap;
@@ -49,6 +65,18 @@ bool enMovimiento(int i) {
   const auto m = art[i].modo();
   return m == Articulacion::Modo::Seguir || m == Articulacion::Modo::Homing ||
          (m == Articulacion::Modo::Sostener && !art[i].llego());
+}
+
+uint8_t estadoTele(const Articulacion &a) {
+  switch (a.modo()) {
+    case Articulacion::Modo::Suelta: return 0;
+    case Articulacion::Modo::Seguir: return 5;
+    case Articulacion::Modo::Homing: return 6;
+    default: break;
+  }
+  if (a.frenada()) return 4;
+  if (a.firme()) return 3;
+  return a.llego() ? 2 : 1;
 }
 
 // ---------- Homing de las tres: J3 -> J2 -> J1 (con el codo abajo, bajar el hombro no viola la franja; J1 al final,
@@ -346,6 +374,7 @@ void ayuda() {
   msg("  j <n> <°>    mover una articulación (1, 2 o 3) a un ángulo, dentro de sus límites y de la franja");
   msg("  mv <q1> <q2> <q3>  las tres a la vez, terminan juntas (recta en q2-q3), llegan con el ángulo creciendo;");
   msg("               al asentarse: LLEGO,t,q1,q2,q3,e1,e2,e3. Ojo: no esquiva la caja (zona prohibida pendiente)");
+  msg("  t [1|0]      telemetría a 50 Hz (T,ms,etapa,q,ref,duty,w,estado de cada una); no corta el mv ni el homing");
   msg("  s            sostener las tres donde están");
   msg("  z            cero de las tres acá (tienen que estar en sus finales de carrera; mejor \"h\")");
   msg("  c            estado de las tres");
@@ -441,11 +470,12 @@ void comandoFF(const char *args) {
 void ejecutar(char *l) {
   while (*l == ' ') l++;
   if (*l == '\0') return;
-  if (hm.activo && strcmp(l, "c") != 0) {  // cualquier comando corta el homing (menos "c")
+  const bool noCorta = strcmp(l, "c") == 0 || l[0] == 't';  // "c" y "t" no cortan nada
+  if (hm.activo && !noCorta) {  // cualquier otro comando corta el homing
     homingCortar("comando");
     if (strcmp(l, "x") != 0) return;
   }
-  if (mv.activo && strcmp(l, "c") != 0) {  // y el movimiento coordinado
+  if (mv.activo && !noCorta) {  // y el movimiento coordinado
     mvCortar("comando");
     if (strcmp(l, "x") != 0) return;
   }
@@ -458,6 +488,18 @@ void ejecutar(char *l) {
     msg("Hardware sin inicializar: comandos deshabilitados.");
   } else if (strcmp(l, "c") == 0) {
     estado();
+  } else if (l[0] == 't' && (l[1] == '\0' || l[1] == ' ')) {
+    const char *a = l + 1;
+    while (*a == ' ') a++;
+    tele = *a == '1' ? true : (*a == '0' ? false : !tele);
+    msg(">> Telemetría %s.", tele ? "PRENDIDA (50 Hz)" : "APAGADA");
+    if (tele) {
+      telePerdidas = 0;
+      msg("TELE_CFG,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f", art[I1].cfg().tolPos, art[I2].cfg().tolPos, art[I3].cfg().tolPos,
+          art[I1].cfg().bandaInt, art[I2].cfg().bandaInt, art[I3].cfg().bandaInt);
+    } else {
+      msg("TELE_FIN,%lu", (unsigned long)telePerdidas);
+    }
   } else if (strcmp(l, "h") == 0) {
     homingIniciar();
   } else if (strcmp(l, "s") == 0) {
@@ -511,6 +553,20 @@ void control(void *) {
     for (auto &a : art) a.paso();
     homingPaso();
     mvPaso();
+    static uint32_t kTele = 0;
+    if (tele && ++kTele % TELE_DIV == 0) {
+      Muestra m;
+      m.ms = millis();
+      m.etapa = mv.activo ? (uint8_t)mv.etapa : (hm.activo ? 9 : 0);
+      for (int i = 0; i < N; i++) {
+        m.q[i] = art[i].q();
+        m.r[i] = art[i].referencia();
+        m.u[i] = art[i].duty();
+        m.w[i] = art[i].w();
+        m.est[i] = estadoTele(art[i]);
+      }
+      if (xQueueSend(colaTele, &m, 0) != pdTRUE) telePerdidas++;
+    }
     // Franja del cuatro barras: si la medición sale (con holgura) con J2 o J3 controladas (moviéndose o sosteniendo:
     // sosteniendo también pueden corregir una caída), frenar las dos donde están. Una vez por episodio.
     static bool fueraFranja = false;
@@ -596,12 +652,14 @@ void setup() {
     hwOk = art[i].begin(*cfg[i]) && hwOk;
     art[i].frenoEnBanda(frenoBanda);
   }
+  Serial.setTxBufferSize(2048);  // la telemetría (~5 kB/s) no bloquea loop() en cada línea
   Serial.begin(115200);
   delay(1500);
   colaComandos = xQueueCreate(16, sizeof(Linea));
   colaMensajes = xQueueCreate(24, sizeof(Mensaje));
+  colaTele = xQueueCreate(50, sizeof(Muestra));  // 1 s de muestras
   Serial.println();
-  Serial.println("== 20 · J1, J2 y J3 con el mismo controlador (5a: homing, \"j\"; 5b: \"mv\") · WROOM, 20 kHz ==");
+  Serial.println("== 20 · J1, J2 y J3 con el mismo controlador (5a: homing, \"j\"; 5b: \"mv\"; 5c: \"t\") · WROOM, 20 kHz ==");
   Serial.printf("Franja: q2 - %.1f° <= q3 <= q2 + %.1f°. J1 0-%.0f° (PROVISORIO: estirado choca antes), J2 0-%.0f°, "
                 "J3 0-%.0f°.\n", Q2_MENOS_Q3_MAX, Q3_MENOS_Q2_MAX, CFG_J1.limPos, CFG_J2.limPos, CFG_J3.limPos);
   if (!hwOk) Serial.println("ERROR: no se pudo configurar algún PWM o encoder.");
@@ -616,5 +674,13 @@ void loop() {
   leerSerial();
   Mensaje m;
   while (xQueueReceive(colaMensajes, &m, 0) == pdTRUE) Serial.println(m.t);
+  Muestra x;
+  while (xQueueReceive(colaTele, &x, 0) == pdTRUE) {
+    char b[200];
+    int n = snprintf(b, sizeof(b), "T,%lu,%u", (unsigned long)x.ms, x.etapa);
+    for (int i = 0; i < N; i++)
+      n += snprintf(b + n, sizeof(b) - n, ",%.3f,%.3f,%.1f,%.2f,%u", x.q[i], x.r[i], x.u[i], x.w[i], x.est[i]);
+    Serial.println(b);
+  }
   delay(2);
 }

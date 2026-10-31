@@ -34,7 +34,7 @@ tools/monitor.sh                            # salir con Ctrl+]
 ## Comandos (fase 5a)
 
 `h` homing de las tres · `j <n> <°>` mover una (1, 2 o 3) dentro de sus límites y de la franja · `mv <q1> <q2> <q3>`
-las tres a la vez (5b) · `s` sostener las
+las tres a la vez (5b) · `t [1|0]` telemetría a 50 Hz (5c; no corta el `mv`) · `s` sostener las
 tres donde están · `z` cero acá (en los finales de carrera; mejor `h`) · `c` estado · `fb` freno en banda sí/no ·
 `ff <n> <desp+> <marcha+> <desp-> <marcha->` feedforward de una (en vivo) · `x` rueda libre de las tres · `?`.
 
@@ -55,6 +55,24 @@ Después de `h` (las tres en 3°), con poses que se sepa que **no chocan con la 
 que las que bajan **se pasen 2° y vuelvan subiendo despacio**, y anotar cada `LLEGO,...` (errores). Repetir un mismo
 `mv` varias veces desde poses distintas y comparar los `LLEGO` (adelanto de la fase 6).
 
+## Prueba 5c (telemetría)
+
+`tools/trayectoria.py` reemplaza al monitor (cerrarlo antes): manda `t 1`, los comandos de la lista esperando cada
+`LLEGO` (o `HOMING`), captura `--cola` s más y manda `t 0`. Guarda `resultados/trayectoria_<fecha>_<hora>.csv` y su
+`.png`: por articulación referencia contra medido, el error con `tolPos` y `bandaInt` (zoom ±1,5°: ahí se ve el
+tambaleo del final) y el duty, con lo firme y lo frenado sombreado; abajo, el camino (q2, q3) sobre la franja. Imprime
+para cada `mv` cuánto tardó en quedar firme y cuántas correcciones hizo cada una al final. Abrir el puerto puede
+reiniciar la WROOM: si queda sin cero, empezar la lista con `h`.
+
+```bash
+python3 tools/trayectoria.py h "mv 20 20 24" "mv 40 30 20" "mv 20 20 24" "mv 3 3 3"
+python3 tools/trayectoria.py --archivo resultados/trayectoria_....csv    # volver a graficar
+```
+
+Línea de telemetría: `T,ms,etapa,` y por cada una `q,ref,duty,w,estado` (etapa del `mv`: 1 recorrido,
+2 aproximación, 3 llegada, 4 asentamiento, 9 homing; estado: 0 suelta, 1 yendo, 2 llegó, 3 firme, 4 frenada,
+5 siguiendo, 6 homing). Al prenderla, `TELE_CFG` con `tolPos` y `bandaInt` de las tres; al apagarla, `TELE_FIN,<perdidas>`.
+
 ## Estado
 
 - [x] 5a: biblioteca, sostener las tres, homing de las tres, `j` (**probada en placa 2026-10-31**: flancos al nivel
@@ -64,7 +82,7 @@ que las que bajan **se pasen 2° y vuelvan subiendo despacio**, y anotar cada `L
   PROVISORIO); las que bajan terminan 2° por debajo y suben el último tramo a 2 °/s (llegada siempre con el ángulo
   creciendo); a los 2 s firmes: `LLEGO,t,q1,q2,q3,e1,e2,e3`. Corta si alguna se aleja más de 5° de su referencia, con
   la franja o con cualquier comando. **No esquiva la caja.**
-- [ ] 5c: telemetría (`t`) y `tools/trayectoria.py`
+- [x] 5c (**probada en placa 2026-10-31**, sin muestras perdidas): telemetría `t` y `tools/trayectoria.py`
 - [ ] Zona prohibida: que el brazo no choque con la caja (después)
 
 ## Resultados
@@ -72,6 +90,7 @@ que las que bajan **se pasen 2° y vuelvan subiendo despacio**, y anotar cada `L
 | Fecha | Prueba | Resultado |
 |---|---|---|
 | 2026-10-31 | 5b `mv` (`b5a0763`) | Arrancan y terminan juntas; las que bajan se pasan ~2° y vuelven subiendo despacio. `LLEGO` (J1 · J2 · J3): `mv 20 15 10` 19,94 · 14,77 · 10,17 · `mv 3 3 3` 2,82 · 3,00 · 3,46 · `mv 40 30 20` 39,68 · 30,21 · 20,02 · `mv 20 20 24` 19,94 · 20,11 · 24,16 · `mv 3 3 3` 2,99 · 3,00 · 3,04. Error máx 0,46° (J3, primer `mv 3 3 3`); el resto ≤ 0,32° |
+| 2026-10-31 | 5c telemetría (`trayectoria_20261031_175424`) | 4 `mv` + homing, 6990 muestras. (1) Primer `mv 20 20 24`: J2 llega adelantada y frenando con duty −20 %; el sostener arranca de ese duty y **cae 1,7°** antes de volver (el tambaleo). (2) Aproximación a 2 °/s con stick-slip: J2 1,4° y J3 0,9° atrás hasta despegar. (3) `mv 3 3 3`: J3 trabada en el borde de `tolPos` 0,15° y 18,5 s hasta quedar firme. Feedforward medido en el recorrido (J2 +24,4 / −10 %, J3 +11,9 / −33 %) ≈ el de `config.h` |
 | 2026-10-31 | 5b con `khi` 4 en J2 y J3 (en vez de 8) | Peor: 3 de 7 `mv` cortados por `no quedan firmes`; J2 llega con +0,30° de error (19,70 dos veces) y el tambaleo no mejora a la vista. → `khi` vuelve a 8 |
 | 2026-10-31 | 5b con J2 en 0,3° / 0,2° y J3 en 0,15° / 0,1° | 8 `mv` sin cortes. 4 llegadas a `mv 20 20 24`: J1 19,94 ×4 (0,00°), J2 19,94 · 20,05 · 19,83 · 20,00 (0,22°), **J3 24,18 ×4 (0,008°, una cuenta)**; J3 queda siempre 0,18° por encima (después de frenar). Sigue el tambaleo en la punta (sin saber de cuál: falta la telemetría) |
 | 2026-10-31 | 5b con J2/J3 `tolPos` 0,15°, `bandaInt` 0,1° | 3 llegadas a `mv 20 20 24`: J1 20,08 (rango 0,00°), J2 20,14 · 19,99 · 19,85 (**0,29°**, peor), **J3 24,18 · 24,14 · 24,18 (0,03°)**. Una vez `no quedan firmes`. Al final se ve un tambaleo en la punta: se traba por fricción, el integrador sube el duty, despega de golpe y se pasa (stick-slip), y el juego de los engranajes y el brazo largo lo amplifican. → J2 vuelve a 0,3° / 0,2°; J3 queda en 0,15° / 0,1° |
