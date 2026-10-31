@@ -81,6 +81,12 @@ sin soltarse (y J1 no se suelta).
 → `o 10` y enseguida `a 25` (`Esperando a J3`, J2 quieta) → `Asentado`. Repetir `a 20` / `a 25` con `fb` prendido
 (¿pita? ¿se queda?) y, si el duty todavía va y viene, con `bi 0.2`. Volver: `a 12` → `o 0` → `a 4`.
 
+**Prueba PWM (antes del mapa; con `-e j2`, fuente a la bornera):** a 1 kHz el sostener pita; a 20 kHz, el 26/10, J2
+no arrancaba con menos de 40 % (con la fuente por el XT60 de contacto malo). Con J2 en ~20° y J3 en ~10°, para
+`pwm 1000`, `pwm 5000` y `pwm 20000`: pulsos `p 15 200`, `p 20 200`, `p 25 200`… y `p -10 200`, `p -15 200`… (con qué
+duty arranca subiendo y bajando) y `o 12` → `oc` (¿J3 llega? ¿con qué duty sostiene? ¿pita?). Si a 20 kHz arranca con
+≤ ~25 %, pasar las dos a 20 kHz y volver a medir la zona muerta antes del mapa.
+
 **Prueba F3a (captura del mapa de gravedad, con `-e j2`):** **abrir el puerto serie puede reiniciar la WROOM**
 (2026-10-31: al volver a abrir el monitor, cero perdido y las dos sueltas), así que el cero lo hace el script: J2 y
 J3 a sus finales de carrera con el joystick de `17` → 12 V apagados → flashear 19 → 12 V encendidos → **sin abrir el
@@ -94,7 +100,8 @@ Los scripts: **sin `--cero`** (mandaría `z` lejos de los finales de carrera); c
 **Comandos nuevos:** `o <°>` llevar la otra y sostenerla · `oc` dónde está la otra (medido, referencia, destino,
 `EN CAMINO` / `LLEGANDO` / `LLEGÓ`, error, duty aprendido) y los límites de la activa con el peor caso · `bi <°>` banda
 del integrador · `fb` freno dentro de la banda sí/no · `an [nota]` anotar el duty de las dos asentadas (línea
-`MAPA,...`, para `tools/mapa_gravedad.py`) ·
+`MAPA,...`, para `tools/mapa_gravedad.py`) · `pwm <Hz>` frecuencia del PWM de las dos en vivo (al reiniciar vuelve
+la de `config.h`, 1 kHz) ·
 `okp`, `oki` ganancias del sostener de la otra · `x` suelta las dos. El resto, como `12`–`14` (`?`).
 
 ## Estado

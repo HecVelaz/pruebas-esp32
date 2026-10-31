@@ -151,3 +151,10 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   quedó suelto; en esa pose baja la fricción lo aguantó). `mapa_gravedad.py capturar --cero`: abre sin tocar DTR/RTS,
   espera que termine de arrancar, hace `z` (corta si un final de carrera está suelto) y apaga `fb`; puerto por id
   (la placa estaba en `ttyUSB1` y el script buscaba `ttyUSB0`).
+- **Comando `pwm <Hz>`** (500–25000; compila `-e j2` y `-e j3`): cambia en vivo la frecuencia del PWM de las dos
+  (`ledcChangeFrequency`; la otra la cambia su tarea), sin tocar `PWM_FREQ_HZ` (1 kHz). Para probar de nuevo 20 kHz
+  contra el pitido de 1 kHz: el 26/10 J2 pedía 40 % para arrancar a 20 kHz, pero con la fuente por el adaptador XT60
+  con contacto malo. La captura del mapa queda en pausa hasta decidir la frecuencia (el mapa está en % de duty).
+- Revisión de Codex de `pwm`, dos arreglos: `ejecutar()` reconoce los movimientos por el comando entero
+  (`mueveActiva()` + `dg`), no por la primera letra (`pwm` cambiaba el ángulo del sostener por el actual); `pwm` no
+  toca el puente si está deshabilitado (después de `x`, `setDuty(0)` subía el EN común y frenaba las tres).

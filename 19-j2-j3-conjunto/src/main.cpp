@@ -100,6 +100,7 @@ bool sostenerAuto = art::SOSTENER_AUTO;     // "sa" (ver sostenerPaso)
 // Sostener quieto: duty = uHold + khP * error, y uHold aprende el duty que sostiene el peso (integrador de posición)
 float khP = art::KHP_SOSTENER;  // % por grado
 float khI = art::KHI_SOSTENER;  // % por grado y por segundo
+uint32_t pwmHz = art::PWM_FREQ_HZ;   // "pwm": frecuencia del PWM de las dos (en vivo; config.h tiene la medida)
 float bandaInt = BANDA_INT_HOLD;      // ° ("bi"): con |error| menor, uHold no integra (las dos)
 bool frenoEnBanda = FRENO_EN_BANDA;   // "fb": al llegar, freno (duty 0) hasta que se aleje más de TOL_SALIDA (las dos)
 
@@ -193,6 +194,8 @@ void ayuda() {
   Serial.println("  khp <x>, khi <x>  ganancias del sostener quieto (%/°, %/(°·s))");
   Serial.println("  bi <°>       banda del integrador al sostener (las dos): con menos error no integra. Ej: bi 0.2");
   Serial.println("  fb           freno dentro de la banda sí/no (las dos): al llegar, duty 0 hasta que se aleje");
+  Serial.println("  pwm <Hz>     frecuencia del PWM de las dos, en vivo (500 a 25000; ej. pwm 20000). Al reiniciar,");
+  Serial.println("               vuelve la de config.h. Cambia el duty de arranque: la zona muerta medida es de 1 kHz");
   Serial.println("  an [nota]    anotar (mapa de gravedad): espera que se asienten, promedia 1 s el duty de las dos");
   Serial.println("               y manda una línea MAPA,... (tools/mapa_gravedad.py)");
   Serial.println("  kpp <x>      cambiar el P de posición");
@@ -605,6 +608,8 @@ void mostrarGanancias() {
                 (unsigned long)(art::TS_POS_US / 1000));
   Serial.printf("Sostener quieto: khp = %.1f %%/°, khi = %.1f %%/(°·s) | automático (sa) %s\n", khP, khI,
                 sostenerAuto ? "PRENDIDO" : "apagado");
+  Serial.printf("PWM (pwm): %s %lu Hz, %s %lu Hz (config.h: %lu Hz)\n", art::NOMBRE, (unsigned long)pwmHz, OTRA.nombre,
+                (unsigned long)otra::pwmHz(), (unsigned long)art::PWM_FREQ_HZ);
   Serial.printf("Las dos al sostener: banda del integrador (bi) ±%.2f° | freno dentro de la banda (fb) %s | "
                 "asentamiento %lu ms\n", bandaInt, frenoEnBanda ? "PRENDIDO" : "apagado",
                 (unsigned long)ASENTAMIENTO_MS);
@@ -1660,8 +1665,8 @@ void ejecutar(char *l) {
   if (ceroFijado && hwOk && mueveActiva(l)) pedirInformeAsentado();
   if (!sostenerAuto || !ceroFijado || !hwOk || hold.activo) return;
   // ¿El comando movió la articulación? Entonces sostener donde quedó ("a": en el ángulo pedido)
-  const bool movio = (l[0] == 'p' || l[0] == 'm' || l[0] == 's' || l[0] == 'a' || strncmp(l, "ev", 2) == 0 ||
-                      strncmp(l, "ep", 2) == 0 || strncmp(l, "bc", 2) == 0 || strncmp(l, "dg", 2) == 0);
+  // Por el comando entero, no por la primera letra ("pwm" o "sa" no mueven)
+  const bool movio = mueveActiva(l) || strcmp(l, "dg") == 0;
   const bool esA = l[0] == 'a' && l[1] == ' ';
   float g = (sosteniendo && !movio) ? refAntes : grados(cuentas());
   if (esA && fabsf(refFija - grados(cuentas())) < art::TOL_SALIDA) g = refFija;  // llegó: sostener en el pedido
@@ -1765,6 +1770,27 @@ void ejecutarComando(char *l) {
       bandaInt = b;
       otra::opciones(bandaInt, frenoEnBanda);
       mostrarGanancias();
+    }
+  } else if (strncmp(l, "pwm", 3) == 0 && (l[3] == ' ' || l[3] == '\0')) {
+    float hz;
+    const char *resto;
+    if (!leerNumero(l + 3, &resto, hz) || *resto != '\0' || hz < 500.0f || hz > 25000.0f) {
+      Serial.println("Uso: pwm <Hz>, entre 500 y 25000 (ej. pwm 1000, pwm 5000, pwm 20000)");
+    } else {
+      // La activa: freno, cambio y sigue (el sostener vuelve después del comando). Los dos canales comparten el timer.
+      // Con el puente deshabilitado ("x") no se toca: setDuty() subiría el EN común y frenaría las tres.
+      if (motor.enabled()) aplicarDuty(0.0f);
+      const uint32_t f = (uint32_t)hz;
+      if (ledcChangeFrequency(LEDC_CH_R, f, art::PWM_BITS) && ledcChangeFrequency(LEDC_CH_L, f, art::PWM_BITS)) {
+        pwmHz = f;
+      } else {
+        Serial.printf("No se pudo poner %s en %lu Hz.\n", art::NOMBRE, (unsigned long)f);
+      }
+      otra::pwm(f);
+      if (otra::pwmHz() != f) Serial.printf("No se pudo poner %s en %lu Hz.\n", OTRA.nombre, (unsigned long)f);
+      Serial.printf(">> PWM: %s %lu Hz, %s %lu Hz. OJO: la zona muerta y el arranque medidos son de %lu Hz.\n",
+                    art::NOMBRE, (unsigned long)pwmHz, OTRA.nombre, (unsigned long)otra::pwmHz(),
+                    (unsigned long)art::PWM_FREQ_HZ);
     }
   } else if (strcmp(l, "fb") == 0) {
     frenoEnBanda = !frenoEnBanda;

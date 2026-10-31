@@ -42,6 +42,8 @@ volatile uint32_t tLlegada = 0;   // millis() al llegar
 volatile float uHoldV = 0.0f;
 volatile float bandaInt = BANDA_INT_HOLD;
 volatile bool frenoBanda = FRENO_EN_BANDA;
+volatile uint32_t pedidoPwm = 0;          // != 0: la tarea cambia la frecuencia del PWM
+volatile uint32_t pwmVigente = OTRA.pwmHz;
 
 int64_t ceroCuentas = 0;
 float uHold = 0.0f;
@@ -71,6 +73,12 @@ void tarea(void *) {
       ceroCuentas = enc.count();
       ref = 0.0f;
       pedidoCero = false;
+    }
+    if (pedidoPwm) {  // cambiar la frecuencia del PWM (los dos canales comparten el timer): freno, cambio, sigue
+      const uint32_t hz = pedidoPwm;
+      if (activo) motor.setDuty(0.0f);  // sin sostener no: setDuty() puede subir el EN común (después de "x")
+      if (ledcChangeFrequency(CH_R, hz, art::PWM_BITS) && ledcChangeFrequency(CH_L, hz, art::PWM_BITS)) pwmVigente = hz;
+      pedidoPwm = 0;
     }
     const float g = leerGrados();
     q = g;
@@ -216,6 +224,12 @@ bool llego() { return activo && !reiniciar && llegoV && pedidoLlegada == pedido;
 uint32_t msDesdeLlegada() { return llego() ? millis() - tLlegada : 0; }
 bool frenada() { return llego() && frenadaV; }
 float uHold() { return uHoldV; }
+void pwm(uint32_t hz) {
+  pedidoPwm = hz;
+  const uint32_t t0 = millis();
+  while (pedidoPwm && millis() - t0 < 5 * TS_MS) delay(1);
+}
+uint32_t pwmHz() { return pwmVigente; }
 void opciones(float b, bool f) {
   bandaInt = b;
   frenoBanda = f;
