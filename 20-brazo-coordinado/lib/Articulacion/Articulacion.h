@@ -53,6 +53,9 @@ struct ConfigArticulacion {
   float contrarioVel;
   uint32_t contrarioMs;
   float fcSostenMax;          // apoyada en el final de carrera, hacia él como mucho esto (%)
+  // Se autobloquea (J1: correa + 50:1, sin peso): al llegar frena (duty 0) en vez del PI de posición, y "firme" con
+  // tolSalida. Con el PI, el integrador empujaba contra el juego de la correa y J1 iba y venía alrededor del destino.
+  bool autobloqueo;
 };
 
 class Articulacion {

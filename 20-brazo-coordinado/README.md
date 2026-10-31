@@ -59,4 +59,4 @@ brazo apoyado → 12 V apagados**. Fuente a la bornera, 3 A.
 
 | Fecha | Prueba | Resultado |
 |---|---|---|
-| | | |
+| 2026-10-31 | 5a homing de las tres | flanco respecto del anterior (6 vueltas): J3 σ ≈ 0,013°, J2 σ ≈ 0,014°, J1 σ ≈ 0,03° (3 vueltas). J1 iba y venía en 3° después del retroceso → `autobloqueo` (freno al llegar, como 12) |

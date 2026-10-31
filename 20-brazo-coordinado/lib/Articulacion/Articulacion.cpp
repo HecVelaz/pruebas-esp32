@@ -333,6 +333,18 @@ void Articulacion::paso() {
         aplicar(u_);
         return;
       }
+      // Se autobloquea: al llegar, freno; firme si está a menos de tolSalida y quieta llegadaMs
+      if (c_.autobloqueo) {
+        quietoTicks_ = (fabsf(e) < c_.tolSalida && fabsf(w_) < VEL_QUIETA) ? quietoTicks_ + 1 : 0;
+        if (!firme_ && quietoTicks_ * TS_MS >= c_.llegadaMs) {
+          firme_ = true;
+          tFirme_ = millis();
+        }
+        if (firme_ && fabsf(e) > c_.tolSalida) firme_ = false;
+        frenada_ = true;
+        aplicar(0.0f);
+        return;
+      }
       // Llegó: PI de posición. Firme = a menos de tolPos y quieta llegadaMs (histéresis tolSalida).
       if (firme_) {
         if (fabsf(e) > c_.tolSalida) {

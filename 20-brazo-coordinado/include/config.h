@@ -34,7 +34,8 @@ constexpr ConfigArticulacion CFG_J1 = {
     2.0f, 30.0f, 60.0f, 3.0f, 0.3f, 0.6f, 200,
     3.0f, 8.0f, 0.0f, 0.2f,               // sostener (J1 se autobloquea por la correa: frena enseguida)
     1.0f, 2.0f, 2.0f, 50.0f, 130.0f, 1500, 3.0f, 1.5f,  // homing PROVISORIO (a 1 °/s como J3; rápido a 3 °/s)
-    2.0f, 35.0f, 300, 25.0f, 150, 5.0f, 100, 30.0f};
+    2.0f, 35.0f, 300, 25.0f, 150, 5.0f, 100, 30.0f,
+    true};  // se autobloquea: al llegar, freno (como 12; con el PI de posición iba y venía por el juego de la correa)
 
 // ---------- J2 (hombro): 36-555 58 rpm (139:1), engranajes 15 -> 75 (19, a 20 kHz)
 constexpr ConfigArticulacion CFG_J2 = {
@@ -50,7 +51,8 @@ constexpr ConfigArticulacion CFG_J2 = {
     // homing a 0,5 °/s (19: flanco ~0,07°). Duty máximo 65 % (PROVISORIO): con 50 % no la levantaba desde el final
     // de carrera (2026-10-31: subió 1,5° y se trabó; sostenerla abajo pide ~25 % más el despegue)
     0.5f, 2.0f, 2.0f, 65.0f, 120.0f, 1500, 2.0f, 1.5f,  // con cero: 2 °/s hasta 1,5° del cero anterior
-    2.0f, 60.0f, 300, 45.0f, 150, 5.0f, 100, 30.0f};
+    2.0f, 60.0f, 300, 45.0f, 150, 5.0f, 100, 30.0f,
+    false};
 
 // ---------- J3 (codo): 36-555 58 rpm (139:1), engranajes 15 -> 75 (19, a 20 kHz)
 // El feedforward de J3 en cascada no se midió a 20 kHz (en 19 se sostenía con su lazo simple). + = el codo baja, a
@@ -66,4 +68,5 @@ constexpr ConfigArticulacion CFG_J3 = {
     2.0f, 20.0f, 60.0f, 3.0f, 0.3f, 0.6f, 200,
     3.0f, 8.0f, 15.0f, 0.2f,              // compensación de fricción 15 % (19: no se pasa, 0,09°)
     1.0f, 2.0f, 2.0f, 50.0f, 120.0f, 1500, 2.0f, 1.5f,  // homing a 1 °/s (19: flanco ~0,04°)
-    2.0f, 60.0f, 300, 45.0f, 150, 5.0f, 100, 30.0f};
+    2.0f, 60.0f, 300, 45.0f, 150, 5.0f, 100, 30.0f,
+    false};

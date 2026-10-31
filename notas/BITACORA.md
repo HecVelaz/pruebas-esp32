@@ -303,3 +303,8 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   3° todavía rápido (y la regla de "cruzar" lo empeoraba), seguía de largo y el sostener —hecho para décimas— no la
   bajaba 3° contra la fricción de 20 kHz. Arreglo (como 19): "llegó" exige < 0,3° **y** < 2 °/s; si después de
   llegar se aleja más de 1,5°, vuelve a la cascada. Se saca la regla de "cruzar".
+- **Homing de las tres anda (20, 5a):** flanco respecto del anterior, 6 vueltas: **J3 σ ≈ 0,013°, J2 σ ≈ 0,014°**
+  (antes 0,10°; ahora con la llegada arreglada y la búsqueda en dos velocidades), **J1 σ ≈ 0,03°** (3 vueltas): del
+  orden de 1–2 cuentas del encoder. En 3 vueltas J1 no quedó firme después del retroceso (iba y venía alrededor de
+  3°: el PI de posición del sostener empuja contra el juego de la correa; J1 no carga peso y se autobloquea).
+  Arreglo: `autobloqueo` en la configuración (J1): al llegar, freno (duty 0), como 12; firme con `tolSalida`.
