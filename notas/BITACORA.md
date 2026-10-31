@@ -286,3 +286,6 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   sentido del movimiento (arranca al menos con el feedforward, como 19). En el 3.er `h`, J2 bajó ~5° debajo de su
   flanco anterior sin apretar el final de carrera (−4,92°, q3 − q2 = 8° fuera de la franja; los `h` siguientes se
   cortan enseguida, bien): probablemente el final de carrera de J2 se movió otra vez (apoyada varios segundos).
+- Homing de J2 apoyada en su final de carrera: no se pudo alejar (subió 1,5° y "no avanza con el duty al tope"): el
+  homing tenía el duty limitado a 50 % y levantar J2 desde abajo a 20 kHz pide más (~25 % para sostenerla + el
+  despegue). `homingDutyMax` de J2 → 65 % (PROVISORIO).

@@ -47,7 +47,9 @@ constexpr ConfigArticulacion CFG_J2 = {
     35.0f, 25.0f, 22.0f, 8.0f, 8.0f,      // despegue 35 % (medido a 20 kHz), resto PROVISORIO (19)
     2.0f, 20.0f, 60.0f, 3.0f, 0.3f, 0.6f, 200,
     3.0f, 8.0f, 0.0f, 0.2f,               // sin compensación de fricción (19: llega sin ella)
-    0.5f, 2.0f, 2.0f, 50.0f, 120.0f, 1500,  // homing a 0,5 °/s (19: flanco ~0,07°)
+    // homing a 0,5 °/s (19: flanco ~0,07°). Duty máximo 65 % (PROVISORIO): con 50 % no la levantaba desde el final
+    // de carrera (2026-10-31: subió 1,5° y se trabó; sostenerla abajo pide ~25 % más el despegue)
+    0.5f, 2.0f, 2.0f, 65.0f, 120.0f, 1500,
     2.0f, 60.0f, 300, 45.0f, 150, 5.0f, 100, 30.0f};
 
 // ---------- J3 (codo): 36-555 58 rpm (139:1), engranajes 15 -> 75 (19, a 20 kHz)
