@@ -121,7 +121,9 @@ void tarea(void *) {
     ref = r + (d > paso ? paso : (d < -paso ? -paso : d));
     const float e = ref - g;
     // Llegada (mismo criterio que la activa): referencia en el destino, cerca y quieta LLEGADA_MS; con histéresis
-    const float eDest = de - g;
+    // Con el final de carrera apretado y el destino más allá (hacia él), no puede ir más lejos: cuenta como error 0
+    // (2026-10-31: J3 se aprieta en ~0,6° y "o 0" no llegaba nunca; la activa esperaba 30 s)
+    const float eDest = (fc && de < g) ? 0.0f : de - g;
     bool llego = llegoV;
     if (pe != pedidoVisto) {  // pedido nuevo: tiene que volver a llegar
       llego = false;

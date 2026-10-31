@@ -195,3 +195,6 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   −0,24°. J2 no necesita compensación (`a 25` / `a 20`: +0,19° / −0,05°, duty ~0 %: la fricción la sostiene). Con
   `fb`: las dos `frenada` (duty 0) y **sin ruido**. Quedan `FR_SOSTENER` J3 15 %, J2 0 % (por articulación,
   PROVISORIO). **20 kHz se queda** (no hace falta 5 kHz).
+- **J3 no "llegaba" a 0°:** su final de carrera se aprieta en ~0,6° y la otra no empuja hacia él apretado → error
+  0,6° > `TOL_POS`, `LLEGANDO` para siempre y la activa esperando 30 s. Arreglo: con el final de carrera apretado y
+  el destino más allá, el error de llegada cuenta 0.
