@@ -78,10 +78,15 @@ constexpr uint32_t MOVER_MAX_MS = 10000;
 constexpr float KP_VEL = 0.549f;
 constexpr float KI_VEL = 4.0f;
 constexpr float FF_PENDIENTE_POS = 0.0f;   // compensación de gravedad (%/°): medir con "bc"
-constexpr float ZONA_MUERTA_PCT = 17.0f;      // PROVISORIO: de 1 kHz (medir a 20 kHz)
-constexpr float ZONA_MUERTA_NEG_PCT = 8.0f;   // PROVISORIO: de 1 kHz
-constexpr float DESPEGUE_PCT = ZONA_MUERTA_PCT;
-constexpr float DESPEGUE_NEG_PCT = ZONA_MUERTA_NEG_PCT;
+// 2026-10-31, 20 kHz (pulsos de 200 ms con J2 en 20°, J3 en 10°): subiendo arranca con 35 % (25 % no); bajando, -15 %
+// no la mueve y -25 % sí. Despegue subiendo 35 % (medido), bajando 22 % (entre los dos); marcha subiendo 25 % y
+// bajando 8 % (de 1 kHz), PROVISORIOS. Con 17 % (el de 1 kHz) el retroceso del homing se cortó por "sin cuentas".
+constexpr float ZONA_MUERTA_PCT = 25.0f;      // marcha subiendo, PROVISORIO
+constexpr float ZONA_MUERTA_NEG_PCT = 8.0f;   // marcha bajando, PROVISORIO (de 1 kHz)
+constexpr float DESPEGUE_PCT = 35.0f;
+constexpr float DESPEGUE_NEG_PCT = 22.0f;     // PROVISORIO
+// Homing: último tramo hacia el final de carrera. 2026-10-31 a 1 °/s el flanco varió ±0,20° (J3: ±0,02°): más despacio.
+constexpr float HOMING_VEL_BUSCAR = 0.5f;     // °/s
 constexpr float ARRANQUE_PCT = 45.0f;      // PROVISORIO (35 -> 45 para 20 kHz: J2 arranca con 35 %): debajo de esto no actúa el corte "sin cuentas" (sostener el
                                            // peso ya pide duty sin moverse). Ajustar con el paso 0
 constexpr uint32_t TS_VEL_US = 10000;
@@ -247,6 +252,8 @@ constexpr float KHI_SOSTENER = 8.0f;   // % por grado y por segundo
 // ella se pasaba hasta 8,53° y quedaba con -0,20°; con 10 % +0,22°; con 15 % no se pasa (10,16 -> 9,91°) y queda con
 // +0,09°, LLEGÓ enseguida; con 20 % en 14°, -0,24°. Queda 15 %. PROVISORIO (medido en una sola pose).
 constexpr float FR_SOSTENER = 15.0f;  // %
+// Homing: último tramo hacia el final de carrera. 2026-10-31 a 1 °/s el flanco varió ±0,02° (4 veces).
+constexpr float HOMING_VEL_BUSCAR = 1.0f;     // °/s
 // Fase 3b: modelo del duty que la sostiene (ver cfg_j2). J3: constante -16,8 % (validación cruzada 7,2 %; plano 6,2 %,
 // pero con pendientes chicas y ruido de ±7 %: se deja constante). PROVISORIO.
 constexpr float SOST_C = -16.8f;
@@ -314,7 +321,7 @@ constexpr bool MODELO_SOSTEN = false;
 // corrió ~9° en J3 y ~30° en J2). El homing llega siempre desde el mismo lado (+, alejado) y despacio, pone el cero
 // en el flanco (el instante en que se aprieta), retrocede y queda sosteniendo. Primero J3 (la otra o la activa, según
 // el entorno, siempre el codo primero: con el codo abajo, bajar el hombro no viola la franja), después J2. PROVISORIO.
-constexpr float HOMING_VEL_BUSCAR = 1.0f;     // °/s hacia el final de carrera
+// (la velocidad del último tramo, HOMING_VEL_BUSCAR, es de cada articulación: cfg_j2 / cfg_j3)
 constexpr float HOMING_VEL_ALEJAR = 2.0f;     // °/s para soltarlo si arranca apretado
 constexpr float HOMING_SALIDA_GRADOS = 2.0f;  // se aleja esto más allá de donde se suelta, antes de buscarlo
 constexpr float HOMING_RETROCESO = 3.0f;      // ° donde queda sosteniendo después del cero
@@ -322,7 +329,7 @@ constexpr float HOMING_RECORRIDO_MAX = 120.0f;  // ° como mucho buscando
 constexpr float HOMING_DUTY_MAX = 50.0f;      // % (la activa; la otra, con su duty máximo)
 constexpr uint32_t HOMING_TRABADA_MS = 1500;  // sin avanzar (con el duty al tope) esto: corta
 constexpr float HOMING_SIGUE_MAX = 3.0f;      // la otra: si la articulación queda más atrás que esto de la referencia
-// Sin acercamiento rápido (si el flanco se corrió, a velocidad normal podía golpearlo): busca a HOMING_VEL_BUSCAR
+// Sin acercamiento rápido (si el flanco se corrió, a velocidad normal podía golpearlo): busca a cfg_jX::HOMING_VEL_BUSCAR
 // desde donde esté. Con el cero conocido, J2 más alto que esto: bajarla antes (si no, el codo no llega a su final de
 // carrera sin salir de la franja); y si durante la búsqueda la franja se viola, corta.
 constexpr float HOMING_Q2_MAX_ARRANQUE = 20.0f;

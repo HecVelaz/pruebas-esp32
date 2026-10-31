@@ -252,3 +252,11 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   respeta; al empezar, las dos se sostienen donde están (con `-e j3` J2 quedaba suelta); cancelar lo hace la tarea
   (carrera con el estado del homing); con Enter la otra se queda donde está; con el cero conocido, corta si
   activa − otra sale de la franja; `ceroFijado` recién cuando terminan las dos.
+- **Prueba F4 (homing, `-e j2`, 20 kHz):** sin cero, `h` desde el arranque: J3 encontró su flanco 8,6° más arriba
+  de donde había caído al reiniciar y J2 0,45° (estaba apoyada más allá del flanco). Después, 5 veces `h` seguidas
+  (flanco respecto del anterior): **J3 −0,03 / −0,06 / −0,02 / 0,00° (σ ≈ 0,02°)**; **J2 +0,32 / −0,16 / +0,11 /
+  +0,15° (σ ≈ 0,20°)**; la 4.ª se cortó en el retroceso de J2 ("sin cuentas": subir a 20 kHz pide 35 % y la cascada
+  arrancaba con el feedforward de 1 kHz, 17 %). J3 a 1 °/s ya no mueve su final de carrera.
+- **J2 a 20 kHz:** feedforward despegue subiendo 35 % (medido), bajando 22 %, marcha 25 % / 8 % (PROVISORIOS) y
+  homing de J2 a 0,5 °/s (`HOMING_VEL_BUSCAR` por articulación; J3 sigue en 1 °/s). J1: va con la fase 5 (`20`); el
+  test de repetibilidad, primero en el plano de J2 y J3 con J1 frenada en su cero.

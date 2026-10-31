@@ -194,7 +194,7 @@ void tarea(void *) {
         hModo = 0;
         hEstado = Homing::Listo;
       } else {
-        ref = ref - HOMING_VEL_BUSCAR * dt;
+        ref = ref - otra_cfg::HOMING_VEL_BUSCAR * dt;
       }
     }
     if (hModo && (fabsf(g - hInicio) > HOMING_RECORRIDO_MAX || fabsf(ref - g) > HOMING_SIGUE_MAX || atascada)) {

@@ -221,8 +221,8 @@ void ayuda() {
   Serial.println("  fb           freno dentro de la banda sí/no (las dos): al llegar, duty 0 hasta que se aleje");
   Serial.println("  pwm <Hz>     frecuencia del PWM de las dos, en vivo (500 a 25000; ej. pwm 20000). Al reiniciar,");
   Serial.println("               vuelve la de config.h. Cambia el duty de arranque: la zona muerta medida es de 1 kHz");
-  Serial.printf("  h            homing: J3 y J2 a sus finales de carrera a %.1f °/s, cero en el flanco, retroceden %.0f°\n",
-                HOMING_VEL_BUSCAR, HOMING_RETROCESO);
+  Serial.printf("  h            homing: J2 y J3 a sus finales de carrera (J2 %.1f °/s, J3 %.1f °/s), cero en el flanco,\n"
+                "               retroceden %.0f°\n", cfg_j2::HOMING_VEL_BUSCAR, cfg_j3::HOMING_VEL_BUSCAR, HOMING_RETROCESO);
   Serial.println("               y quedan sosteniendo; informa cuánto se corrió cada flanco (repetibilidad)");
   Serial.println("  an [nota]    anotar (mapa de gravedad): espera que se asienten, promedia 1 s el duty de las dos");
   Serial.println("               y manda una línea MAPA,... (tools/mapa_gravedad.py)");
@@ -1780,7 +1780,7 @@ const char *homingActiva(int64_t &cFlanco, bool conCero) {
         integral = uUlt + ffMarchaNeg;  // sin salto al cambiar de sentido
       }
     }
-    const float wRef = modo == 2 ? HOMING_VEL_ALEJAR : -HOMING_VEL_BUSCAR;
+    const float wRef = modo == 2 ? HOMING_VEL_ALEJAR : -art::HOMING_VEL_BUSCAR;
     const float u = constrain(pasoPI(wRef, wMed, g, integral), -HOMING_DUTY_MAX, HOMING_DUTY_MAX);
     uUlt = u;
     aplicarDuty(u);
@@ -1882,7 +1882,8 @@ void comandoHoming() {
     return;
   }
   if (!conCero) Serial.println(">> Sin cero: el brazo tiene que estar abajo (J2 y J3 cerca de sus finales de carrera).");
-  Serial.printf(">> Homing: J3 y después J2, a %.1f °/s hacia el final de carrera (Enter corta).\n", HOMING_VEL_BUSCAR);
+  Serial.printf(">> Homing: J3 (%.1f °/s) y después J2 (%.1f °/s) hacia el final de carrera (Enter corta).\n",
+                cfg_j3::HOMING_VEL_BUSCAR, cfg_j2::HOMING_VEL_BUSCAR);
   sostenerIniciar(qa);  // la activa sostiene mientras va la otra
   if (!otra::activa()) otra::sostener(qo);  // y la otra mientras va la activa (con -e j3 va primero la activa)
   float d2 = NAN, d3 = NAN;
