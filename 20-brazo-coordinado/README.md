@@ -49,7 +49,8 @@ brazo apoyado → 12 V apagados**. Fuente a la bornera, 3 A.
 
 ## Estado
 
-- [ ] 5a: biblioteca, sostener las tres, homing de las tres, `j` (compila 2026-10-31; sin probar en placa)
+- [x] 5a: biblioteca, sostener las tres, homing de las tres, `j` (**probada en placa 2026-10-31**: flancos al nivel
+  de una cuenta del encoder; `j` firmes con error ≤ 0,25°)
 - [ ] 5b: `mv q1 q2 q3`: las tres a la vez, terminan juntas, camino recto dentro de la franja, llegada siempre con
   el ángulo creciendo (2° antes y el último tramo despacio)
 - [ ] 5c: telemetría (`t`) y `tools/trayectoria.py`
@@ -59,4 +60,5 @@ brazo apoyado → 12 V apagados**. Fuente a la bornera, 3 A.
 
 | Fecha | Prueba | Resultado |
 |---|---|---|
+| 2026-10-31 | 5a homing de las tres (`a89d415`) | 4 vueltas: J1 0,000°, J2 ±0,008°, J3 ±0,010° (1 cuenta: J1 0,024°, J2/J3 0,008°). `j 2 15` 14,88 · `j 3 10` 10,23 · `j 1 30` 29,77 · `j 1 3` 3,13 · `j 3 3` 3,09 · `j 2 3` 2,75, firmes y frenadas |
 | 2026-10-31 | 5a homing de las tres | flanco respecto del anterior (6 vueltas): J3 σ ≈ 0,013°, J2 σ ≈ 0,014°, J1 σ ≈ 0,03° (3 vueltas). J1 iba y venía en 3° después del retroceso → `autobloqueo` (freno al llegar, como 12) |

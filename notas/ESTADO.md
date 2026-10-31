@@ -25,7 +25,7 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
   modelo empeora el sostener de J2 (propuesto `gm` apagado y `fb` prendido por defecto). Los ceros corridos del 31/10
   eran los finales de carrera girando por el golpe (un solo punto de apoyo); la pose del cero es la del 30/10 y la
   franja vale. **Fase 4 (homing `h`) probada:** flanco de J2 ~0,07°, de J3 ~0,04° (J2 a 0,5 °/s, J3 a 1 °/s). Sigue en `20`.
-- **`20-brazo-coordinado` (nueva, fase 5a, compila, sin probar en placa):** J1, J2 y J3 con el mismo controlador
+- **`20-brazo-coordinado` (fase 5a probada en placa: homing de las tres al nivel de una cuenta del encoder):** J1, J2 y J3 con el mismo controlador
   (`lib/Articulacion`), lazo no bloqueante a 100 Hz, homing de las tres, `j` de a una dentro de la franja. Después:
   5b (`mv` coordinado, llegada desde el mismo lado), 5c (telemetría), zona prohibida (la caja). Pendiente mecánico: fijar los finales de carrera.
   Abrir el puerto serie reinicia la WROOM (cero perdido, brazo suelto).

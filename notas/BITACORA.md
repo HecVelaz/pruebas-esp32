@@ -313,3 +313,8 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   del homing (se corrió), el flanco no se acepta: se aleja y lo busca de nuevo despacio; el corte por la franja frena
   (duty 0) en vez de seguir con el duty del movimiento; mientras siga fuera de la franja frena cualquier movimiento de
   J2/J3 y `h` no arranca; `x` descarta los comandos que estaban en la cola (podían volver a subir el EN).
+- **5a probada en placa (`a89d415`):** homing de las tres, 4 vueltas con cero previo, flanco respecto del anterior:
+  **J1 0,000° (4/4; 1 cuenta = 0,024°), J2 ±0,008°, J3 ±0,010° (1 cuenta = 0,008°)**: repite al nivel de una cuenta
+  del encoder (a la mañana J2 daba ±0,20°). `j` de a una: J2 15° (14,88), J3 10° (10,23; se pasó ~1° y volvió, con
+  el feedforward PROVISORIO), J1 30° (29,77) y 3° (3,13), J3 3° (3,09), J2 3° (2,75): firmes y frenadas, errores
+  ≤ 0,25°. Se ve el acople: J2 cambia su duty para sostenerse mientras J3 se mueve.
