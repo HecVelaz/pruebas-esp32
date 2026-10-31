@@ -125,6 +125,7 @@ class Articulacion {
   uint32_t trabadaTicks_ = 0;
   // Posición / sostener
   float ref_ = 0.0f, wRefPos_ = 0.0f, wRefSeguir_ = 0.0f;
+  int signoIda_ = 0;  // sentido hacia el destino al empezar: si el error cambia de signo, lo cruzó (= llegó)
   uint32_t k_ = 0;
   bool llegado_ = false, firme_ = false, frenada_ = false, frenoBanda_ = true;
   float uHold_ = 0.0f;

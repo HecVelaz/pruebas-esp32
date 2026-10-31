@@ -110,6 +110,7 @@ void Articulacion::sostener(float q) {
   k_ = 1;  // paso() lo incrementa antes: el P de posición corre ya en el primer periodo (si no, pasoPI(0) borraba
            // la integral precargada y el arranque sin salto se perdía)
   atascoTicks_ = sinCuentasTicks_ = contrarioTicks_ = 0;
+  signoIda_ = q > g ? 1 : -1;
   if (fabsf(q - g) >= c_.tolPos) {
     const int sg = q > g ? 1 : -1;
     signoAnt_ = sg;  // que pasoPI no reinicie la rampa en el primer periodo
@@ -286,7 +287,10 @@ void Articulacion::paso() {
       if (!llegado_) {
         // Ir con la cascada (P de posición a 50 Hz con v mínima y aceleración limitada)
         if (k_ % 2 == 0) {
-          if (fabsf(e) < c_.tolPos) {
+          // Llegó: dentro de la tolerancia, o lo cruzó (el error cambió de signo). Sin lo segundo, moviéndose rápido
+          // podía saltar la banda de ±tolPos y volver y volver (2026-10-31: el retroceso de J2, de 0 a 3°, quedó en
+          // 5° y nunca firme). El sostener corrige después el pasado, despacio.
+          if (fabsf(e) < c_.tolPos || e * signoIda_ <= 0.0f) {
             llegado_ = true;
             uHold_ = u_;  // arranca del duty con que venía
             integral_ = 0.0f;

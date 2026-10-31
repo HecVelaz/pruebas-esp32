@@ -289,3 +289,7 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
 - Homing de J2 apoyada en su final de carrera: no se pudo alejar (subió 1,5° y "no avanza con el duty al tope"): el
   homing tenía el duty limitado a 50 % y levantar J2 desde abajo a 20 kHz pide más (~25 % para sostenerla + el
   despegue). `homingDutyMax` de J2 → 65 % (PROVISORIO).
+- Retroceso de J2 después del flanco (0 → 3°) se pasó a 5,03° y no quedaba firme: el despegue de 35 % a 20 kHz la
+  lanza en un tramo corto y la cascada (que mira la llegada cada 20 ms con ±0,3°) podía cruzar el destino sin verlo
+  y volver. Arreglo: cruzar el destino (el error cambia de signo) cuenta como llegada; el sostener corrige el pasado.
+  `j 2 5` con la cascada (70 %) subió J2 sin problema.
