@@ -327,3 +327,9 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   objetivo seguían yendo a él); antes de subir el último tramo, las que bajan tienen que estar de verdad por debajo
   del objetivo (espera hasta 3 s en el punto previo; si no, podía terminar llegando desde arriba); el error de
   seguimiento (> 5°) se controla en las tres, también las quietas.
+- **Cierre del 31/10:** 32 commits (`b21854b` … `b5a0763`), todos con revisión de Codex (solo lectura) salvo los de
+  constantes, notas y arreglos de una línea. Revisión de Codex sin trabarse: `codex exec --sandbox read-only -o
+  <salida.md> "..." < /dev/null` (sin el `< /dev/null` se queda esperando la entrada). Útiles: `h` (homing de las
+  tres en `20`), `c`, `j <n> <°>`, `mv <q1> <q2> <q3>`; para volver J2 a su final de carrera en `19`, `p -25 200`
+  repetido; en `19`, `o -5` busca el de la otra. Abrir el puerto serie reinicia la WROOM: después de abrir el monitor,
+  `h` (en `20`) o `z` con el brazo en los finales de carrera (en `19`).

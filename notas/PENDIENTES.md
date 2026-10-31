@@ -1,22 +1,29 @@
-# Pendientes de pruebas-esp32 (al 2026-10-30)
+# Pendientes de pruebas-esp32 (al 2026-10-31)
 
 <!-- Movido desde CLAUDE.md (2026-10-22). Los bloques "Pendiente GPS", "Pendiente" de 08 y "Falta" se movieron
      tal cual; el resto se copió de los "Pendiente:" que siguen dentro de cada entrada de BITACORA.md. -->
 
-## Brazo (12, 17, 19, lo próximo)
+## Brazo (20, lo próximo)
 
-- **`12`: repetir el paso 3** (`escalon_posicion.py -a j1 20 --ciclos 5`, desde unos 40–60° para tener lugar) con el cero en el final de carrera (`z` con J1 apretándolo); flasheado nuevo, sin probar.
-- **`20-brazo-coordinado`:** probar la 5a en placa (README); después 5b (`mv` coordinado), 5c (telemetría y
-  `tools/trayectoria.py`), la **zona prohibida** (que el brazo no choque con la caja: medir con el joystick dónde
-  choca) y el límite de J1 con el brazo estirado (hoy 90° PROVISORIO). Mecánico: fijar los finales de carrera con un
-  segundo punto de apoyo (el golpe los giraba).
-- **`19`, fases (2026-10-31):** fases 1 y 2 probadas. Antes de la fase 3, cero de J2 con el joystick (J2 al final de
-  carrera, `z` con los dos apretados). Después fase 3 (mapa de gravedad), 4 (homing), 5 (control conjunto en `20`), 6 (preparar la repetibilidad).
+- **`20-brazo-coordinado`, en orden:** (1) probar la **5b** en placa (`mv`, README: poses que no choquen con la caja;
+  mirar que terminen juntas y lleguen desde abajo; anotar los `LLEGO`); (2) **5c**: telemetría `t` y
+  `tools/trayectoria.py` (referencia contra medido y el camino (q2, q3) sobre la franja); (3) **fase 6**: proponer el
+  test de repetibilidad (5 poses, 30 ciclos, mismo camino, RP = l̄ + 3σ, articular contra en el espacio) y pedir los
+  datos que faltan (largos de los eslabones del cuatro barras y hasta la pinza, ángulos del cero contra la
+  horizontal, cómo medir afuera); (4) **zona prohibida**: medir con el joystick dónde choca el brazo con la caja y
+  agregarla a `mv`/`j`; (5) límite de J1 con el brazo estirado (hoy 90° PROVISORIO); (6) medir el feedforward de J3 a
+  20 kHz en cascada (`ff 3 ...`, hoy PROVISORIO) y subir `MV_FACTOR_VEL` (0,5) de a poco.
+- **Mecánico:** fijar los finales de carrera con un segundo punto de apoyo (el golpe los gira; el 31/10 corrió el
+  cero ~9° en J3 y ~30° en J2). Mientras, llegar despacio (`h`); el joystick (`17`) pega fuerte.
 - **Adaptador fuente → XT60:** contacto con resistencia (con él J1/J3 no se mueven). Rehacerlo (≥ 14 AWG, soldado)
   para volver a tener el fusible y la seta con la fuente; mientras, la fuente va directo a la bornera del bus.
-- **`19-j2-j3-conjunto`** (pasos del README): probar en placa con `-e j2` y después `-e j3`: paso 1 (cero, la otra sostiene, signos, cuentas por grado), 2 sostener, 3 barrido de carga → feedforward de gravedad, 4 PI de velocidad, 5 posición; programar el paso 6 (movimientos coordinados: llegan juntas) y 7 limón. Antes, revisión de Codex (solo lectura) si se quiere.
+- **`12`: repetir el paso 3** (`escalon_posicion.py -a j1 20 --ciclos 5`, desde unos 40–60°) con el cero en el final
+  de carrera.
+- **`19` (banco de pruebas, opcional):** probar `-e j3`; la franja con la espera de la fase 1 ya se vio en la fase 2.
 - `17-brazo-joystick`: probar en placa la rampa de bajada de J1, la barra de J3 al revés y el límite de J1 en 118°. Mejora: sostener J2/J3 con un lazo al soltar (hoy frenadas bajan despacio). Límite de J1 con el brazo estirado (choca antes con el soporte): sin medir. Después, fusionar con la tracción por joystick en `recolector_de_frutas`.
-- Al robot (`recolector_de_frutas`, en una sesión de ese repo): J1 polea de 84 (84/18; factor de las ganancias en rpm ×1,286 en vez de ×1,2); cero de las tres en los finales de carrera, + = alejarse de cada uno, J1 0–118°, J2 0–97°, J3 0–113°, franja `q2 − 25° ≤ q3 ≤ q2 + 7,5°` (comparar con `GAMMA4_*` y el marco de `brazo_ik`, `cinematica.py` y el URDF, que usan otro cero); pines `PIN_FC_J2 = 27`, `PIN_FC_J3 = 33` y sus docs.
+- Al robot (`recolector_de_frutas`, en una sesión de ese repo): **lo de `20`** (controlador común, homing despacio en
+  el flanco, 20 kHz en J2/J3 con su feedforward, compensación de fricción de J3, freno en banda, J1 con autobloqueo);
+  J1 polea de 84 (84/18; factor de las ganancias en rpm ×1,286 en vez de ×1,2); cero de las tres en los finales de carrera, + = alejarse de cada uno, J1 0–118°, J2 0–97°, J3 0–113°, franja `q2 − 25° ≤ q3 ≤ q2 + 7,5°` (comparar con `GAMMA4_*` y el marco de `brazo_ik`, `cinematica.py` y el URDF, que usan otro cero); pines `PIN_FC_J2 = 27`, `PIN_FC_J3 = 33` y sus docs.
 - Fotos de `12-j1-base/CERO/` y `17-brazo-joystick/LIMITES/` sin commitear: aparecen personas (repo público); recortarlas o sacar otras.
 - J1 (`12`): `dg` (paso A). Opcional: `VMIN_POS` 3 → 5 °/s (o tolerancia 0,5°) para el stick-slip del final; subir `VMAX_POS` de a poco (45 / 90 °/s²) si hace falta más velocidad; video para la Entrega 6.
 - `15`/`16`: anotar en sus README los resultados de J3 con el C3 (IBT-2 y L298N), si se hicieron.

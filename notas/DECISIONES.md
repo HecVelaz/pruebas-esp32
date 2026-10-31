@@ -30,5 +30,14 @@
 - `19` (2026-10-31): **J2 y J3 a 20 kHz, decisión del usuario** (reemplaza el 1 kHz de `13`/`14` en `19`): con la
   fuente a la bornera, J2 va y sostiene bien a 20 kHz (error ≤ 0,20°, duty de sostener estable) y no pita; el 40 %
   del 26/10 fue con la fuente por el adaptador XT60 de contacto malo. Zona muerta y arranque, a medir de nuevo a 20 kHz.
+- `19`/`20` (2026-10-31): plan de 6 fases para preparar el test de repetibilidad estilo ISO 9283. **Freno dentro de
+  la banda (`fb`) prendido por defecto** (al llegar, duty 0: quieto y sin ruido); **modelo de gravedad (`gm`) apagado**
+  (a 20 kHz la fricción sostiene el brazo y el modelo empeoraba J2). Homing siempre despacio y desde el mismo lado,
+  cero en el flanco (el golpe giraba los finales de carrera).
+- `20` (2026-10-31): carpeta nueva **`20-brazo-coordinado`** para el control conjunto (19 queda como banco de
+  pruebas); **J1 entra con su homing** (orden J3 → J2 → J1); el mismo controlador para las tres
+  (`lib/Articulacion`); **llegada siempre con el ángulo creciendo** (+) en las tres; **J1 0–90° PROVISORIO** hasta
+  medirlo con el brazo estirado; **J1 se autobloquea** (al llegar frena, como `12`); la **zona prohibida** (la caja)
+  queda para después; el test de repetibilidad, primero en el plano J2–J3 con J1 en su cero.
 - `17` (2026-10-26): joystick en lazo abierto (el joystick da el duty) y freno al soltar, nunca rueda libre; puente en Python porque Firefox no tiene Web Serial; cero donde está el brazo al abrir el puente (lo pidió el usuario).
 - El firmware del robot vive en `~/Documentos/recolector_de_frutas`; `09-brazo-control` se movió allá (2026-09-27) y los arreglos de los drivers para el robot se hacen allá.
