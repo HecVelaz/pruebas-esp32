@@ -43,6 +43,8 @@ struct ConfigArticulacion {
   // Homing
   float homingVelBuscar, homingVelAlejar, homingSalida, homingDutyMax, homingRecorridoMax;
   uint32_t homingTrabadaMs;
+  float homingVelRapida;      // °/s buscando mientras está más arriba que homingZonaLenta (solo con cero previo)
+  float homingZonaLenta;      // ° sobre el cero anterior desde donde busca a homingVelBuscar
   // Protecciones
   float atascoVel, atascoDuty;
   uint32_t atascoMs;
@@ -69,7 +71,7 @@ class Articulacion {
   void sostener(float q);              // ir a q con la cascada y quedarse; sin salto desde el duty actual
   void sostenerAqui();                 // sostener donde está
   void seguir(float qRef, float wRef); // un periodo de trayectoria (el coordinador lo llama en cada paso)
-  void homing();
+  void homing(bool conCero = false);  // conCero: rápido hasta homingZonaLenta sobre el cero anterior, después lento
   void homingCancelar();
   void ceroAqui();                     // el ángulo actual pasa a ser 0
   void ceroEnFlanco();                 // el flanco del último homing pasa a ser 0
@@ -134,7 +136,7 @@ class Articulacion {
   Homing hEstado_ = Homing::Nada;
   int hFase_ = 0;  // 2 alejarse, 3 buscar
   float hSoltado_ = 0.0f, hInicio_ = 0.0f;
-  bool hSoltadoValido_ = false;
+  bool hSoltadoValido_ = false, hConCero_ = false;
   int64_t flanco_ = 0;
   int64_t hVentanaC_ = 0;
   uint32_t hVentanaMs_ = 0;

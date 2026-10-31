@@ -97,7 +97,7 @@ void homingPaso() {
   const int i = ORDEN[hm.paso];
   Articulacion &a = art[i];
   if (hm.etapa == 0) {
-    a.homing();
+    a.homing(hm.conCero[i]);
     hm.etapa = 1;
     msg("   %s buscando su final de carrera...", a.cfg().nombre);
     return;

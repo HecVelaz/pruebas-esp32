@@ -293,3 +293,8 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   lanza en un tramo corto y la cascada (que mira la llegada cada 20 ms con ±0,3°) podía cruzar el destino sin verlo
   y volver. Arreglo: cruzar el destino (el error cambia de signo) cuenta como llegada; el sostener corrige el pasado.
   `j 2 5` con la cascada (70 %) subió J2 sin problema.
+- Retroceso de J2 todavía sin quedar firme: quedaba en 5–6° (pedido 3°), duty 3–9 %, quieta: el sostener no la
+  empujaba hacia abajo porque **el final de carrera de J2 seguía apretado** varios grados arriba del flanco (se
+  arrastra / se traba; mecánico). Arreglo: "apoyada en el final de carrera" solo cerca del cero (< 1° sobre el límite
+  de abajo). Homing en dos velocidades: con cero previo, rápido (J2 y J3 2 °/s, J1 3 °/s) hasta 1,5° del cero
+  anterior y después a la velocidad lenta (el flanco siempre se toma despacio).

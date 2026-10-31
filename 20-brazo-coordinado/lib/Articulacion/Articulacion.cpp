@@ -147,7 +147,8 @@ void Articulacion::seguir(float qRef, float wRef) {
   wRefSeguir_ = wRef;
 }
 
-void Articulacion::homing() {
+void Articulacion::homing(bool conCero) {
+  hConCero_ = conCero;
   error_ = nullptr;
   hEstado_ = Homing::EnCurso;
   hFase_ = fc_ ? 2 : 3;
@@ -252,7 +253,10 @@ void Articulacion::paso() {
         sostenerAqui();
         return;
       }
-      const float wRef = hFase_ == 2 ? c_.homingVelAlejar : -c_.homingVelBuscar;
+      // Buscando: rápido mientras está lejos del cero anterior (si lo hay), despacio en el último tramo (el flanco se
+      // toma siempre a homingVelBuscar)
+      const float vBuscar = (hConCero_ && g > c_.homingZonaLenta) ? c_.homingVelRapida : c_.homingVelBuscar;
+      const float wRef = hFase_ == 2 ? c_.homingVelAlejar : -vBuscar;
       const float u = constrain(pasoPI(wRef, g), -c_.homingDutyMax, c_.homingDutyMax);
       aplicar(u);
       if (fabsf(g - hInicio_) > c_.homingRecorridoMax) {
@@ -325,15 +329,17 @@ void Articulacion::paso() {
           tFirme_ = millis();
         }
       }
-      // Apoyada en el final de carrera con la referencia más allá: no empuja más contra él
-      const bool contraFc = fc_ && e < 0.0f;
+      // Apoyada en el final de carrera con la referencia más allá: no empuja más contra él. Solo cerca del cero: si
+      // el final de carrera queda apretado más arriba (2026-10-31: el de J2 se arrastraba y seguía apretado a 5-6°),
+      // no tiene que impedir bajar a la referencia
+      const bool contraFc = fc_ && e < 0.0f && g < c_.limNeg + 1.0f;
       frenada_ = frenoBanda_ && firme_ && !contraFc;
       if (!frenada_ && !contraFc && fabsf(e) >= c_.bandaInt)
         uHold_ = constrain(uHold_ + c_.khi * TS * e, -c_.dutyMax, c_.dutyMax);
       const float comp = c_.friccion * constrain(e / FR_RAMPA_GRADOS, -1.0f, 1.0f);
       float u = frenada_ ? 0.0f
                          : constrain(contraFc ? uHold_ : uHold_ + c_.khp * e + comp, -c_.dutyMax, c_.dutyMax);
-      if (fc_ && u < 0.0f) u = fmaxf(u, fmaxf(fminf(uHold_, 0.0f), -c_.fcSostenMax));
+      if (contraFc && u < 0.0f) u = fmaxf(u, fmaxf(fminf(uHold_, 0.0f), -c_.fcSostenMax));
       aplicar(u);
       // Sostener el peso le pide mucho duty: avisa una vez (no suelta nunca)
       atascoTicks_ = (fabsf(w_) < c_.atascoVel && fabsf(u) >= c_.atascoDuty) ? atascoTicks_ + 1 : 0;
