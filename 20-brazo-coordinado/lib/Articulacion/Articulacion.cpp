@@ -75,10 +75,13 @@ float Articulacion::pasoPI(float wRef, float th) {
   return u;
 }
 
-// Arrancar el PI de velocidad sin salto desde el duty actual, en el sentido sg (primer periodo: wRef = sg·w0)
+// Arrancar el PI de velocidad sin salto desde el duty actual, en el sentido sg (primer periodo: wRef = sg·w0).
+// Nunca por debajo del feedforward en el sentido del movimiento: si venía frenada (duty 0), la integral negativa
+// anulaba el feedforward y arrancaba desde 0 (2026-10-31: el retroceso de J2 después del flanco tardaba > 15 s).
 static float integralSinSalto(const ConfigArticulacion &c, float u, int sg, float w0) {
   const float marcha = sg > 0 ? fmaxf(c.ffMarchaPos, c.ffMinPos) : c.ffMarchaNeg;
-  return u - sg * marcha - c.kpVel * sg * w0;
+  const float i = u - sg * marcha - c.kpVel * sg * w0;
+  return sg * i > 0.0f ? i : 0.0f;
 }
 
 void Articulacion::suelta() {

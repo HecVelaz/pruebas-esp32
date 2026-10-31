@@ -280,3 +280,9 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   `pasoPI(0)` borraba la integral precargada: se perdía el arranque sin salto); límites propios mientras va al
   destino; la franja se vigila también sosteniendo (una vez por episodio); `j` frena a las otras si iban a otro lado;
   `h` deja todo quieto antes de empezar; `x` baja el EN desde `loop()` sin depender de la cola (que pasó a 16).
+- **Primera prueba de la 5a:** J3 homing bien (flanco +0,016° y −0,049° respecto del anterior). J2 encontró su
+  flanco pero no terminó de subir a 3° en 15 s: el arranque sin salto partía del duty que tenía (0 %, frenada en el
+  flanco) y anulaba el feedforward (35 %); el integrador tardaba. Arreglo: la integral precargada nunca va contra el
+  sentido del movimiento (arranca al menos con el feedforward, como 19). En el 3.er `h`, J2 bajó ~5° debajo de su
+  flanco anterior sin apretar el final de carrera (−4,92°, q3 − q2 = 8° fuera de la franja; los `h` siguientes se
+  cortan enseguida, bien): probablemente el final de carrera de J2 se movió otra vez (apoyada varios segundos).
