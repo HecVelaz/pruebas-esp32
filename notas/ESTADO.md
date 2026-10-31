@@ -15,7 +15,8 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
   12–14) y la otra sostenida sola (`o <grados>`); límites con la franja. **Plan de 6 fases** (preparar el test de
   repetibilidad ISO 9283) en su README. **Fase 1 probada en placa** (2026-10-31, `-e j2`: la franja frena bien; falta
   ver la espera). **Fase 2 probada en placa** (banda del integrador 0,2°, "llegó" de la otra, freno dentro de la banda
-  opcional `fb`, `Asentado`). Sigue la fase 3 (mapa de gravedad); antes, rehacer el cero de J2 (quedó ~4° corrido).
+  opcional `fb`, `Asentado`). **Fase 3a hecha** (`an` + `tools/mapa_gravedad.py`, sin probar en placa): sigue rehacer el cero de J2
+  (quedó ~4° corrido) y capturar el mapa; después la 3b (usar el modelo).
 - **Fuente:** conectada a la bornera del bus de 12 V (el adaptador al XT60 tiene un contacto malo: J1/J3 no se
   movían). Así no pasa por el fusible ni la seta: límite de 3 A y apagar la fuente como parada.
   Reemplaza a `13`/`14` (quedan como historia: 1 kHz, todo provisorio).

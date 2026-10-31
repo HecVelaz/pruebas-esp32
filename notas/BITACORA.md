@@ -130,3 +130,19 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   `BANDA_INT_HOLD` = 0,2° (PROVISORIO).** J2 en 25° subió sola a 27,1° con el `uHold` aprendido en otra pose (lo
   ataca la fase 3). J2 no puede apretar su final de carrera con `a` (3° de margen sobre el límite de 0°; la otra sí,
   con `o 0`, porque no tiene margen y no empuja con el final de carrera apretado): lo resuelve la fase 4 (homing).
+- **Fase 3a (compila `-e j2` y `-e j3`, sin probar en placa):** comando `an [nota]`: con las dos sosteniéndose,
+  espera el asentamiento, promedia el duty 1 s (una muestra por periodo, sin dejar de sostener) e imprime
+  `MAPA,t_ms,q2,q3,duty2,std2,duty3,std3,uhold2,uhold3,err2,err3,lado2,lado3,estable,nota` (J2 y J3 en ese orden con
+  cualquier activa; `MAPA_ERROR,...` si no se asienta en 20 s o con `fb`). El firmware guarda desde qué lado llegó
+  cada una. Script nuevo `10-control-lazo-cerrado/tools/mapa_gravedad.py`: `capturar` (14 poses × desde abajo y
+  desde arriba con 2° de aproximación; mueve de a una sin salir de la franja, con el margen de 3° de `a` y 0,7° de
+  holgura), `ajustar` (por pose, promedio de los dos lados = gravedad, mitad de la diferencia = fricción; modelos
+  constante / q propio / plano / `c + a·cos(q2+φ) + b·cos(q3+ψ)` con RMS y validación cruzada; PNG; imprime
+  `MAPA_J2`/`MAPA_J3`) y `plan`. Probado sin placa: plan con `-a j2` sin ningún movimiento fuera de las reglas;
+  el ajuste recupera un modelo sintético (fricción 3 % y 2 %, RMS 0,2–0,3 %).
+- Revisión de Codex de la 3a, cuatro arreglos en `mapa_gravedad.py`: después de cada `o` espera que la otra diga
+  `LLEGÓ` (con `oc`; si no, `o 15 → o 13` podía dar la vuelta antes de llegar a 15 y llegar del lado contrario) y el
+  firmware calcula el lado de la otra contra su ángulo medido; `ATASCO` y `saca el cuatro barras` cortan la captura
+  (antes un aviso `>> J3: ATASCO` pasaba como confirmación del `o`); el ajuste deja afuera las mediciones que se
+  movieron durante el promedio y las poses con un solo lado (tienen la fricción adentro), salvo
+  `--incluir-inestables` / `--incluir-un-lado`.

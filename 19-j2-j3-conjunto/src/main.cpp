@@ -193,6 +193,8 @@ void ayuda() {
   Serial.println("  khp <x>, khi <x>  ganancias del sostener quieto (%/°, %/(°·s))");
   Serial.println("  bi <°>       banda del integrador al sostener (las dos): con menos error no integra. Ej: bi 0.2");
   Serial.println("  fb           freno dentro de la banda sí/no (las dos): al llegar, duty 0 hasta que se aleje");
+  Serial.println("  an [nota]    anotar (mapa de gravedad): espera que se asienten, promedia 1 s el duty de las dos");
+  Serial.println("               y manda una línea MAPA,... (tools/mapa_gravedad.py)");
   Serial.println("  kpp <x>      cambiar el P de posición");
   Serial.println("  c            mostrar cuentas y grados");
   Serial.println("  dg           diagnóstico del cableado al IBT-2: EN, RPWM y LPWM de a uno, y la salida M+/M-");
@@ -955,6 +957,98 @@ void revisarAsentado() {
   }
 }
 
+// ---------- Fase 3: mapa de gravedad ("an") ----------
+// Lado desde el que llegó cada una en su último movimiento (+1 subiendo el ángulo, -1 bajándolo, 0 sin dato): con la
+// fricción, el duty que queda sosteniendo depende del lado (desde abajo ~ gravedad + fricción, desde arriba ~ menos).
+int ladoActiva = 0, ladoOtra = 0;
+constexpr uint32_t ANOTAR_MAX_MS = 20000;      // esperando que las dos se asienten
+constexpr uint32_t ANOTAR_PROMEDIO_MS = 1000;  // promedio del duty, quietas
+
+// "an [nota]": con las dos sosteniéndose, espera el asentamiento (firme ASENTAMIENTO_MS), promedia el duty de cada una
+// durante ANOTAR_PROMEDIO_MS sin dejar de sostener e imprime una línea (J2 y J3 siempre en ese orden, sea cual sea la
+// activa; duty con el signo de cada una, + = alejarse del final de carrera):
+// MAPA,t_ms,q2,q3,duty2,std2,duty3,std3,uhold2,uhold3,err2,err3,lado2,lado3,estable,nota
+// Si no se asienta: MAPA_ERROR,<causa>. tools/mapa_gravedad.py lo usa para el CSV.
+void comandoAnotar(const char *nota) {
+  while (*nota == ' ') nota++;
+  if (!ceroFijado) {
+    Serial.printf("MAPA_ERROR,sin cero: llevar a la marca (%s) y \"z\"\n", art::MARCA);
+    return;
+  }
+  if (frenoEnBanda) {
+    Serial.println("MAPA_ERROR,con el freno dentro de la banda el duty es 0: apagarlo con \"fb\"");
+    return;
+  }
+  if (!hold.activo || !otra::activa()) {
+    Serial.println("MAPA_ERROR,las dos tienen que estar sosteniéndose (sa prendido, un movimiento y \"o\")");
+    return;
+  }
+  Serial.println(">> Anotando: espero que las dos se asienten (Enter cancela)...");
+  const uint32_t t0 = millis();
+  for (;;) {
+    sostenerPaso();
+    if (hold.firme && millis() - hold.tFirme >= ASENTAMIENTO_MS && otra::msDesdeLlegada() >= ASENTAMIENTO_MS) break;
+    if (!hold.activo) {
+      Serial.println("MAPA_ERROR,se cortó el sostener de la activa");
+      return;
+    }
+    if (hayEntrada()) {
+      Serial.println("MAPA_ERROR,cancelado");
+      return;
+    }
+    if (millis() - t0 >= ANOTAR_MAX_MS) {
+      Serial.printf("MAPA_ERROR,no se asentaron en %lu s (%s %s, %s %s)\n", (unsigned long)(ANOTAR_MAX_MS / 1000),
+                    art::NOMBRE, hold.firme ? "firme" : "no firme", OTRA.nombre, otra::llego() ? "llegó" : "no llegó");
+      return;
+    }
+    delay(1);
+  }
+  // Promedio sincronizado con el sostener (una muestra por periodo de 10 ms)
+  double sa = 0, ssa = 0, so = 0, sso = 0;
+  uint32_t n = 0, kAnt = hold.k;
+  bool estable = true;
+  const uint32_t t1 = millis();
+  while (millis() - t1 < ANOTAR_PROMEDIO_MS) {
+    sostenerPaso();
+    if (hold.k != kAnt) {
+      kAnt = hold.k;
+      const double ua = hold.uAnt, uo = otra::duty();
+      sa += ua;
+      ssa += ua * ua;
+      so += uo;
+      sso += uo * uo;
+      n++;
+    }
+    if (!hold.activo || !hold.firme || !otra::llego()) estable = false;
+    if (hayEntrada()) {
+      Serial.println("MAPA_ERROR,cancelado");
+      return;
+    }
+    delay(1);
+  }
+  if (n == 0) {
+    Serial.println("MAPA_ERROR,sin muestras");
+    return;
+  }
+  const double ma = sa / n, mo = so / n;
+  const double da = sqrt(fmax(ssa / n - ma * ma, 0.0)), dd = sqrt(fmax(sso / n - mo * mo, 0.0));
+  const float qa = grados(cuentas()), ea = hold.ref - qa;
+  const float qo = otra::grados(), eo = otra::destino() - qo;
+  char txt[40];  // la nota sin comas (es un CSV)
+  size_t i = 0;
+  for (; nota[i] && i < sizeof(txt) - 1; i++) txt[i] = nota[i] == ',' ? ';' : nota[i];
+  txt[i] = '\0';
+#if defined(ARTICULACION_J3)
+  Serial.printf("MAPA,%lu,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%d,%d,%d,%s\n", (unsigned long)millis(), qo,
+                qa, mo, dd, ma, da, otra::uHold(), hold.uHold, eo, ea, ladoOtra, ladoActiva, estable ? 1 : 0, txt);
+#else
+  Serial.printf("MAPA,%lu,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%d,%d,%d,%s\n", (unsigned long)millis(), qa,
+                qo, ma, da, mo, dd, hold.uHold, otra::uHold(), ea, eo, ladoActiva, ladoOtra, estable ? 1 : 0, txt);
+#endif
+  Serial.printf(">> Anotado: %s %+.2f° duty %+.1f ± %.1f %% | %s %+.2f° duty %+.1f ± %.1f %%%s\n", art::NOMBRE, qa, ma,
+                da, OTRA.nombre, qo, mo, dd, estable ? "" : " (se movió durante el promedio)");
+}
+
 // "sa": prender o apagar el sostener automático
 void comandoSostenerAuto() {
   sostenerAuto = !sostenerAuto;
@@ -1515,6 +1609,9 @@ void comandoOtra(const char *args) {
                   OTRA.nombre, g, art::NOMBRE, qa, OTRA.nombre, mn, mx);
     return;
   }
+  // Lado de llegada: contra donde está de verdad (no contra el destino anterior, al que pudo no haber llegado)
+  const float desde = otra::grados();
+  if (fabsf(g - desde) > 0.05f) ladoOtra = g > desde ? 1 : -1;
   otra::sostener(g);
   Serial.printf(">> %s hacia %+.1f° a %.0f °/s (\"oc\" para ver dónde está).\n", OTRA.nombre, g, OTRA.vel);
   pedirInformeAsentado();
@@ -1524,6 +1621,11 @@ void comandoOtra(const char *args) {
 void ejecutar(char *l) {
   while (*l == ' ') l++;
   if (*l == '\0') return;
+  // "an": anota sin cortar el sostener de ninguna de las dos
+  if (strncmp(l, "an", 2) == 0 && (l[2] == ' ' || l[2] == '\0')) {
+    if (hwOk) comandoAnotar(l + 2);
+    return;
+  }
   // Si la otra todavía va hacia su destino, esperarla antes de cortar el sostener de la activa
   if (ceroFijado && hwOk && mueveActiva(l) && !esperarOtra()) return;
   const bool sosteniendo = hold.activo;
@@ -1535,8 +1637,13 @@ void ejecutar(char *l) {
     aplicarDuty(0.0f);  // freno mientras corre el comando
   }
   saltarQuieto = sosteniendo;
+  const float qAntesCmd = hwOk ? grados(cuentas()) : 0.0f;
   ejecutarComando(l);
   saltarQuieto = false;
+  if (hwOk && mueveActiva(l)) {
+    const float dq = grados(cuentas()) - qAntesCmd;
+    if (fabsf(dq) > 0.5f) ladoActiva = dq > 0 ? 1 : -1;
+  }
   if (strcmp(l, "z") == 0) {
     // "z" fija el cero. Si venía sosteniendo, sigue sosteniendo ahí mismo (mismo lugar: el duty aprendido sirve).
     // Si no, no empieza (el duty aprendido era de otro ángulo y movía el motor): arranca con el primer movimiento.
