@@ -1,18 +1,18 @@
-# Pendientes de pruebas-esp32 (al 2026-10-31)
+# Pendientes de pruebas-esp32 (al 2026-10-31, segunda sesión)
 
 <!-- Movido desde CLAUDE.md (2026-10-22). Los bloques "Pendiente GPS", "Pendiente" de 08 y "Falta" se movieron
      tal cual; el resto se copió de los "Pendiente:" que siguen dentro de cada entrada de BITACORA.md. -->
 
 ## Brazo (20, lo próximo)
 
-- **`20-brazo-coordinado`, en orden:** (1) probar la **5b** en placa (`mv`, README: poses que no choquen con la caja;
-  mirar que terminen juntas y lleguen desde abajo; anotar los `LLEGO`); (2) **5c**: telemetría `t` y
-  `tools/trayectoria.py` (referencia contra medido y el camino (q2, q3) sobre la franja); (3) **fase 6**: proponer el
-  test de repetibilidad (5 poses, 30 ciclos, mismo camino, RP = l̄ + 3σ, articular contra en el espacio) y pedir los
-  datos que faltan (largos de los eslabones del cuatro barras y hasta la pinza, ángulos del cero contra la
-  horizontal, cómo medir afuera); (4) **zona prohibida**: medir con el joystick dónde choca el brazo con la caja y
-  agregarla a `mv`/`j`; (5) límite de J1 con el brazo estirado (hoy 90° PROVISORIO); (6) medir el feedforward de J3 a
-  20 kHz en cascada (`ff 3 ...`, hoy PROVISORIO) y subir `MV_FACTOR_VEL` (0,5) de a poco.
+- **`20-brazo-coordinado`, en orden:** (1) **`VEL_APROX` 2 → 3 °/s** (J3 se traba y se pasa en la subida lenta,
+  hasta 0,55°) y medir con `tools/trayectoria.py h "mv 20 20 24" "mv 40 30 20" "mv 20 20 24" "mv 3 3 3"`; si hace
+  falta, `MV_FACTOR_VEL` 0,5 → 0,3 (frenado más suave); (2) **fase 6**: proponer el test de repetibilidad (5 poses,
+  30 ciclos, mismo camino, RP = l̄ + 3σ, articular contra en el espacio; `trayectoria.py` ya sirve para capturarlo) y
+  pedir los datos que faltan (largos de los eslabones del cuatro barras y hasta la pinza, ángulos del cero contra la
+  horizontal, cómo medir afuera); (3) **zona prohibida**: medir con el joystick dónde choca el brazo con la caja y
+  agregarla a `mv`/`j`; (4) límite de J1 con el brazo estirado (hoy 90° PROVISORIO); (5) revisión de Codex de lo de
+  hoy (telemetría, `uHold` del peso, aproximación para todas).
 - **Mecánico:** fijar los finales de carrera con un segundo punto de apoyo (el golpe los gira; el 31/10 corrió el
   cero ~9° en J3 y ~30° en J2). Mientras, llegar despacio (`h`); el joystick (`17`) pega fuerte.
 - **Adaptador fuente → XT60:** contacto con resistencia (con él J1/J3 no se mueven). Rehacerlo (≥ 14 AWG, soldado)
@@ -22,9 +22,10 @@
 - **`19` (banco de pruebas, opcional):** probar `-e j3`; la franja con la espera de la fase 1 ya se vio en la fase 2.
 - `17-brazo-joystick`: probar en placa la rampa de bajada de J1, la barra de J3 al revés y el límite de J1 en 118°. Mejora: sostener J2/J3 con un lazo al soltar (hoy frenadas bajan despacio). Límite de J1 con el brazo estirado (choca antes con el soporte): sin medir. Después, fusionar con la tracción por joystick en `recolector_de_frutas`.
 - Al robot (`recolector_de_frutas`, en una sesión de ese repo): **lo de `20`** (controlador común, homing despacio en
-  el flanco, 20 kHz en J2/J3 con su feedforward, compensación de fricción de J3, freno en banda, J1 con autobloqueo);
+  el flanco, 20 kHz en J2/J3 con su feedforward, compensación de fricción de J3, freno en banda, J1 con autobloqueo,
+  sostener desde el duty del peso, llegada con aproximación desde abajo para todas);
   J1 polea de 84 (84/18; factor de las ganancias en rpm ×1,286 en vez de ×1,2); cero de las tres en los finales de carrera, + = alejarse de cada uno, J1 0–118°, J2 0–97°, J3 0–113°, franja `q2 − 25° ≤ q3 ≤ q2 + 7,5°` (comparar con `GAMMA4_*` y el marco de `brazo_ik`, `cinematica.py` y el URDF, que usan otro cero); pines `PIN_FC_J2 = 27`, `PIN_FC_J3 = 33` y sus docs.
-- Fotos de `12-j1-base/CERO/` y `17-brazo-joystick/LIMITES/` sin commitear: aparecen personas (repo público); recortarlas o sacar otras.
+- Fotos de `12-j1-base/CERO/` y `17-brazo-joystick/LIMITES/` y el video `20-brazo-coordinado/20_20_24.mp4` sin commitear: aparecen personas (repo público); recortarlos, sacar otros o llevarlos fuera del repo.
 - J1 (`12`): `dg` (paso A). Opcional: `VMIN_POS` 3 → 5 °/s (o tolerancia 0,5°) para el stick-slip del final; subir `VMAX_POS` de a poco (45 / 90 °/s²) si hace falta más velocidad; video para la Entrega 6.
 - `15`/`16`: anotar en sus README los resultados de J3 con el C3 (IBT-2 y L298N), si se hicieron.
 - Hombro (`10`, 2026-10-13): medir con `bc` el duty según el ángulo y hacer compensación de gravedad en el hombro; la USB se desconectó una vez con un pulso fuerte (revisar masas).

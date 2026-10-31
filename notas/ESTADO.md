@@ -1,4 +1,4 @@
-# Estado de pruebas-esp32 (al 2026-10-31, noche)
+# Estado de pruebas-esp32 (al 2026-10-31, tarde, segunda sesión)
 
 Foto de hoy. La historia, las mediciones completas y los nombres de los CSV están en `BITACORA.md`; lo que sigue, en
 `PENDIENTES.md`; los pines de la S3, en `PINES_S3.md`.
@@ -6,11 +6,14 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
 ## Brazo: lo próximo
 
 - **`20-brazo-coordinado` (lo actual):** J1, J2 y J3 con el mismo controlador (`lib/Articulacion`) en un lazo no
-  bloqueante a 100 Hz, a 20 kHz. **5a probada en placa:** homing `h` de las tres (J3 → J2 → J1, despacio, cero en el
-  flanco) repite al nivel de una cuenta del encoder (J1 0,000°, J2 ±0,008°, J3 ±0,010°); `j` de a una llega firme con
-  error ≤ 0,25°. **5b hecha, sin probar en placa:** `mv q1 q2 q3` (las tres juntas, recta en (q2, q3), llegada con el
-  ángulo creciendo, línea `LLEGO`). Sigue: probar la 5b, 5c (telemetría), fase 6 (test de repetibilidad) y la zona
-  prohibida (que el brazo no choque con la caja). J1 0–90° PROVISORIO; feedforward de J3 en cascada PROVISORIO.
+  bloqueante a 100 Hz, a 20 kHz. **5a, 5b y 5c probadas en placa.** `h` (homing J3 → J2 → J1, cero en el flanco)
+  repite al nivel de una cuenta del encoder; `mv q1 q2 q3` mueve las tres juntas (perfil quíntico, recta en (q2, q3)),
+  **todas llegan con la aproximación desde abajo** (2° por debajo y el último tramo a 2 °/s) y el sostener arranca
+  del duty que sostiene el peso (J2 +8,5 %, J3 −10 %). Repetir `mv 20 20 24` desde poses distintas: J1 0,00°, J2
+  0,008°, J3 0,04°; firmes en 0,2–0,5 s. Tolerancias: J1 y J2 `tolPos` 0,3° / `bandaInt` 0,2°, J3 0,15° / 0,1°;
+  `khi` 8 (con 4 no quedaban firmes). Queda: J3 se traba y se pasa en la subida lenta (hasta 0,55°). Telemetría:
+  `t` y `tools/trayectoria.py h "mv ..." ...` (CSV y PNG en `resultados/`). J1 0–90° PROVISORIO; feedforward de J3
+  en cascada medido con la telemetría ≈ el de `config.h`; `MV_FACTOR_VEL` 0,5 PROVISORIO. No esquiva la caja.
 - **`19-j2-j3-conjunto`:** banco de pruebas de J2 y J3 (una activa, la otra sostenida). Fases 1–4 del plan probadas
   en placa (franja, sostener con banda 0,2° / compensación de fricción / freno en banda, mapa de gravedad, homing);
   20 kHz. La fase 5 siguió en `20`.

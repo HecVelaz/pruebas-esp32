@@ -79,8 +79,8 @@ Línea de telemetría: `T,ms,etapa,` y por cada una `q,ref,duty,w,estado` (etapa
   de una cuenta del encoder; `j` firmes con error ≤ 0,25°)
 - [x] 5b (**probada en placa 2026-10-31**: terminan juntas, las que bajan se pasan y vuelven subiendo; errores ≤ 0,46°): `mv q1 q2 q3`: las tres siguen el mismo perfil quíntico
   (terminan juntas; recta en (q2, q3) dentro de la franja), a la mitad de su vMax/aMax (`MV_FACTOR_VEL`,
-  PROVISORIO); las que bajan terminan 2° por debajo y suben el último tramo a 2 °/s (llegada siempre con el ángulo
-  creciendo); a los 2 s firmes: `LLEGO,t,q1,q2,q3,e1,e2,e3`. Corta si alguna se aleja más de 5° de su referencia, con
+  PROVISORIO); todas las que se mueven (desde el 31/10 también las que suben) terminan 2° por debajo y suben el último
+  tramo a 2 °/s (llegada siempre con el ángulo creciendo); el sostener arranca del duty que sostiene el peso; a los 2 s firmes: `LLEGO,t,q1,q2,q3,e1,e2,e3`. Corta si alguna se aleja más de 5° de su referencia, con
   la franja o con cualquier comando. **No esquiva la caja.**
 - [x] 5c (**probada en placa 2026-10-31**, sin muestras perdidas): telemetría `t` y `tools/trayectoria.py`
 - [ ] Zona prohibida: que el brazo no choque con la caja (después)
@@ -90,6 +90,7 @@ Línea de telemetría: `T,ms,etapa,` y por cada una `q,ref,duty,w,estado` (etapa
 | Fecha | Prueba | Resultado |
 |---|---|---|
 | 2026-10-31 | 5b `mv` (`b5a0763`) | Arrancan y terminan juntas; las que bajan se pasan ~2° y vuelven subiendo despacio. `LLEGO` (J1 · J2 · J3): `mv 20 15 10` 19,94 · 14,77 · 10,17 · `mv 3 3 3` 2,82 · 3,00 · 3,46 · `mv 40 30 20` 39,68 · 30,21 · 20,02 · `mv 20 20 24` 19,94 · 20,11 · 24,16 · `mv 3 3 3` 2,99 · 3,00 · 3,04. Error máx 0,46° (J3, primer `mv 3 3 3`); el resto ≤ 0,32° |
+| 2026-10-31 | Todas las que se mueven llegan con la aproximación (`trayectoria_20261031_180843`) | J2 en el primer `mv 20 20 24` (sube directo) 20,00 (antes 20,27). Dos llegadas a `20 20 24`: J1 19,94 / 19,94, J2 20,00 / 20,01 (0,008°), J3 24,09 / 24,05 (0,04°); de la llegada a firmes 0,2–0,5 s; 4 `mv` en 30 s. Queda J3: en la subida a 2 °/s se traba y se pasa (error máx 0,46° y 0,55°; `mv 3 3 3` termina 0,18° arriba) |
 | 2026-10-31 | Sostener arranca del duty que sostiene el peso (`trayectoria_20261031_180331`) | `uHold` = medio entre las marchas del feedforward (J2 +8,5 %, J3 −10 %) en vez del duty con que venía: J2 ya no cae (error máx al final del primer `mv` 1,68 → 0,40°), de la llegada a firmes 0,3–0,4 s en los cuatro (antes hasta 18,5 s), los 4 `mv` en 28 s (antes 48). A la vista, menos tambaleo. Queda: subiendo directo, J2 se adelanta 1,3° al frenar y termina 0,25–0,27° arriba (dentro de `tolPos`); con la aproximación desde abajo, 0,00° |
 | 2026-10-31 | 5c telemetría (`trayectoria_20261031_175424`) | 4 `mv` + homing, 6990 muestras. (1) Primer `mv 20 20 24`: J2 llega adelantada y frenando con duty −20 %; el sostener arranca de ese duty y **cae 1,7°** antes de volver (el tambaleo). (2) Aproximación a 2 °/s con stick-slip: J2 1,4° y J3 0,9° atrás hasta despegar. (3) `mv 3 3 3`: J3 trabada en el borde de `tolPos` 0,15° y 18,5 s hasta quedar firme. Feedforward medido en el recorrido (J2 +24,4 / −10 %, J3 +11,9 / −33 %) ≈ el de `config.h` |
 | 2026-10-31 | 5b con `khi` 4 en J2 y J3 (en vez de 8) | Peor: 3 de 7 `mv` cortados por `no quedan firmes`; J2 llega con +0,30° de error (19,70 dos veces) y el tambaleo no mejora a la vista. → `khi` vuelve a 8 |

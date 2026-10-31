@@ -181,14 +181,14 @@ void homingPaso() {
 }
 
 // ---------- Fase 5b: movimiento coordinado ("mv") ----------
-// Etapas: 1 recorrido (hasta el objetivo, o APROX_GRADOS por debajo para las que bajan), 2 aproximación (esas suben
-// el último tramo despacio), 3 llegada (las tres sostienen el objetivo hasta quedar firmes), 4 asentamiento.
+// Etapas: 1 recorrido (hasta APROX_GRADOS por debajo del objetivo), 2 aproximación (el último tramo despacio,
+// subiendo), 3 llegada (las tres sostienen el objetivo hasta quedar firmes), 4 asentamiento.
 struct {
   bool activo = false;
   int etapa = 0;
   float desde[N], hasta[N], obj[N];
   bool mueve[N];       // en la etapa: esta se mueve
-  bool aprox[N];       // llega desde abajo (bajaba)
+  bool aprox[N];       // llega desde abajo (todas las que se mueven)
   float T = 1.0f;      // s, duración de la etapa
   uint32_t k = 0;      // periodos desde el comienzo de la etapa
   uint32_t tEtapa = 0, tFirme = 0;
@@ -250,7 +250,9 @@ void mvIniciar(const float obj[N]) {
     art[i].reiniciarEstado();
     if (art[i].modo() != Articulacion::Modo::Sostener || !art[i].llego()) art[i].sostenerAqui();
     mv.obj[i] = obj[i];
-    mv.aprox[i] = obj[i] < art[i].q() - 0.05f;  // baja: llega desde abajo
+    // Todas las que se mueven llegan con la aproximación (2026-10-31): subiendo directo, J2 llegaba adelantada al
+    // frenar y quedaba 0,25° arriba; con el último tramo lento desde abajo, 0,00°. Y llegan siempre igual (fase 6)
+    mv.aprox[i] = fabsf(obj[i] - art[i].q()) > 0.05f;
   }
   mv.activo = true;
   bool algunaAprox = false;
@@ -286,7 +288,7 @@ void mvPaso() {
     }
     if (tau >= 1.0f) {
       if (mv.etapa == 1) {
-        // Antes de subir el último tramo, las que bajan tienen que estar de verdad por debajo del objetivo (si no,
+        // Antes de subir el último tramo, todas las que se aproximan tienen que estar de verdad por debajo del objetivo (si no,
         // la llegada podía terminar siendo desde arriba): esperar en el punto previo, hasta 3 s
         for (int i = 0; i < N; i++) {
           if (mv.aprox[i] && art[i].q() > mv.obj[i] - 0.5f * APROX_GRADOS) {

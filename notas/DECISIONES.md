@@ -39,5 +39,9 @@
   (`lib/Articulacion`); **llegada siempre con el ángulo creciendo** (+) en las tres; **J1 0–90° PROVISORIO** hasta
   medirlo con el brazo estirado; **J1 se autobloquea** (al llegar frena, como `12`); la **zona prohibida** (la caja)
   queda para después; el test de repetibilidad, primero en el plano J2–J3 con J1 en su cero.
+- `20` (2026-10-31, tarde): **precisión antes que velocidad** (pedido del usuario). En `mv` todas las que se mueven
+  llegan con la aproximación desde abajo (también las que suben); el sostener arranca del duty que sostiene el peso
+  (medio del feedforward), no del duty con que venía; J3 con `tolPos` 0,15° (J2 vuelve a 0,3°: con 0,15° repetía
+  peor); `khi` queda en 8. El perfil sigue quíntico (más suave que un trapecio).
 - `17` (2026-10-26): joystick en lazo abierto (el joystick da el duty) y freno al soltar, nunca rueda libre; puente en Python porque Firefox no tiene Web Serial; cero donde está el brazo al abrir el puente (lo pidió el usuario).
 - El firmware del robot vive en `~/Documentos/recolector_de_frutas`; `09-brazo-control` se movió allá (2026-09-27) y los arreglos de los drivers para el robot se hacen allá.

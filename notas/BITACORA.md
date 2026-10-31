@@ -333,3 +333,41 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   tres en `20`), `c`, `j <n> <°>`, `mv <q1> <q2> <q3>`; para volver J2 a su final de carrera en `19`, `p -25 200`
   repetido; en `19`, `o -5` busca el de la otra. Abrir el puerto serie reinicia la WROOM: después de abrir el monitor,
   `h` (en `20`) o `z` con el brazo en los finales de carrera (en `19`).
+
+## 2026-10-31 (tarde, segunda sesión) — 20: 5b probada en placa, telemetría (5c), llegadas sin caída
+
+- **5b probada en placa (`79bb390`):** los `mv` arrancan y terminan juntos; las que bajan se pasan ~2° y vuelven
+  subiendo despacio. Serie `mv 20 15 10` → `3 3 3` → `40 30 20` → `20 20 24` → `3 3 3`: errores ≤ 0,46° (J3), el resto
+  ≤ 0,32°. Cualquier comando corta el `mv`: esperar siempre el `LLEGO` antes de mandar el siguiente.
+- **Repetir `mv 20 20 24` desde poses distintas** (adelanto de la fase 6). Con `tolPos` 0,3° en las tres: rango J1
+  0,09°, J2 0,06°, **J3 0,30°** (cae en cualquier lugar de la tolerancia: al quedar firme frena y no corrige más).
+  Ajustes, de a uno:
+  - J2 y J3 `tolPos` 0,15° / `bandaInt` 0,1°: J3 0,03° (mejor), J2 0,29° (peor) y una vez `no quedan firmes`.
+  - J2 vuelve a 0,3° / 0,2°, J3 queda en 0,15° / 0,1°: 4 llegadas, J1 0,00°, J2 0,22°, **J3 0,008° (una cuenta)**.
+  - `khi` 4 en J2/J3 (en vez de 8) para que despeguen más suave: peor (3 de 7 `mv` con `no quedan firmes`, J2 con
+    0,30° de error) → vuelve a 8.
+  - Al final de cada `mv` se veía un tambaleo de la punta (video del usuario, no versionado: aparece una persona).
+- **5c, telemetría (`3c08116`):** `t [1|0]` imprime a 50 Hz `T,ms,etapa,` y por articulación `q,ref,duty,w,estado`,
+  por su propia cola (no tapa los `LLEGO`; `TELE_FIN,<perdidas>`), y no corta el `mv` ni el homing.
+  `tools/trayectoria.py h "mv ..." ...` reemplaza al monitor: manda los comandos esperando cada `LLEGO`, guarda
+  `resultados/trayectoria_*.csv` y `.png` (referencia contra medido, error con `tolPos`/`bandaInt`, duty, camino
+  (q2, q3) sobre la franja) e imprime por `mv` el tiempo hasta quedar firmes y las correcciones del final. Primera
+  captura (`trayectoria_20261031_175424`, 6990 muestras, ninguna perdida):
+  1. **El tambaleo era J2 cayéndose 1,7° al llegar:** subiendo directo llegaba adelantada y frenando con −20 %; el
+     sostener arrancaba de ese duty y la gravedad la bajaba hasta que el integrador juntaba +22 %.
+  2. En la subida final a 2 °/s, stick-slip: J2 hasta 1,4° y J3 0,9° atrás de la referencia hasta despegar.
+  3. `mv 3 3 3`: J3 trabada justo en el borde de `tolPos` 0,15°, 18,5 s hasta quedar firme (el corte es a los 20 s).
+  Feedforward medido en el recorrido (ajuste duty = a + b·w): J2 +24,4 / −10 %, J3 +11,9 / −33 %, como `config.h`
+  (25 / 8, 10 / 30): no era eso.
+- **El sostener arranca del duty que sostiene el peso (`75b1b29`):** `uHold = (ffMarchaPos − ffMarchaNeg) / 2`
+  (J2 +8,5 %, J3 −10 %, J1 0) en vez del duty con que venía. J2 ya no cae (error máx al final del primer `mv` 1,68 →
+  0,40°); de la llegada a firmes 0,3–0,4 s en los cuatro (antes hasta 18,5 s); 4 `mv` en 28 s (antes 48); a la vista,
+  menos tambaleo. Subiendo directo J2 seguía terminando 0,25–0,27° arriba (adelantada al frenar, dentro de `tolPos`).
+- **Todas las que se mueven llegan con la aproximación** (commit del cierre; captura
+  `trayectoria_20261031_180843`): J2 en el primer `mv 20 20 24` 20,00 (antes 20,27); dos llegadas a `20 20 24`: J1
+  0,00°, J2 0,008°, J3 0,04° de diferencia; firmes en 0,2–0,5 s; 4 `mv` en 30 s. Queda J3 pasándose en la subida a
+  2 °/s (error máx 0,46° y 0,55°; `mv 3 3 3` termina 0,18° arriba): siguiente, `VEL_APROX` 2 → 3 °/s.
+- Se habló de un perfil trapezoidal: el quíntico de `mv` ya es más suave (aceleración sin saltos); el tambaleo no
+  venía del perfil sino del paso al sostener y del stick-slip. Si hace falta, `MV_FACTOR_VEL` 0,5 → 0,3.
+- Commits: `79bb390`, `3c08116`, `75b1b29` (sin revisión de Codex en esta sesión). Útil: abrir el puerto reinicia
+  la WROOM, por eso la lista de `trayectoria.py` empieza con `h`; `--archivo` vuelve a graficar sin la placa.
