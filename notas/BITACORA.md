@@ -224,3 +224,14 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   con la otra parada, `gm` no deja una compensación fantasma; al empezar a sostener, el modelo de la otra entra en
   rampa de 1 s (antes de golpe: J3 −16,8 %, J2 +31,4 %); `z` sosteniendo ajusta el residuo al cambio del modelo (en
   J2 desde 50° eran 29 puntos de más), también en la otra.
+- **Prueba F3b (`-e j2`, `gm` prendido): el modelo empeora el sostener de J2.** J2 20° (J3 0°): el modelo dice
+  +19,8 %, se asienta con −11,6 %; 31°: +13,4 % → −17,5 %; 50° (J3 30°): `SIN ASENTAR`, J2 cae 1,2° (48,78°) con
+  −13,1 %. El modelo empuja hacia arriba, el integrador lo compensa y ese residuo se arrastra a la pose siguiente. A
+  20 kHz la fricción sostiene J2 en todo un rango de duty (~−15 a +25 %): el "duty que sostiene" no es la gravedad.
+  Propuesta: `MODELO_SOSTEN` = false y `FRENO_EN_BANDA` = true por defecto (sin decidir todavía).
+- **Ceros corridos (2026-10-31, tarde):** el usuario movió el final de carrera de J3 (se aprieta ~9° debajo del cero
+  viejo, ±1°: `o -9`) y, bajando J2 con pulsos hasta su final de carrera haciendo `z` entre pulso y pulso, J2 bajó
+  26,1° desde ~4,0° → **su final de carrera se aprieta ~30° debajo del cero viejo** (no recuerda haberlo movido).
+  Con el cero nuevo, la franja de `config.h` (medida desde el cero viejo y solo con J2 ≥ 0°) ya no vale: pasada al
+  cero nuevo sería ~`q2 − 46° ≤ q3 ≤ q2 − 13,6°` y la pose del cero nuevo queda fuera de lo medido. Hay que revisar el
+  final de carrera de J2 y volver a medir la franja antes de mover el brazo a poses altas.

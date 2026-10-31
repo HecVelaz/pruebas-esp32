@@ -21,8 +21,10 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
   A 20 kHz, con compensación de fricción (J3 15 %, J2 0 %), las dos llegan con < 0,3° y con `fb` frenan
   quietas y sin ruido (probado). Mapa capturado (27/28): la fricción pesa como la gravedad; modelos simples
   (J2 `31,4 − 0,58·q2` %, J3 −17 %). La otra ya no va y viene en su final de carrera y `o -5` lo busca. **3b mínima
-  hecha** (el sostener suma el modelo simple, `gm`; sin probar en placa: prueba F3b del README). Sigue la fase 4
-  (homing en el flanco).
+  hecha** (el sostener suma el modelo simple, `gm`; sin probar en placa: prueba F3b del README). Prueba F3b: el
+  modelo empeora el sostener de J2 (propuesto `gm` apagado y `fb` prendido por defecto). **Ceros corridos el 31/10
+  (J3 ~9°, J2 ~30°): la franja de `config.h` no vale con el cero nuevo; no mover a poses altas hasta revisar el
+  final de carrera de J2 y medir la franja de nuevo.** Después, fase 4 (homing en el flanco).
   Abrir el puerto serie reinicia la WROOM (cero perdido, brazo suelto).
 - **Fuente:** conectada a la bornera del bus de 12 V (el adaptador al XT60 tiene un contacto malo: J1/J3 no se
   movían). Así no pasa por el fusible ni la seta: límite de 3 A y apagar la fuente como parada.
