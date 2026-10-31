@@ -210,6 +210,7 @@ void ayuda() {
   Serial.println("  c            mostrar cuentas y grados");
   Serial.println("  dg           diagnóstico del cableado al IBT-2: EN, RPWM y LPWM de a uno, y la salida M+/M-");
   Serial.printf("  o <°>        llevar %s (la otra, se sostiene sola) a un ángulo y sostenerla ahí. Ej: o 40\n", OTRA.nombre);
+  Serial.println("               Con su final de carrera suelto puede ser negativo (ej. o -5): va hasta apretarlo y se queda");
   Serial.printf("               Mientras va, los movimientos de %s esperan (hasta %lu s; Enter cancela)\n", art::NOMBRE,
                 (unsigned long)(OTRA_ESPERA_MAX_MS / 1000));
   Serial.println("  oc           dónde está la otra (medido, referencia, destino) y los límites de la activa (c: las dos)");
@@ -1688,7 +1689,10 @@ void comandoOtra(const char *args) {
   const float qaMax = cmdSosteniendo ? fmaxf(qa, cmdRefSostener) : qa;
   // activa - otra entre BANDA_MIN y BANDA_MAX  ->  otra entre qa - BANDA_MAX y qa - BANDA_MIN, para toda qa
   // (la franja es convexa: si el destino está adentro, todo el camino desde donde está también)
-  const float mn = fmaxf(OTRA.limNeg, qaMax - BANDA_MAX), mx = fminf(OTRA.limPos, qaMin - BANDA_MIN);
+  // Con su final de carrera suelto, la otra puede ir hasta HASTA_FC_MAX_GRADOS debajo de su límite propio para
+  // buscarlo (al apretarse se queda ahí sosteniendo su peso, sin empujar más; ver otra.cpp)
+  const float limNegOtra = otra::finalCarrera() ? OTRA.limNeg : OTRA.limNeg - HASTA_FC_MAX_GRADOS;
+  const float mn = fmaxf(limNegOtra, qaMax - BANDA_MAX), mx = fminf(OTRA.limPos, qaMin - BANDA_MIN);
   if (g < mn || g > mx) {
     Serial.printf("%s a %+.1f° saca el cuatro barras de la franja: con %s en %+.1f°, %s puede ir de %+.1f° a %+.1f°.\n",
                   OTRA.nombre, g, art::NOMBRE, qa, OTRA.nombre, mn, mx);

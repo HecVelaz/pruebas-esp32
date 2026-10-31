@@ -19,7 +19,9 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
   20 kHz** (2026-10-31, decisión del usuario); la primera captura se cortó (a 20 kHz hace falta más
   duty: J2 27 %, J3 −34 % en (10°, 3°)). Hechos: arranque sin salto de la cascada y `p` hasta el final de carrera.
   A 20 kHz, con compensación de fricción (J3 15 %, J2 0 %), las dos llegan con < 0,3° y con `fb` frenan
-  quietas y sin ruido (probado). Sigue: capturar el mapa (`mapa_gravedad.py capturar --cero`) y la 3b.
+  quietas y sin ruido (probado). Mapa capturado (27/28): la fricción pesa como la gravedad; modelos simples
+  (J2 `31,4 − 0,58·q2` %, J3 −17 %). La otra ya no va y viene en su final de carrera y `o -5` lo busca. Sigue: decidir
+  la 3b (recomendado: solo `uHold` inicial con los modelos simples) y la fase 4 (homing en el flanco).
   Abrir el puerto serie reinicia la WROOM (cero perdido, brazo suelto).
 - **Fuente:** conectada a la bornera del bus de 12 V (el adaptador al XT60 tiene un contacto malo: J1/J3 no se
   movían). Así no pasa por el fusible ni la seta: límite de 3 A y apagar la fuente como parada.

@@ -147,21 +147,24 @@ void tarea(void *) {
     }
     pedidoLlegada = pe;
     llegoV = llego;
-    // Freno dentro de la banda: llegó -> duty 0 y uHold quieto, hasta que se aleje más de TOL_SALIDA
-    const bool frenada = frenoBanda && llego && pe == pedido;
+    // Final de carrera apretado (está en el lado -) con la referencia más allá: no empuja más contra él (ni P ni I),
+    // pero sigue sosteniendo el peso con el duty aprendido (2026-10-31: cortar todo el empuje dejaba caer el codo, se
+    // soltaba el final de carrera, volvía a subir... iba y venía entre ~0 y 5°)
+    const bool contraFc = fc && e < 0.0f;
+    // Freno dentro de la banda: llegó -> duty 0 y uHold quieto, hasta que se aleje más de TOL_SALIDA. Apoyada en el
+    // final de carrera no frena: el freno la dejaba caer y volvía el ir y venir
+    const bool frenada = frenoBanda && llego && pe == pedido && !contraFc;
     frenadaV = frenada;
     // Banda del integrador: errores más chicos no integran (no va y viene entre dos puntos por la fricción)
-    if (!frenada && fabsf(e) >= bandaInt) uHold += ki * e * dt;
+    if (!frenada && !contraFc && fabsf(e) >= bandaInt) uHold += ki * e * dt;
     uHold = constrain(uHold, -OTRA.dutyMax, OTRA.dutyMax);
     uHoldV = uHold;
     // Compensación de fricción: empujón en el sentido del error (lleno desde FR_RAMPA_GRADOS)
     const float comp = fr * constrain(e / FR_RAMPA_GRADOS, -1.0f, 1.0f);
-    float v = frenada ? 0.0f : constrain(uHold + kp * e + comp, -OTRA.dutyMax, OTRA.dutyMax);
-    // Final de carrera apretado (está en el lado -): no empujar contra él
-    if (fc && v < 0.0f) {
-      v = 0.0f;
-      if (uHold < 0.0f) uHold = 0.0f;
-    }
+    float v = frenada ? 0.0f
+                      : constrain(contraFc ? uHold : uHold + kp * e + comp, -OTRA.dutyMax, OTRA.dutyMax);
+    // Apretado: hacia él, como mucho el duty aprendido (si empuja hacia ese lado) y nunca más que OTRA_FC_SOSTEN_MAX
+    if (fc && v < 0.0f) v = fmaxf(v, fmaxf(fminf(uHold, 0.0f), -OTRA_FC_SOSTEN_MAX));
     // Atasco: duty alto sin moverse -> deja de empujar (freno) hasta el próximo sostener()
     if (fabsf(v) >= OTRA_ATASCO_DUTY && fabsf(g - qAtasco) < 0.5f) {
       msAtasco += TS_MS;
@@ -175,7 +178,7 @@ void tarea(void *) {
     }
     if (atascada) v = 0.0f;
     // Error grande sostenido: solo avisa
-    if (fabsf(e) >= OTRA_ERROR_AVISO) {
+    if (fabsf(e) >= OTRA_ERROR_AVISO && !contraFc) {  // contra el final de carrera el error es a propósito
       msError += TS_MS;
       if (msError == OTRA_ERROR_MS) avisoPendiente = "no llega a la referencia (error de más de 5° durante 1 s).";
     } else {
@@ -200,7 +203,8 @@ void cero() { pedidoCero = true; }
 
 void sostener(float g) {
   pedido = pedido + 1;  // antes que dest: la tarea no puede dar por llegado el destino nuevo con el pedido viejo
-  dest = constrain(g, OTRA.limNeg, OTRA.limPos);
+  // Más abajo que el límite propio solo para buscar el final de carrera (main.cpp lo permite si está suelto)
+  dest = constrain(g, OTRA.limNeg - HASTA_FC_MAX_GRADOS, OTRA.limPos);
   if (!activo) {
     // El EN (por si "x" lo bajó) lo vuelve a subir la tarea al reiniciar, sin pasar por coast(): ver tarea()
     reiniciar = true;

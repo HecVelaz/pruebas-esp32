@@ -266,6 +266,9 @@ constexpr uint32_t OTRA_ERROR_MS = 1000;
 // 50 -> 60 % para 20 kHz (2026-10-31: J3 sostenía con -34 % en (10°, 3°)). PROVISORIO.
 constexpr float OTRA_ATASCO_DUTY = 55.0f;
 constexpr uint32_t OTRA_ATASCO_MS = 1500;
+// Apoyada en su final de carrera, la otra sostiene su peso con el duty aprendido, pero hacia él nunca más que esto
+// (el aprendido puede haber crecido viajando). J3 sostiene con -17 a -27 % a 20 kHz (mapa del 2026-10-31). PROVISORIO.
+constexpr float OTRA_FC_SOSTEN_MAX = 30.0f;
 // Mientras la otra va a su destino, los movimientos de la activa esperan como mucho esto (a 5 °/s, 113° son ~23 s).
 // PROVISORIO.
 constexpr uint32_t OTRA_ESPERA_MAX_MS = 30000;

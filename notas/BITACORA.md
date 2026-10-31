@@ -198,3 +198,21 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
 - **J3 no "llegaba" a 0°:** su final de carrera se aprieta en ~0,6° y la otra no empuja hacia él apretado → error
   0,6° > `TOL_POS`, `LLEGANDO` para siempre y la activa esperando 30 s. Arreglo: con el final de carrera apretado y
   el destino más allá, el error de llegada cuenta 0.
+- **Captura del mapa de gravedad a 20 kHz (`-e j2`, `ofr 15`): 27 de 28** (falta (90°, 93°) desde arriba; ninguna
+  inestable), `resultados/mapa_gravedad_20261031_135400.csv/.png`. J2: +20 a +25 % con q2 bajo, ~0 % en q2 ≈ 50°,
+  −15 a −25 % en q2 = 70–90° (el peso pasa del otro lado del eje del hombro, cambia de signo cerca de 54°). J3: ~−17 %
+  sin tendencia clara. **La fricción pesa como la gravedad:** desde abajo y desde arriba el duty cambia hasta ±7 % y
+  en varias poses J2 sostiene con el mismo duty (+2,02 %: integrador quieto dentro de la banda; a 20 kHz y con la
+  reductora ~695:1 la fricción sola sostiene el brazo). Validación cruzada: J2 solo q2 8,6 % (mejor), plano 8,9 %,
+  cos q2 + cos q3 10,1 % (sobreajusta; extrapola a −50 % en las esquinas); J3 plano 6,2 %, constante 7,2 %. Modelos
+  simples: J2 `u ≈ 31,4 − 0,58·q2`, J3 ≈ −17 % (constante). `mapa_gravedad_20261031_123942_cortado.csv`: 4
+  mediciones a 1 kHz (captura cortada).
+- **J3 iba y venía en su final de carrera** al terminar la captura (vuelta a (5°, 0°)): con el final de carrera
+  apretado la otra cortaba todo el empuje, también el que sostiene el peso; el codo caía, se soltaba, volvía a subir.
+  Arreglo: apretado y con la referencia más allá, sostiene con `uHold` sin P ni I hacia él y nunca empuja más que eso.
+  Además `o` puede ir hasta 10° debajo de 0° con el final de carrera suelto (`o -5` lo busca y se queda ahí).
+- Los finales de carrera se aprietan ~2° antes del cero anterior (J2 en 1,9°, J3 en 0,6–1,7°): el cero hecho con el
+  brazo apoyado a fondo no es repetible; la fase 4 (homing) pone el cero en el flanco.
+- Revisión de Codex del arreglo, dos más: apoyada en el final de carrera empuja hacia él como mucho
+  `OTRA_FC_SOSTEN_MAX` = 30 % (el `uHold` pudo crecer viajando hasta −60 %; PROVISORIO) y el freno dentro de la banda
+  no actúa ahí (con `fb` volvía el ir y venir).
