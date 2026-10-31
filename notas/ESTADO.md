@@ -20,8 +20,9 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
   duty: J2 27 %, J3 −34 % en (10°, 3°)). Hechos: arranque sin salto de la cascada y `p` hasta el final de carrera.
   A 20 kHz, con compensación de fricción (J3 15 %, J2 0 %), las dos llegan con < 0,3° y con `fb` frenan
   quietas y sin ruido (probado). Mapa capturado (27/28): la fricción pesa como la gravedad; modelos simples
-  (J2 `31,4 − 0,58·q2` %, J3 −17 %). La otra ya no va y viene en su final de carrera y `o -5` lo busca. Sigue: decidir
-  la 3b (recomendado: solo `uHold` inicial con los modelos simples) y la fase 4 (homing en el flanco).
+  (J2 `31,4 − 0,58·q2` %, J3 −17 %). La otra ya no va y viene en su final de carrera y `o -5` lo busca. **3b mínima
+  hecha** (el sostener suma el modelo simple, `gm`; sin probar en placa: prueba F3b del README). Sigue la fase 4
+  (homing en el flanco).
   Abrir el puerto serie reinicia la WROOM (cero perdido, brazo suelto).
 - **Fuente:** conectada a la bornera del bus de 12 V (el adaptador al XT60 tiene un contacto malo: J1/J3 no se
   movían). Así no pasa por el fusible ni la seta: límite de 3 A y apagar la fuente como parada.

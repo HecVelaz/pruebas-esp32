@@ -125,6 +125,13 @@ constexpr float KHI_SOSTENER = 8.0f;   // % por grado y por segundo
 // Compensación de fricción al sostener (ver FR_RAMPA_GRADOS abajo). 2026-10-31 a 20 kHz (-e j2): J2 llega y se
 // asienta sin ella (a 25 / a 20: error +0,19° / -0,05°, duty ~0 %). PROVISORIO.
 constexpr float FR_SOSTENER = 0.0f;   // %
+// Fase 3b: modelo del duty que la sostiene, u = SOST_C + SOST_K2·q2 + SOST_K3·q3 (%, q en °), de
+// resultados/mapa_gravedad_20261031_135400.csv (20 kHz, 13 poses desde abajo y desde arriba). J2: solo q2 (validación
+// cruzada 8,6 %; plano 8,9 %, cos q2 + cos q3 10,1 %: sobreajusta). +26 % en 10°, ~0 en 54°, -15 % en 80°.
+// La fricción pesa como la gravedad (±7 %): el integrador corrige el resto. PROVISORIO.
+constexpr float SOST_C = 31.4f;
+constexpr float SOST_K2 = -0.58f;
+constexpr float SOST_K3 = 0.0f;
 }  // namespace cfg_j2
 
 // ---------- J3 (codo) ----------
@@ -240,6 +247,11 @@ constexpr float KHI_SOSTENER = 8.0f;   // % por grado y por segundo
 // ella se pasaba hasta 8,53° y quedaba con -0,20°; con 10 % +0,22°; con 15 % no se pasa (10,16 -> 9,91°) y queda con
 // +0,09°, LLEGÓ enseguida; con 20 % en 14°, -0,24°. Queda 15 %. PROVISORIO (medido en una sola pose).
 constexpr float FR_SOSTENER = 15.0f;  // %
+// Fase 3b: modelo del duty que la sostiene (ver cfg_j2). J3: constante -16,8 % (validación cruzada 7,2 %; plano 6,2 %,
+// pero con pendientes chicas y ruido de ±7 %: se deja constante). PROVISORIO.
+constexpr float SOST_C = -16.8f;
+constexpr float SOST_K2 = 0.0f;
+constexpr float SOST_K3 = 0.0f;
 }  // namespace cfg_j3
 
 // ---------- La otra articulación (la que se sostiene en segundo plano, otra.cpp) ----------
@@ -291,6 +303,9 @@ constexpr float HASTA_FC_MAX_GRADOS = 10.0f;
 // cruzaba de a saltos (J3 iba y venía ±1°). Con 0,3° de error o más suma FR entero; cerca de 0 casi nada (no tiembla).
 // El valor de cada una está en su cfg_jX::FR_SOSTENER; en vivo, "fr" (activa) y "ofr" (otra).
 constexpr float FR_RAMPA_GRADOS = 0.3f;
+// Fase 3b: el sostener de las dos suma el modelo de cfg_jX (SOST_*) según la pose, y uHold aprende solo la diferencia
+// (antes se arrastraba el duty de la pose anterior: en 1 kHz J2 subió sola de 25° a 27,1°). En vivo: "gm".
+constexpr bool MODELO_SOSTEN = true;
 // Asentamiento: después de llegar, cuánto sigue sosteniendo antes de informar la posición final ("Asentado").
 constexpr uint32_t ASENTAMIENTO_MS = 2000;  // PROVISORIO
 

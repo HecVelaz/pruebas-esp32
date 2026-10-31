@@ -106,6 +106,7 @@ bool sostenerAuto = art::SOSTENER_AUTO;     // "sa" (ver sostenerPaso)
 float khP = art::KHP_SOSTENER;  // % por grado
 float khI = art::KHI_SOSTENER;  // % por grado y por segundo
 uint32_t pwmHz = art::PWM_FREQ_HZ;   // "pwm": frecuencia del PWM de las dos (en vivo; config.h tiene la medida)
+bool modeloSosten = MODELO_SOSTEN;    // "gm": modelo del duty que sostiene según la pose (fase 3b)
 float frA = art::FR_SOSTENER;              // % ("fr"): compensación de fricción al sostener de la activa
 float bandaInt = BANDA_INT_HOLD;      // ° ("bi"): con |error| menor, uHold no integra (las dos)
 bool frenoEnBanda = FRENO_EN_BANDA;   // "fb": al llegar, freno (duty 0) hasta que se aleje más de TOL_SALIDA (las dos)
@@ -126,6 +127,19 @@ int64_t cuentas() {
 }
 
 float grados(int64_t c) { return (float)c / art::CUENTAS_POR_GRADO; }
+
+// Fase 3b: duty que sostiene a la activa según la pose (config.h, SOST_*); la otra recibe el ángulo de la activa
+float modeloActiva(float qa) {
+  otra::anguloActiva(qa);
+  if (!modeloSosten) return 0.0f;
+  const float qo = otra::grados();
+#if defined(ARTICULACION_J3)
+  const float q2 = qo, q3 = qa;
+#else
+  const float q2 = qa, q3 = qo;
+#endif
+  return art::SOST_C + art::SOST_K2 * q2 + art::SOST_K3 * q3;
+}
 
 // Cuánto se pasó del rango permitido (0 si está dentro)
 int64_t excesoLimite(int64_t c) {
@@ -200,6 +214,7 @@ void ayuda() {
   Serial.println("  sa           sostener automático sí/no: entre comando y comando mantiene el ángulo (x lo apaga)");
   Serial.println("  khp <x>, khi <x>  ganancias del sostener quieto (%/°, %/(°·s))");
   Serial.println("  fr <%>, ofr <%>  compensación de fricción al sostener: la activa / la otra (0 = apagada)");
+  Serial.println("  gm           modelo del duty que sostiene según la pose (fase 3b) sí/no (las dos)");
   Serial.println("  bi <°>       banda del integrador al sostener (las dos): con menos error no integra. Ej: bi 0.2");
   Serial.println("  fb           freno dentro de la banda sí/no (las dos): al llegar, duty 0 hasta que se aleje");
   Serial.println("  pwm <Hz>     frecuencia del PWM de las dos, en vivo (500 a 25000; ej. pwm 20000). Al reiniciar,");
@@ -668,6 +683,9 @@ void mostrarGanancias() {
                 otra::khp(), otra::khi(), otra::friccion());
   Serial.printf("PWM (pwm): %s %lu Hz, %s %lu Hz (config.h: %lu Hz)\n", art::NOMBRE, (unsigned long)pwmHz, OTRA.nombre,
                 (unsigned long)otra::pwmHz(), (unsigned long)art::PWM_FREQ_HZ);
+  Serial.printf("Modelo del sostener (gm, fase 3b): %s | %s ahora %+.1f %%, %s ahora %+.1f %%\n",
+                modeloSosten ? "PRENDIDO" : "apagado", art::NOMBRE, modeloSosten ? modeloActiva(grados(cuentas())) : 0.0f,
+                OTRA.nombre, otra::duty0());
   Serial.printf("Las dos al sostener: banda del integrador (bi) ±%.2f° | freno dentro de la banda (fb) %s | "
                 "asentamiento %lu ms\n", bandaInt, frenoEnBanda ? "PRENDIDO" : "apagado",
                 (unsigned long)ASENTAMIENTO_MS);
@@ -904,7 +922,7 @@ void sostenerAqui(int64_t c, const char *causa) {
   hold.wRef = hold.integral = 0.0f;
   hold.sinCuentas = hold.atasco = 0;
   if (!hold.uHoldValido) {
-    hold.uHold = hold.uAnt;
+    hold.uHold = hold.uAnt - modeloActiva(grados(c));  // con el modelo, uHold es la diferencia
     hold.uHoldValido = true;
   }
   Serial.printf(">> %s: sostengo donde está, en %+.2f°.\n", causa, hold.ref);
@@ -927,8 +945,8 @@ void sostenerPaso() {
     // subir con el duty aprendido; volver a la cascada arrancaba el PI de velocidad de cero y el brazo caía más)
     if (!hold.llegado && fabsf(e) < art::TOL_POS) {
       hold.llegado = true;
-      if (!hold.uHoldValido) {  // la primera vez: arranca del duty con que venía
-        hold.uHold = hold.uAnt;
+      if (!hold.uHoldValido) {  // la primera vez: arranca del duty con que venía (menos el modelo)
+        hold.uHold = hold.uAnt - modeloActiva(grados(c));
         hold.uHoldValido = true;
       }
     }
@@ -960,7 +978,9 @@ void sostenerPaso() {
       hold.uHold = constrain(hold.uHold + khI * ts * e, -art::DUTY_MAX_PCT, art::DUTY_MAX_PCT);
     // Compensación de fricción ("fr"): empujón en el sentido del error, lleno desde FR_RAMPA_GRADOS
     const float comp = frA * constrain(e / FR_RAMPA_GRADOS, -1.0f, 1.0f);
-    u = hold.frenada ? 0.0f : constrain(hold.uHold + khP * e + comp, -art::DUTY_MAX_PCT, art::DUTY_MAX_PCT);
+    // Modelo (fase 3b) + lo aprendido (la diferencia) + proporcional + fricción
+    const float u0 = modeloActiva(grados(c));
+    u = hold.frenada ? 0.0f : constrain(u0 + hold.uHold + khP * e + comp, -art::DUTY_MAX_PCT, art::DUTY_MAX_PCT);
     hold.integral = 0.0f;
   } else {
     u = pasoPI(hold.wRef, wMed, grados(c), hold.integral);
@@ -1715,6 +1735,11 @@ void ejecutar(char *l) {
     if (hwOk) comandoAnotar(l + 2);
     return;
   }
+  // "gm": tampoco corta el sostener (si no, el cambio sin salto tendría un instante de freno)
+  if (strcmp(l, "gm") == 0) {
+    ejecutarComando(l);
+    return;
+  }
   // Si la otra todavía va hacia su destino, esperarla antes de cortar el sostener de la activa
   if (ceroFijado && hwOk && mueveActiva(l) && !esperarOtra()) return;
   const bool sosteniendo = hold.activo;
@@ -1726,6 +1751,7 @@ void ejecutar(char *l) {
     aplicarDuty(0.0f);  // freno mientras corre el comando
   }
   saltarQuieto = sosteniendo;
+  const float u0AntesCero = (hwOk && strcmp(l, "z") == 0) ? modeloActiva(grados(cuentas())) : 0.0f;
   arranqueDesdeHold = sosteniendo && mueveActiva(l);
   uArranque = hold.uAnt;
   const float qAntesCmd = hwOk ? grados(cuentas()) : 0.0f;
@@ -1737,6 +1763,8 @@ void ejecutar(char *l) {
     if (fabsf(dq) > 0.5f) ladoActiva = dq > 0 ? 1 : -1;
   }
   if (strcmp(l, "z") == 0) {
+    // El modelo depende del ángulo: lo aprendido absorbe el cambio del cero (si no, queda referido al anterior)
+    if (hwOk) hold.uHold += u0AntesCero - modeloActiva(0.0f);
     // "z" fija el cero. Si venía sosteniendo, sigue sosteniendo ahí mismo (mismo lugar: el duty aprendido sirve).
     // Si no, no empieza (el duty aprendido era de otro ángulo y movía el motor): arranca con el primer movimiento.
     if (sostenerAuto && sosteniendo) {
@@ -1886,6 +1914,14 @@ void ejecutarComando(char *l) {
                     art::NOMBRE, (unsigned long)pwmHz, OTRA.nombre, (unsigned long)otra::pwmHz(),
                     (unsigned long)art::PWM_FREQ_HZ);
     }
+  } else if (strcmp(l, "gm") == 0) {
+    // Sin salto: lo aprendido absorbe la diferencia (la otra lo hace en su tarea)
+    const float q = grados(cuentas());
+    const float antes = modeloActiva(q);
+    modeloSosten = !modeloSosten;
+    hold.uHold += antes - modeloActiva(q);
+    otra::modelo(modeloSosten);
+    Serial.printf(">> Modelo del sostener %s (las dos).\n", modeloSosten ? "PRENDIDO" : "APAGADO");
   } else if (strcmp(l, "fb") == 0) {
     frenoEnBanda = !frenoEnBanda;
     otra::opciones(bandaInt, frenoEnBanda);

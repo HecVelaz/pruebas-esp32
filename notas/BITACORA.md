@@ -216,3 +216,11 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
 - Revisión de Codex del arreglo, dos más: apoyada en el final de carrera empuja hacia él como mucho
   `OTRA_FC_SOSTEN_MAX` = 30 % (el `uHold` pudo crecer viajando hasta −60 %; PROVISORIO) y el freno dentro de la banda
   no actúa ahí (con `fb` volvía el ir y venir).
+- **Fase 3b mínima (compila `-e j2` y `-e j3`, sin probar en placa):** el sostener de las dos suma un modelo según la
+  pose, `u0 = SOST_C + SOST_K2·q2 + SOST_K3·q3` (J2 `31,4 − 0,58·q2`, J3 −16,8 % constante; del mapa del 31/10,
+  PROVISORIO) y `uHold` aprende solo la diferencia (antes se arrastraba el duty de la pose anterior). Solo al
+  sostener: la cascada no lo usa (el modelo con cosenos sobreajustaba). `gm` lo prende/apaga sin salto.
+- Revisión de Codex de la 3b, cuatro arreglos: `gm` no pasa por el corte del sostener (antes, un instante de freno);
+  con la otra parada, `gm` no deja una compensación fantasma; al empezar a sostener, el modelo de la otra entra en
+  rampa de 1 s (antes de golpe: J3 −16,8 %, J2 +31,4 %); `z` sosteniendo ajusta el residuo al cambio del modelo (en
+  J2 desde 50° eran 29 puntos de más), también en la otra.

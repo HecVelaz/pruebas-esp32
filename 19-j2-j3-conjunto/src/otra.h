@@ -23,9 +23,14 @@ bool enCamino();              // sosteniendo y todavía no llegó (ver llego())
 bool llego();
 uint32_t msDesdeLlegada();    // 0 si no llegó
 bool frenada();               // llegó y el freno dentro de la banda está prendido: duty 0
-float uHold();                // duty aprendido que sostiene el peso (%)
+float uHold();                // duty aprendido (%): con el modelo (fase 3b), la diferencia con el modelo
 // Banda del integrador (°) y freno dentro de la banda (ver config.h)
 void opciones(float bandaInt, bool frenoEnBanda);
+// Fase 3b: ángulo de la activa (lo publica main.cpp; el modelo del sostener depende de q2 y q3) y modelo sí/no
+void anguloActiva(float grados);
+void modelo(bool usar);
+bool modelo();
+float duty0();                // término del modelo que suma ahora (%)
 // Compensación de fricción al sostener (%, ver FR_SOSTENER en config.h)
 void friccion(float pct);
 float friccion();

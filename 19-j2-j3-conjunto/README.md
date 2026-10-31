@@ -92,6 +92,11 @@ va y viene ±1° (fricción ancha en duty) → compensación de fricción `fr` /
 `o 14` con `ofr 10`, `15`, `20`; J2 con `a 20` / `a 25` y `fr`). **Resultado:** J3 con 15 % no se pasa y queda con
 0,09°; J2 no la necesita (0,19° / 0,05°); con `fb`, frenadas y sin ruido → `FR_SOSTENER` J3 15 %, J2 0 %, 20 kHz.
 
+**Prueba F3b (con `-e j2`):** desde el cero, subir a una pose alta y volver (secuencia verificada contra la franja):
+`a 20` → `o 10` → `a 31` → `o 30` → `a 50` → `o 52` → `a 70` → `o 62` (esperar cada `Asentado`, anotar error y duty de
+las dos) y bajar con `o 50` → `a 50` → `o 30` → `a 28` → `o 10` → `a 20`. Repetir con `gm` apagado y comparar: con el modelo, J2 no tendría que subir ni bajar sola
+después de llegar en 70° (allí sostiene con ~−10 %, no con el +25 % de abajo).
+
 **Prueba F3a (captura del mapa de gravedad, con `-e j2`):** **abrir el puerto serie puede reiniciar la WROOM**
 (2026-10-31: al volver a abrir el monitor, cero perdido y las dos sueltas), así que el cero lo hace el script: J2 y
 J3 a sus finales de carrera con el joystick de `17` → 12 V apagados → flashear 19 → 12 V encendidos → **sin abrir el
@@ -107,7 +112,7 @@ que la mueva) puede pasar de 0° y se corta al apretarse (`FINAL DE CARRERA APRE
 
 **Comandos nuevos:** `o <°>` llevar la otra y sostenerla · `oc` dónde está la otra (medido, referencia, destino,
 `EN CAMINO` / `LLEGANDO` / `LLEGÓ`, error, duty aprendido) y los límites de la activa con el peor caso · `bi <°>` banda
-del integrador · `fb` freno dentro de la banda sí/no · `fr <%>`, `ofr <%>` compensación de fricción al sostener (activa /
+del integrador · `fb` freno dentro de la banda sí/no · `gm` modelo del sostener sí/no (fase 3b) · `fr <%>`, `ofr <%>` compensación de fricción al sostener (activa /
 otra) · `an [nota]` anotar el duty de las dos asentadas (línea
 `MAPA,...`, para `tools/mapa_gravedad.py`) · `pwm <Hz>` frecuencia del PWM de las dos en vivo (al reiniciar vuelve
 la de `config.h`, 1 kHz) ·
@@ -129,7 +134,10 @@ la de `config.h`, 1 kHz) ·
   - [x] 3a (2026-10-31): comando `an` y `tools/mapa_gravedad.py` (capturar / ajustar / plan). Compila; script
     probado sin placa (plan verificado contra las reglas de la franja; ajuste con datos sintéticos). **Falta la
     captura en placa** (prueba F3a abajo).
-  - [ ] 3b: usar el modelo (uHold inicial y feedforward)
+  - [x] Captura en placa (2026-10-31, 20 kHz): 27/28 poses; la fricción pesa como la gravedad (±7 %). J2 cambia de
+    signo cerca de q2 = 54° (+25 % → −20 %); J3 ~−17 %. `resultados/mapa_gravedad_20261031_135400.csv/.png`.
+  - [x] 3b mínima (2026-10-31): el sostener suma el modelo simple (J2 `31,4 − 0,58·q2` %, J3 −16,8 %) y `uHold`
+    aprende la diferencia; `gm` sí/no. Compila; **sin probar en placa** (prueba F3b abajo).
 - [ ] Fase 4: homing automático
 - [ ] 1: cero, la otra sostiene, signos, cuentas por grado (J2 / J3)
 - [ ] 2: sostener (J2 / J3)

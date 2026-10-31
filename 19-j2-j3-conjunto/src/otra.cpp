@@ -43,6 +43,20 @@ volatile float uHoldV = 0.0f;
 volatile float bandaInt = BANDA_INT_HOLD;
 volatile bool frenoBanda = FRENO_EN_BANDA;
 volatile float fr = otra_cfg::FR_SOSTENER;  // compensación de fricción (%)
+volatile float qActiva = 0.0f;              // ángulo de la activa (main.cpp)
+volatile bool usarModelo = MODELO_SOSTEN;
+volatile float u0V = 0.0f;                  // término del modelo aplicado
+
+// Modelo del duty que sostiene a la otra (fase 3b), según q2 y q3
+float modeloOtra(float qo) {
+  const float qa = qActiva;
+#if defined(ARTICULACION_J3)
+  const float q2 = qo, q3 = qa;
+#else
+  const float q2 = qa, q3 = qo;
+#endif
+  return otra_cfg::SOST_C + otra_cfg::SOST_K2 * q2 + otra_cfg::SOST_K3 * q3;
+}
 volatile uint32_t pedidoPwm = 0;          // != 0: la tarea cambia la frecuencia del PWM
 volatile uint32_t pwmVigente = OTRA.pwmHz;
 
@@ -63,6 +77,8 @@ void aplicar(float pct) {
 void tarea(void *) {
   TickType_t ultimo = xTaskGetTickCount();
   uint32_t msError = 0, msAtasco = 0, msQuieta = 0, pedidoVisto = 0;
+  bool modeloAnt = usarModelo;
+  float rampaModelo = 1.0f;  // 0 -> 1 en 1 s al empezar a sostener: el modelo entra sin salto
   float qAtasco = 0.0f;
   bool atascada = false;
   constexpr int VENTANA = 4;  // velocidad con 4 periodos (40 ms), como la activa
@@ -71,6 +87,12 @@ void tarea(void *) {
     vTaskDelayUntil(&ultimo, pdMS_TO_TICKS(TS_MS));
     ciclos = ciclos + 1;
     if (pedidoCero) {
+      // El modelo depende del ángulo: lo aprendido absorbe el cambio (si no, queda referido al cero anterior)
+      if (usarModelo) {
+        const float gAnt = leerGrados();
+        ceroCuentas = enc.count();
+        uHold += modeloOtra(gAnt) - modeloOtra(0.0f);
+      }
       ceroCuentas = enc.count();
       ref = 0.0f;
       pedidoCero = false;
@@ -88,6 +110,7 @@ void tarea(void *) {
     hist[VENTANA] = g;
     const float w = (hist[VENTANA] - hist[0]) / (VENTANA * TS_MS / 1000.0f);
     if (!activo) {
+      modeloAnt = usarModelo;  // "gm" con la otra parada: no hay nada que compensar al volver
       uHold = uHoldV = 0.0f;
       llegoV = frenadaV = false;
       if (u != 0.0f) aplicar(0.0f);  // por si parar() llegó en medio de un periodo
@@ -106,6 +129,7 @@ void tarea(void *) {
       atascada = false;
       qAtasco = g;
       llegoV = frenadaV = false;
+      rampaModelo = 0.0f;
       for (auto &h : hist) h = g;
       reiniciar = destrabar = false;
     }
@@ -161,10 +185,21 @@ void tarea(void *) {
     uHoldV = uHold;
     // Compensación de fricción: empujón en el sentido del error (lleno desde FR_RAMPA_GRADOS)
     const float comp = fr * constrain(e / FR_RAMPA_GRADOS, -1.0f, 1.0f);
+    // Modelo (fase 3b): el duty que la sostiene según la pose; uHold aprende la diferencia
+    const bool usar = usarModelo;
+    rampaModelo = fminf(rampaModelo + dt, 1.0f);
+    const float u0 = usar ? rampaModelo * modeloOtra(g) : 0.0f;
+    if (usar != modeloAnt) {  // "gm": sin salto, uHold absorbe la diferencia
+      uHold += (usar ? -u0 : rampaModelo * modeloOtra(g));
+      modeloAnt = usar;
+    }
+    u0V = u0;
+    const float sosten = u0 + uHold;  // lo que sostiene el peso
     float v = frenada ? 0.0f
-                      : constrain(contraFc ? uHold : uHold + kp * e + comp, -OTRA.dutyMax, OTRA.dutyMax);
-    // Apretado: hacia él, como mucho el duty aprendido (si empuja hacia ese lado) y nunca más que OTRA_FC_SOSTEN_MAX
-    if (fc && v < 0.0f) v = fmaxf(v, fmaxf(fminf(uHold, 0.0f), -OTRA_FC_SOSTEN_MAX));
+                      : constrain(contraFc ? sosten : sosten + kp * e + comp, -OTRA.dutyMax, OTRA.dutyMax);
+    // Apretado: hacia él, como mucho lo que sostiene el peso (si empuja hacia ese lado) y nunca más que
+    // OTRA_FC_SOSTEN_MAX
+    if (fc && v < 0.0f) v = fmaxf(v, fmaxf(fminf(sosten, 0.0f), -OTRA_FC_SOSTEN_MAX));
     // Atasco: duty alto sin moverse -> deja de empujar (freno) hasta el próximo sostener()
     if (fabsf(v) >= OTRA_ATASCO_DUTY && fabsf(g - qAtasco) < 0.5f) {
       msAtasco += TS_MS;
@@ -239,6 +274,10 @@ void pwm(uint32_t hz) {
   while (pedidoPwm && millis() - t0 < 5 * TS_MS) delay(1);
 }
 uint32_t pwmHz() { return pwmVigente; }
+void anguloActiva(float g) { qActiva = g; }
+void modelo(bool usar) { usarModelo = usar; }
+bool modelo() { return usarModelo; }
+float duty0() { return u0V; }
 void friccion(float pct) { fr = pct; }
 float friccion() { return fr; }
 void opciones(float b, bool f) {
