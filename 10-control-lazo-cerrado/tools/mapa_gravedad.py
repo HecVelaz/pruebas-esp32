@@ -181,9 +181,10 @@ def mover(s, art, x, activa):
         esperar_otra(s)
 
 
-def drenar(s, quieto=0.6, maximo=6.0):
-    """Lee y muestra hasta que la placa deje de mandar (si abrir el puerto la reinició, el arranque tarda ~2 s y
-    al final tira lo que haya llegado: no hay que mandarle nada antes)."""
+def drenar(s, quieto=2.5, maximo=10.0):
+    """Lee hasta que la placa deje de mandar. Si abrir el puerto la reinició, setup() se queda 1,5 s callado
+    (delay), imprime la ayuda y al final tira lo que haya llegado: lo mandado antes se pierde. Por eso, 2,5 s de
+    silencio."""
     t_fin, t_ult = time.time() + maximo, time.time()
     while time.time() < t_fin and time.time() - t_ult < quieto:
         l = s.readline().decode(errors="replace").strip()
@@ -196,8 +197,16 @@ def drenar(s, quieto=0.6, maximo=6.0):
 def preparar(s, args):
     """Con --cero: "z" (los dos finales de carrera tienen que estar apretados). Siempre: "fb" apagado."""
     if args.cero:
-        mandar(s, "z")
-        l = esperar(s, ("Final de carrera",), 3)  # esperar() le saca los espacios del principio
+        for intento in (1, 2):
+            mandar(s, "z")
+            try:
+                l = esperar(s, ("Final de carrera",), 3)  # esperar() le saca los espacios del principio
+                break
+            except RuntimeError:
+                if intento == 2:
+                    raise
+                print("   Sin respuesta a z (¿estaba arrancando?): espero y lo repito.")
+                drenar(s)
         if "SUELTO" in l:
             raise RuntimeError("al hacer el cero algún final de carrera está SUELTO: llevarlos ahí (joystick) y repetir")
     s.reset_input_buffer()
