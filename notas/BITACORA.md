@@ -158,3 +158,9 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
 - Revisión de Codex de `pwm`, dos arreglos: `ejecutar()` reconoce los movimientos por el comando entero
   (`mueveActiva()` + `dg`), no por la primera letra (`pwm` cambiaba el ángulo del sostener por el actual); `pwm` no
   toca el puente si está deshabilitado (después de `x`, `setDuty(0)` subía el EN común y frenaba las tres).
+- **Prueba de PWM (`-e j2`, fuente a la bornera):** a 1 kHz (al arrancar), pulsos de 200 ms con J2 en 20° y J3 en 10°:
+  subiendo, 15 % y 20 % no la mueven, **25 % sí** (+0,62°); bajando, 5 % y 10 % no, **15 % sí** (−1,00°). A 1 kHz
+  `o 14` y `a 4` terminaron `SIN ASENTAR` (J2 con −0,65° y duty de −11 a +18 %). Con `pwm 20000`: `a 12` → 11,80°
+  (error 0,20°), `a 4` → 3,88° (0,12°), `a 20` → 20,02° (0,02°), duty de sostener estable 16-17 %. **Decisión del
+  usuario: J2 y J3 a 20 kHz** (`PWM_FREQ_HZ`, `DECISIONES.md`); zona muerta y arranque quedan PROVISORIOS (de 1 kHz)
+  hasta medirlos a 20 kHz. J3 a 20 kHz y el arranque a 20 kHz (pulsos), sin medir.

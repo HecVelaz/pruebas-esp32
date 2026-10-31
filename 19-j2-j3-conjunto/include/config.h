@@ -47,7 +47,11 @@ constexpr bool SENTIDO_INVERTIDO = false;
 // PWM del IBT-2: 20 kHz como J1 y el firmware del robot. Si a duty bajo rinde poco (con el 5840 en 10, a 20 kHz el
 // IBT-2 entregaba ~1/3 de la tensión esperada), probar 1000.
 // 2026-10-26, paso 0 a 20 kHz: arrancaba recién con 40 % subiendo Y bajando (35 % no movía) → se prueba 1 kHz.
-constexpr uint32_t PWM_FREQ_HZ = 1000;
+// 2026-10-31 (19, comando "pwm", fuente a la bornera): a 20 kHz J2 va y sostiene bien (a 12 / 4 / 20: error ≤ 0,20°,
+// duty de sostener estable ~16-17 %; a 1 kHz, justo antes, dos SIN ASENTAR con el duty de -11 a +18 %) y no pita.
+// Decisión del usuario: 20 kHz. El 40 % del 26/10 fue con la fuente por el adaptador XT60 de contacto malo.
+// La zona muerta, el despegue y ARRANQUE_PCT de abajo son de 1 kHz: PROVISORIOS hasta medirlos a 20 kHz.
+constexpr uint32_t PWM_FREQ_HZ = 20000;
 constexpr uint8_t PWM_BITS = 10;
 
 // Límites propios desde el final de carrera (medidos con 17 el 2026-10-30). Además, la franja del cuatro barras
@@ -72,8 +76,8 @@ constexpr uint32_t MOVER_MAX_MS = 10000;
 constexpr float KP_VEL = 0.549f;
 constexpr float KI_VEL = 4.0f;
 constexpr float FF_PENDIENTE_POS = 0.0f;   // compensación de gravedad (%/°): medir con "bc"
-constexpr float ZONA_MUERTA_PCT = 17.0f;
-constexpr float ZONA_MUERTA_NEG_PCT = 8.0f;
+constexpr float ZONA_MUERTA_PCT = 17.0f;      // PROVISORIO: de 1 kHz (medir a 20 kHz)
+constexpr float ZONA_MUERTA_NEG_PCT = 8.0f;   // PROVISORIO: de 1 kHz
 constexpr float DESPEGUE_PCT = ZONA_MUERTA_PCT;
 constexpr float DESPEGUE_NEG_PCT = ZONA_MUERTA_NEG_PCT;
 constexpr float ARRANQUE_PCT = 35.0f;      // PROVISORIO: debajo de esto no actúa el corte "sin cuentas" (sostener el
@@ -151,7 +155,11 @@ constexpr bool SENTIDO_INVERTIDO = true;
 // PWM del IBT-2: 20 kHz como J1 y el firmware del robot. Con el 5840 (10, 2026-10-03), a 20 kHz el IBT-2 entregaba
 // ~1/3 de la tensión esperada a duty bajo y a 1 kHz rendía 2-3 veces más: si pasa lo mismo, probar 1000.
 // 2026-10-26: en 13 (J2, mismo motor y driver) a 20 kHz no arrancaba con menos de 40 % y a 1 kHz sí → 1 kHz.
-constexpr uint32_t PWM_FREQ_HZ = 1000;
+// 2026-10-31 (19, comando "pwm", fuente a la bornera): a 20 kHz J2 va y sostiene bien (a 12 / 4 / 20: error ≤ 0,20°,
+// duty de sostener estable ~16-17 %; a 1 kHz, justo antes, dos SIN ASENTAR con el duty de -11 a +18 %) y no pita.
+// Decisión del usuario: 20 kHz. El 40 % del 26/10 fue con la fuente por el adaptador XT60 de contacto malo.
+// La zona muerta, el despegue y ARRANQUE_PCT de abajo son de 1 kHz: PROVISORIOS hasta medirlos a 20 kHz.
+constexpr uint32_t PWM_FREQ_HZ = 20000;
 constexpr uint8_t PWM_BITS = 10;
 
 // Límites propios desde el final de carrera (medidos con 17 el 2026-10-30). Además, la franja del cuatro barras
@@ -177,8 +185,8 @@ constexpr uint32_t MOVER_MAX_MS = 10000;
 constexpr float KP_VEL = 0.549f;
 constexpr float KI_VEL = 4.0f;
 constexpr float FF_PENDIENTE_POS = 0.0f;   // compensación de gravedad (%/°): medir con "bc"
-constexpr float ZONA_MUERTA_PCT = 17.0f;
-constexpr float ZONA_MUERTA_NEG_PCT = 8.0f;
+constexpr float ZONA_MUERTA_PCT = 17.0f;      // PROVISORIO: de 1 kHz (medir a 20 kHz)
+constexpr float ZONA_MUERTA_NEG_PCT = 8.0f;   // PROVISORIO: de 1 kHz
 constexpr float DESPEGUE_PCT = ZONA_MUERTA_PCT;
 constexpr float DESPEGUE_NEG_PCT = ZONA_MUERTA_NEG_PCT;
 constexpr float ARRANQUE_PCT = 35.0f;      // PROVISORIO: debajo de esto no actúa el corte "sin cuentas" (sostener el
@@ -237,9 +245,9 @@ struct ConfigOtra {
   float dutyMax;         // %
   float vel;             // °/s de la referencia
 };
-constexpr ConfigOtra OTRA_J2 = {"J2", 16.0f * 4.0f * 139.0f * (75.0f / 15.0f) / 360.0f, false, false, 1000,
+constexpr ConfigOtra OTRA_J2 = {"J2", 16.0f * 4.0f * 139.0f * (75.0f / 15.0f) / 360.0f, false, false, cfg_j2::PWM_FREQ_HZ,
                                 0.0f, 97.0f, 3.0f, 8.0f, 50.0f, 5.0f};
-constexpr ConfigOtra OTRA_J3 = {"J3", 16.0f * 4.0f * 139.0f * (75.0f / 15.0f) / 360.0f, true, true, 1000,
+constexpr ConfigOtra OTRA_J3 = {"J3", 16.0f * 4.0f * 139.0f * (75.0f / 15.0f) / 360.0f, true, true, cfg_j3::PWM_FREQ_HZ,
                                 0.0f, 113.0f, 3.0f, 8.0f, 50.0f, 5.0f};
 constexpr float OTRA_ERROR_AVISO = 5.0f;   // ° de error durante OTRA_ERROR_MS: avisa (sigue sosteniendo)
 constexpr uint32_t OTRA_ERROR_MS = 1000;

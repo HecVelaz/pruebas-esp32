@@ -30,7 +30,7 @@ frenada (y frenadas, J2 y J3 bajan solas).
 
 Las del robot (v0.5), como `12`–`14` y `17`: J2 IBT-2 25 · 26, encoder 36 · 39, final de carrera **27**; J3 IBT-2
 16 · 17, encoder 18 · 19, final de carrera **33** (J2 y J3 cruzados respecto de v0.5); EN común 23. J1 queda frenada.
-PWM 1 kHz. Pines en [`include/pins.h`](include/pins.h).
+PWM **20 kHz** (2026-10-31; antes 1 kHz, que pita). Pines en [`include/pins.h`](include/pins.h).
 
 ## Seguridad
 
@@ -85,7 +85,9 @@ sin soltarse (y J1 no se suelta).
 no arrancaba con menos de 40 % (con la fuente por el XT60 de contacto malo). Con J2 en ~20° y J3 en ~10°, para
 `pwm 1000`, `pwm 5000` y `pwm 20000`: pulsos `p 15 200`, `p 20 200`, `p 25 200`… y `p -10 200`, `p -15 200`… (con qué
 duty arranca subiendo y bajando) y `o 12` → `oc` (¿J3 llega? ¿con qué duty sostiene? ¿pita?). Si a 20 kHz arranca con
-≤ ~25 %, pasar las dos a 20 kHz y volver a medir la zona muerta antes del mapa.
+≤ ~25 %, pasar las dos a 20 kHz y volver a medir la zona muerta antes del mapa. **Resultado (2026-10-31):** a 1 kHz
+arranca subiendo con 25 % y bajando con 15 %; a 20 kHz J2 va y sostiene bien (error ≤ 0,20°, duty estable) y no pita
+→ **20 kHz** (`PWM_FREQ_HZ`). Falta: los pulsos a 20 kHz (arranque) y J3.
 
 **Prueba F3a (captura del mapa de gravedad, con `-e j2`):** **abrir el puerto serie puede reiniciar la WROOM**
 (2026-10-31: al volver a abrir el monitor, cero perdido y las dos sueltas), así que el cero lo hace el script: J2 y

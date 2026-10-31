@@ -15,8 +15,9 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
   12–14) y la otra sostenida sola (`o <grados>`); límites con la franja. **Plan de 6 fases** (preparar el test de
   repetibilidad ISO 9283) en su README. **Fase 1 probada en placa** (2026-10-31, `-e j2`: la franja frena bien; falta
   ver la espera). **Fase 2 probada en placa** (banda del integrador 0,2°, "llegó" de la otra, freno dentro de la banda
-  opcional `fb`, `Asentado`). **Fase 3a hecha** (`an` + `tools/mapa_gravedad.py --cero`, sin captura todavía). **En pausa hasta
-  decidir el PWM** (comando `pwm`: probar 1 / 5 / 20 kHz, arranque y pitido); después capturar el mapa y la 3b.
+  opcional `fb`, `Asentado`). **Fase 3a hecha** (`an` + `tools/mapa_gravedad.py --cero`, sin captura todavía). **J2 y J3 pasan a
+  20 kHz** (2026-10-31, decisión del usuario); antes del mapa, medir el arranque a 20 kHz (pulsos `p`) y J3; después
+  capturar el mapa y la 3b.
   Abrir el puerto serie reinicia la WROOM (cero perdido, brazo suelto).
 - **Fuente:** conectada a la bornera del bus de 12 V (el adaptador al XT60 tiene un contacto malo: J1/J3 no se
   movían). Así no pasa por el fusible ni la seta: límite de 3 A y apagar la fuente como parada.
