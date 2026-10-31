@@ -100,6 +100,8 @@ bool sostenerAuto = art::SOSTENER_AUTO;     // "sa" (ver sostenerPaso)
 // Sostener quieto: duty = uHold + khP * error, y uHold aprende el duty que sostiene el peso (integrador de posición)
 float khP = art::KHP_SOSTENER;  // % por grado
 float khI = art::KHI_SOSTENER;  // % por grado y por segundo
+float bandaInt = BANDA_INT_HOLD;      // ° ("bi"): con |error| menor, uHold no integra (las dos)
+bool frenoEnBanda = FRENO_EN_BANDA;   // "fb": al llegar, freno (duty 0) hasta que se aleje más de TOL_SALIDA (las dos)
 
 char linea[48];
 size_t lineaLen = 0;
@@ -189,6 +191,8 @@ void ayuda() {
   Serial.println("  s [°]        sostener con el control de posición (sin número: donde está) hasta Enter. Ej: s, s 10");
   Serial.println("  sa           sostener automático sí/no: entre comando y comando mantiene el ángulo (x lo apaga)");
   Serial.println("  khp <x>, khi <x>  ganancias del sostener quieto (%/°, %/(°·s))");
+  Serial.println("  bi <°>       banda del integrador al sostener (las dos): con menos error no integra. Ej: bi 0.2");
+  Serial.println("  fb           freno dentro de la banda sí/no (las dos): al llegar, duty 0 hasta que se aleje");
   Serial.println("  kpp <x>      cambiar el P de posición");
   Serial.println("  c            mostrar cuentas y grados");
   Serial.println("  dg           diagnóstico del cableado al IBT-2: EN, RPWM y LPWM de a uno, y la salida M+/M-");
@@ -204,6 +208,18 @@ void ayuda() {
   Serial.printf("en %lu ms o con cualquier Enter. Duty máximo %.0f %%.\n", (unsigned long)art::SIN_CUENTAS_MS,
                 art::DUTY_MAX_PCT);
   Serial.println();
+}
+
+// Ángulo pedido fuera de lo permitido: explica el rango y, si lo achica la franja, dónde está la otra
+void fueraDeRango(float g, float minG, float maxG) {
+  Serial.printf("Fuera de rango: %+.1f°. %s puede ir de %+.1f° a %+.1f°", g, art::NOMBRE, minG, maxG);
+  if (ceroFijado) {
+    float mn, mx;
+    intervaloOtra(mn, mx);
+    const bool franja = limPosG() < art::LIMITE_POS_GRADOS || limNegG() > art::LIMITE_NEG_GRADOS;
+    if (franja) Serial.printf(" (franja del cuatro barras con %s entre %+.1f° y %+.1f°; margen incluido)", OTRA.nombre, mn, mx);
+  }
+  Serial.println(".");
 }
 
 void mostrarSignos() {
@@ -475,8 +491,8 @@ void escalonVelocidad(float v, uint32_t ms, uint32_t ciclos) {
   const float g0 = grados(c0), fin1 = g0 + v * ms / 1000.0f;  // donde termina la ida
   const float maxG = limPosG() - 5.0f, minG = limNegG() + 5.0f;
   if (fin1 > maxG || fin1 < minG || g0 > maxG || g0 < minG) {
-    Serial.printf("La ida iría de %+.1f° a %+.1f°, fuera de %+.0f° / %+.0f° (límites con margen). "
-                  "Volver con \"m 0\" o usar menos v o ms.\n", g0, fin1, maxG, minG);
+    Serial.printf("La ida iría de %+.1f° a %+.1f°, fuera de %+.1f° / %+.1f° (límites con margen; con la franja, "
+                  "según %s). Usar menos v o ms o moverla antes.\n", g0, fin1, maxG, minG, OTRA.nombre);
     return;
   }
   if (!listaParaMover()) return;
@@ -587,6 +603,9 @@ void mostrarGanancias() {
                 (unsigned long)(art::TS_POS_US / 1000));
   Serial.printf("Sostener quieto: khp = %.1f %%/°, khi = %.1f %%/(°·s) | automático (sa) %s\n", khP, khI,
                 sostenerAuto ? "PRENDIDO" : "apagado");
+  Serial.printf("Las dos al sostener: banda del integrador (bi) ±%.2f° | freno dentro de la banda (fb) %s | "
+                "asentamiento %lu ms\n", bandaInt, frenoEnBanda ? "PRENDIDO" : "apagado",
+                (unsigned long)ASENTAMIENTO_MS);
 }
 
 // ---------- Paso 3: P de posición (cascada) ----------
@@ -766,6 +785,12 @@ struct EstadoSostener {
   bool uHoldValido = false;
   float uAnt = 0.0f;       // último duty aplicado
   bool avisoAtasco = false;
+  // Llegada firme (mismo criterio que la cascada y que la otra): a menos de TOL_POS y quieta LLEGADA_MS; deja de
+  // serlo si se aleja más de TOL_SALIDA. La usan el freno dentro de la banda y el asentamiento.
+  bool firme = false;
+  bool frenada = false;    // freno dentro de la banda ("fb"): firme -> duty 0
+  uint32_t quietoTicks = 0;
+  uint32_t tFirme = 0;     // millis() al quedar firme (para el asentamiento)
 } hold;
 void sostenerIniciar(float g) {
   hold.ref = g;
@@ -774,7 +799,8 @@ void sostenerIniciar(float g) {
   hold.integral = hold.wRef = hold.uAnt = 0.0f;
   hold.llegado = false;
   hold.avisoAtasco = false;
-  hold.k = hold.atasco = hold.contrario = hold.sinCuentas = 0;
+  hold.firme = hold.frenada = false;
+  hold.k = hold.atasco = hold.contrario = hold.sinCuentas = hold.quietoTicks = 0;
   hold.tick = micros();
   hold.activo = true;
 }
@@ -795,6 +821,8 @@ void sostenerParar(const char *causa) {
 void sostenerAqui(int64_t c, const char *causa) {
   hold.ref = grados(c);
   hold.llegado = true;
+  hold.firme = hold.frenada = false;
+  hold.quietoTicks = 0;
   hold.wRef = hold.integral = 0.0f;
   hold.sinCuentas = hold.atasco = 0;
   if (!hold.uHoldValido) {
@@ -834,8 +862,25 @@ void sostenerPaso() {
   float u;
   if (hold.llegado) {
     const float e = hold.ref - grados(c);
-    hold.uHold = constrain(hold.uHold + khI * ts * e, -art::DUTY_MAX_PCT, art::DUTY_MAX_PCT);
-    u = constrain(hold.uHold + khP * e, -art::DUTY_MAX_PCT, art::DUTY_MAX_PCT);
+    // Llegada firme: cerca (TOL_POS) y quieta LLEGADA_MS; con histéresis (TOL_SALIDA)
+    if (hold.firme) {
+      if (fabsf(e) > art::TOL_SALIDA) {
+        hold.firme = false;
+        hold.quietoTicks = 0;
+      }
+    } else {
+      hold.quietoTicks = (fabsf(e) < art::TOL_POS && fabsf(wMed) < 1.0f) ? hold.quietoTicks + 1 : 0;
+      if (hold.quietoTicks * tsMs >= art::LLEGADA_MS) {
+        hold.firme = true;
+        hold.tFirme = millis();
+      }
+    }
+    // Freno dentro de la banda ("fb"): firme -> duty 0 (freno) con uHold quieto, hasta que se aleje más de TOL_SALIDA
+    hold.frenada = frenoEnBanda && hold.firme;
+    // Banda del integrador ("bi"): errores más chicos no integran (con la fricción el duty iba y venía)
+    if (!hold.frenada && fabsf(e) >= bandaInt)
+      hold.uHold = constrain(hold.uHold + khI * ts * e, -art::DUTY_MAX_PCT, art::DUTY_MAX_PCT);
+    u = hold.frenada ? 0.0f : constrain(hold.uHold + khP * e, -art::DUTY_MAX_PCT, art::DUTY_MAX_PCT);
     hold.integral = 0.0f;
   } else {
     u = pasoPI(hold.wRef, wMed, grados(c), hold.integral);
@@ -869,6 +914,44 @@ void sostenerPaso() {
     } else {
       sostenerAqui(c, "atasco (duty alto sin velocidad)");
     }
+  }
+}
+
+// Asentamiento: después de un movimiento de la activa o de un "o", cuando las dos llegaron y pasaron ASENTAMIENTO_MS
+// quietas sosteniéndose, informa una vez dónde quedaron (la posición final; la usan las fases 3 y 6). No bloquea.
+// Con el sostener de la activa apagado cuenta desde el comando.
+bool informePendiente = false;
+uint32_t tInformeCmd = 0;
+void pedirInformeAsentado() {
+  informePendiente = true;
+  tInformeCmd = millis();
+}
+void revisarAsentado() {
+  if (!informePendiente) return;
+  const uint32_t ahora = millis();
+  const bool activaLista = hold.activo ? (hold.llegado && hold.firme && ahora - hold.tFirme >= ASENTAMIENTO_MS)
+                                       : (ahora - tInformeCmd >= ASENTAMIENTO_MS);
+  const bool otraLista = !otra::activa() || otra::msDesdeLlegada() >= ASENTAMIENTO_MS;
+  // Si no se asienta (no queda a menos de TOL_POS y quieta), avisa igual con los mismos datos
+  const bool vencido = ahora - tInformeCmd >= ASENTAMIENTO_MS + 15000;
+  if ((!activaLista || !otraLista) && !vencido) return;
+  informePendiente = false;
+  const float qa = grados(cuentas());
+  if (!activaLista || !otraLista)
+    Serial.printf(">> SIN ASENTAR a los %lu s:", (unsigned long)((ahora - tInformeCmd) / 1000));
+  else
+    Serial.print(">> Asentado:");
+  if (hold.activo) {
+    Serial.printf(" %s %+.2f° (pedido %+.2f°, error %+.2f°, duty %+.1f %%%s)", art::NOMBRE, qa, hold.ref,
+                  hold.ref - qa, hold.uAnt, hold.frenada ? ", frenada" : "");
+  } else {
+    Serial.printf(" %s %+.2f° (sin sostener)", art::NOMBRE, qa);
+  }
+  if (otra::activa()) {
+    Serial.printf(" | %s %+.2f° (destino %+.2f°, error %+.2f°, duty %+.1f %%%s)\n", OTRA.nombre, otra::grados(),
+                  otra::destino(), otra::destino() - otra::grados(), otra::duty(), otra::frenada() ? ", frenada" : "");
+  } else {
+    Serial.printf(" | %s %+.2f° (sin sostener)\n", OTRA.nombre, otra::grados());
   }
 }
 
@@ -1026,8 +1109,12 @@ void comandoIrA(const char *args) {
   float g;
   const char *resto;
   const float maxG = limPosG() - 3.0f, minG = limNegG() + 3.0f;
-  if (!leerNumero(args, &resto, g) || *resto != '\0' || g > maxG || g < minG) {
-    Serial.printf("Uso: a <grados>, con %+.0f <= grados <= %+.0f\n", minG, maxG);
+  if (!leerNumero(args, &resto, g) || *resto != '\0') {
+    Serial.printf("Uso: a <grados>, con %+.1f <= grados <= %+.1f\n", minG, maxG);
+    return;
+  }
+  if (g > maxG || g < minG) {
+    fueraDeRango(g, minG, maxG);
     return;
   }
   if (!ceroFijado) {
@@ -1052,11 +1139,11 @@ void comandoSostener(const char *args) {
   if (*args == '\0') {
     g = grados(cuentas());
   } else if (!leerNumero(args, &resto, g) || *resto != '\0') {
-    Serial.printf("Uso: s [grados], con %+.0f <= grados <= %+.0f (sin número: donde está)\n", minG, maxG);
+    Serial.printf("Uso: s [grados], con %+.1f <= grados <= %+.1f (sin número: donde está)\n", minG, maxG);
     return;
   }
   if (g > maxG || g < minG) {
-    Serial.printf("Fuera de rango: %+.2f° (tiene que estar entre %+.0f° y %+.0f°).\n", g, minG, maxG);
+    fueraDeRango(g, minG, maxG);
     return;
   }
   if (!listaParaMover()) return;
@@ -1096,8 +1183,8 @@ void comandoEscalonPos(const char *args) {
   const float base = grados(cuentas());
   const float maxG = limPosG() - 5.0f, minG = limNegG() + 5.0f;
   if (base + amp > maxG || base - amp < minG) {
-    Serial.printf("Desde %+.1f°, ±%.0f° sale de %+.0f° / %+.0f°. Usar menos amplitud o \"a 0\" antes.\n", base, amp,
-                  maxG, minG);
+    Serial.printf("Desde %+.1f°, ±%.1f° sale de %+.1f° / %+.1f° (límites con margen; con la franja, según %s). "
+                  "Usar menos amplitud o moverla antes.\n", base, amp, maxG, minG, OTRA.nombre);
     return;
   }
   if (!listaParaMover()) return;
@@ -1208,10 +1295,13 @@ void comandoBarrido(const char *args) {
   const char *p;
   const float maxG = limPosG() - 3.0f, minG = limNegG() + 3.0f;
   if (!leerNumero(args, &p, desde) || !leerNumero(p, &p, hasta) || (*p != '\0' && !leerNumero(p, &p, v)) ||
-      *p != '\0' || desde < minG || desde > maxG || hasta < minG || hasta > maxG || fabsf(hasta - desde) < 2.0f ||
-      v < 1.0f || v > 10.0f) {
-    Serial.printf("Uso: bc <desde> <hasta> [°/s], con %+.0f <= grados <= %+.0f y 1 <= °/s <= 10 (def. 4)\n", minG,
+      *p != '\0' || fabsf(hasta - desde) < 2.0f || v < 1.0f || v > 10.0f) {
+    Serial.printf("Uso: bc <desde> <hasta> [°/s], con %+.1f <= grados <= %+.1f y 1 <= °/s <= 10 (def. 4)\n", minG,
                   maxG);
+    return;
+  }
+  if (desde < minG || desde > maxG || hasta < minG || hasta > maxG) {
+    fueraDeRango(desde < minG || desde > maxG ? desde : hasta, minG, maxG);
     return;
   }
   if (!ceroFijado) {
@@ -1280,8 +1370,12 @@ void comandoMover(const char *args) {
   float g;
   const char *resto;
   const float maxG = limPosG() - 3.0f, minG = limNegG() + 3.0f;  // margen de frenado
-  if (!leerNumero(args, &resto, g) || g > maxG || g < minG) {
-    Serial.printf("Uso: m <grados> [%%], con %+.0f <= grados <= %+.0f\n", minG, maxG);
+  if (!leerNumero(args, &resto, g)) {
+    Serial.printf("Uso: m <grados> [%%], con %+.1f <= grados <= %+.1f\n", minG, maxG);
+    return;
+  }
+  if (g > maxG || g < minG) {
+    fueraDeRango(g, minG, maxG);
     return;
   }
   float pct = art::DUTY_MOVER_PCT;
@@ -1310,7 +1404,13 @@ void mostrarOtra() {
   Serial.printf("%s (se sostiene sola): %+.2f° | referencia %+.2f° | destino %+.2f° | duty %+.1f %% | final de carrera "
                 "%s | %s\n", OTRA.nombre, otra::grados(), otra::referencia(), otra::destino(), otra::duty(),
                 otra::finalCarrera() ? "apretado" : "suelto",
-                !otra::activa() ? "SIN SOSTENER" : (otra::enCamino() ? "EN CAMINO" : "en destino"));
+                !otra::activa() ? "SIN SOSTENER"
+                                : (otra::referencia() != otra::destino() ? "EN CAMINO"
+                                                                         : (!otra::llego() ? "LLEGANDO"
+                                                                                           : (otra::frenada() ? "LLEGÓ (frenada)" : "LLEGÓ"))));
+  if (otra::activa())
+    Serial.printf("   error %+.2f° (destino - medido) | duty aprendido %+.1f %%\n", otra::destino() - otra::grados(),
+                  otra::uHold());
   float mn, mx;
   intervaloOtra(mn, mx);
   Serial.printf("   Límites de %s con %s entre %+.1f° y %+.1f° (peor caso): %+.1f° / %+.1f°\n", art::NOMBRE, OTRA.nombre,
@@ -1417,6 +1517,7 @@ void comandoOtra(const char *args) {
   }
   otra::sostener(g);
   Serial.printf(">> %s hacia %+.1f° a %.0f °/s (\"oc\" para ver dónde está).\n", OTRA.nombre, g, OTRA.vel);
+  pedirInformeAsentado();
 }
 
 // Ejecuta un comando y, con el sostener automático, después vuelve a sostener
@@ -1448,6 +1549,8 @@ void ejecutar(char *l) {
     }
     return;
   }
+  // Movió la activa (con el sostener o sin él): informar la posición final cuando se asiente
+  if (ceroFijado && hwOk && mueveActiva(l)) pedirInformeAsentado();
   if (!sostenerAuto || !ceroFijado || !hwOk || hold.activo) return;
   // ¿El comando movió la articulación? Entonces sostener donde quedó ("a": en el ángulo pedido)
   const bool movio = (l[0] == 'p' || l[0] == 'm' || l[0] == 's' || l[0] == 'a' || strncmp(l, "ev", 2) == 0 ||
@@ -1546,6 +1649,20 @@ void ejecutarComando(char *l) {
     comandoGanancia(l + 3, khI, "khi");
   } else if (strcmp(l, "sa") == 0) {
     comandoSostenerAuto();
+  } else if (strncmp(l, "bi", 2) == 0 && (l[2] == ' ' || l[2] == '\0')) {
+    float b;
+    const char *resto;
+    if (!leerNumero(l + 2, &resto, b) || *resto != '\0' || b < 0.0f || b > 2.0f) {
+      Serial.println("Uso: bi <°>, entre 0 y 2");
+    } else {
+      bandaInt = b;
+      otra::opciones(bandaInt, frenoEnBanda);
+      mostrarGanancias();
+    }
+  } else if (strcmp(l, "fb") == 0) {
+    frenoEnBanda = !frenoEnBanda;
+    otra::opciones(bandaInt, frenoEnBanda);
+    Serial.printf(">> Freno dentro de la banda %s (las dos).\n", frenoEnBanda ? "PRENDIDO" : "APAGADO");
   } else if (l[0] == 's' && (l[1] == ' ' || l[1] == '\0')) {
     comandoSostener(l + 1);
   } else if (strncmp(l, "ep", 2) == 0 && (l[2] == ' ' || l[2] == '\0')) {
@@ -1655,5 +1772,6 @@ void setup() {
 void loop() {
   leerSerial();
   sostenerPaso();
+  revisarAsentado();
   if (const char *av = otra::aviso()) Serial.printf(">> %s: %s\n", OTRA.nombre, av);
 }

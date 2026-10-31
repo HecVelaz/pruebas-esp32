@@ -15,7 +15,12 @@ frenada (y frenadas, J2 y J3 bajan solas).
   J2 quedaba habilitada hasta 80° con J3 todavía cerca de 30°). `oc` los muestra.
 - **Mientras la otra va en camino**, los comandos que mueven la activa (`p m a s ev ep bc`) **esperan** a que llegue
   (la activa sigue sosteniéndose); Enter cancela (`x` durante la espera suelta las dos) y a los 30 s (`OTRA_ESPERA_MAX_MS`, PROVISORIO) se rechazan.
-  "Llegó" = su referencia llegó al destino (en la fase 2, además dentro de la tolerancia y quieta).
+  "Llegó" = la referencia en el destino, a menos de `TOL_POS` (0,3°) y quieta `LLEGADA_MS` (200 ms), como la activa
+  (fase 2; en la fase 1 bastaba la referencia).
+- **Al sostener (las dos, fase 2):** con |error| < `BANDA_INT_HOLD` (0,1°, `bi`) el integrador no integra; opcional,
+  **freno dentro de la banda** (`fb`, apagado al arrancar): al llegar, duty 0 (sin pitido ni corriente) hasta que se
+  aleje más de `TOL_SALIDA` (0,6°). A los 2 s de llegar (`ASENTAMIENTO_MS`) informa `>> Asentado: ...` (posición
+  final, error y duty de las dos). Todo PROVISORIO.
 - **Cero:** `z` con los finales de carrera de J2 y J3 apretados (fotos en `17-brazo-joystick/LIMITES/ceros_bumpers`).
   Desde ahí la otra empieza a sostener en 0°. **+ = alejarse del final de carrera** (J2 antihorario visto desde
   atrás, J3 el codo baja).
@@ -66,21 +71,33 @@ comandos → brazo apoyado → 12 V apagados**.
 **Prueba F1 (seguridad de la franja, con `-e j2`):** desde el cero, de a poco y dentro de la franja: `z` → `o 7` →
 `a 28` → `o 30` → `a 50` (cada `o` tarda: el `a` siguiente tiene que decir `Esperando a J3` y J2 seguir sostenida).
 Después `o 55` y enseguida `oc` (`EN CAMINO`, límite de J2 = el menor entre medido y referencia de J3 + 25°, no
-80°) y `a 75`: espera a J3 y recién ahí va a 75°. Volver: `a 50` → `o 30` → `a 28` → `o 7` → `a 3`. Por último, brazo
-apoyado, `x` y `o 0`: J3 vuelve a sostener y J2 queda frenada, sin soltarse (y J1 no se suelta).
+80°) y `a 75`: espera a J3 y recién ahí va a 75°. Volver (cada paso dentro de la franja con el margen de 3°):
+`o 52` → `a 48` → `o 30` → `a 26` → `o 7` → `a 3` → `o 0`. Por último, abajo y con la mano debajo del brazo: `o 7`
+y enseguida `a 20`, y durante la espera `x` (suelta las dos); después `o 0`: J3 vuelve a sostener y J2 queda frenada,
+sin soltarse (y J1 no se suelta).
+
+**Prueba F2 (con `-e j2`, desde el origen, fuente a la bornera con 3 A):** `z` → `a 20` → `o 10` → esperar el
+`Asentado` (anotar error y duty de las dos) → `o 27` y enseguida `oc` varias veces (`EN CAMINO` → `LLEGANDO` → `LLEGÓ`)
+→ `o 10` y enseguida `a 25` (`Esperando a J3`, J2 quieta) → `Asentado`. Repetir `a 20` / `a 25` con `fb` prendido
+(¿pita? ¿se queda?) y, si el duty todavía va y viene, con `bi 0.2`. Volver: `a 12` → `o 0` → `a 4`.
 
 Los scripts: **sin `--cero`** (mandaría `z` lejos de los finales de carrera); cerrar el monitor antes.
 
 **Comandos nuevos:** `o <°>` llevar la otra y sostenerla · `oc` dónde está la otra (medido, referencia, destino,
-`EN CAMINO` / `en destino`) y los límites de la activa con el peor caso ·
+`EN CAMINO` / `LLEGANDO` / `LLEGÓ`, error, duty aprendido) y los límites de la activa con el peor caso · `bi <°>` banda
+del integrador · `fb` freno dentro de la banda sí/no ·
 `okp`, `oki` ganancias del sostener de la otra · `x` suelta las dos. El resto, como `12`–`14` (`?`).
 
 ## Estado
 
 - [x] Compila (`-e j2` y `-e j3`, 2026-10-30). Sin probar en placa.
 - [x] Fase 1, seguridad de la franja (2026-10-31): límites con el peor caso de la otra, la activa espera a que la
-  otra llegue, `o` sin `coast()`. Compila (`-e j2` y `-e j3`); **sin probar en placa** (prueba F1 abajo).
-- [ ] Fase 2: sostener sin oscilación (banda del integrador), "llegó" de la otra, asentamiento
+  otra llegue, `o` sin `coast()`. **Probada en placa con `-e j2`** (2026-10-31): la franja rechaza lo que corresponde
+  en las dos direcciones y usa el medido de J3 cuando va atrasada; `x` → `o` vuelve a sostener. Falta ver la espera
+  (`Esperando a J3`): va en la prueba de la fase 2.
+- [x] Fase 2 (2026-10-31): banda del integrador, "llegó" de la otra con el criterio de la activa, freno dentro de la
+  banda opcional, asentamiento, `o` destraba el ATASCO, mensajes de rechazo con el rango y la franja. Compila;
+  **sin probar en placa** (prueba F2 abajo).
 - [ ] Fase 3: mapa de gravedad (J2 y J3 se cargan mutuamente)
 - [ ] Fase 4: homing automático
 - [ ] 1: cero, la otra sostiene, signos, cuentas por grado (J2 / J3)

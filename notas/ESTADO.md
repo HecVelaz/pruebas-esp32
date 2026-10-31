@@ -13,8 +13,11 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
   carrera (+ hacia el mástil, 0–118°): compila, **falta repetir el paso 3**.
 - **`19-j2-j3-conjunto` (compila, sin probar):** J2 y J3 juntas; una activa (`-e j2`/`-e j3`, comandos de
   12–14) y la otra sostenida sola (`o <grados>`); límites con la franja. **Plan de 6 fases** (preparar el test de
-  repetibilidad ISO 9283) en su README; **fase 1 hecha (2026-10-31, sin probar en placa)**: límites con el peor caso
-  de la otra, la activa la espera, `o` sin `coast()`. Sigue la fase 2. Falta el paso 6 (movimientos coordinados).
+  repetibilidad ISO 9283) en su README. **Fase 1 probada en placa** (2026-10-31, `-e j2`: la franja frena bien; falta
+  ver la espera). **Fase 2 hecha, sin probar en placa** (banda del integrador, "llegó" de la otra, freno dentro de la
+  banda opcional `fb`, `Asentado`). Sigue la prueba F2 y después la fase 3 (mapa de gravedad).
+- **Fuente:** conectada a la bornera del bus de 12 V (el adaptador al XT60 tiene un contacto malo: J1/J3 no se
+  movían). Así no pasa por el fusible ni la seta: límite de 3 A y apagar la fuente como parada.
   Reemplaza a `13`/`14` (quedan como historia: 1 kHz, todo provisorio).
 - **`17-brazo-joystick`: probado en placa**, también desde el celular (`--host 0.0.0.0`). Finales de carrera, cero
   automático, límites en vivo, "Anotar", franja (`4B`). Sin probar en placa: rampa de bajada de J1, barra de J3 al

@@ -85,7 +85,8 @@ def correr_en_placa(args):
             if l.startswith(">> Escalón terminado"):
                 terminado = True
                 break
-            if meta is None and l.startswith(("Primero", "La ida", "Uso", "Tiempo", "La base todavía", ">> Cancelado")):
+            if meta is None and l.startswith(("Primero", "La ida", "Uso", "Fuera de rango", "Tiempo", "La base todavía", ">> Cancelado",
+                                                   ">> RECHAZADO")):
                 terminado = True  # el firmware rechazó el escalón: no movió nada
                 break
     except KeyboardInterrupt:

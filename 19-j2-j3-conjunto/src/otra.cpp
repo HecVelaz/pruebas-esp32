@@ -33,6 +33,15 @@ volatile const char *avisoPendiente = nullptr;
 volatile bool reiniciar = false;  // sostener() desde parado: la tarea arranca la referencia donde está
 volatile float ref = 0.0f;        // referencia del lazo (la lee la activa para sus límites: peor caso de la franja)
 volatile uint32_t ciclos = 0;     // periodos empezados por la tarea (parar() espera a que termine uno entero)
+volatile bool destrabar = false;  // sostener() con la tarea ya sosteniendo: borra un ATASCO
+volatile bool llegoV = false, frenadaV = false;
+// Cada sostener() es un pedido nuevo: la llegada vale solo para el pedido con que se calculó. Así, apenas se manda
+// otro "o" (aunque el destino cambie menos de un paso de la referencia), llego() es false sin esperar a la tarea.
+volatile uint32_t pedido = 0, pedidoLlegada = 0;
+volatile uint32_t tLlegada = 0;   // millis() al llegar
+volatile float uHoldV = 0.0f;
+volatile float bandaInt = BANDA_INT_HOLD;
+volatile bool frenoBanda = FRENO_EN_BANDA;
 
 int64_t ceroCuentas = 0;
 float uHold = 0.0f;
@@ -50,9 +59,11 @@ void aplicar(float pct) {
 
 void tarea(void *) {
   TickType_t ultimo = xTaskGetTickCount();
-  uint32_t msError = 0, msAtasco = 0;
+  uint32_t msError = 0, msAtasco = 0, msQuieta = 0, pedidoVisto = 0;
   float qAtasco = 0.0f;
   bool atascada = false;
+  constexpr int VENTANA = 4;  // velocidad con 4 periodos (40 ms), como la activa
+  float hist[VENTANA + 1] = {};
   for (;;) {
     vTaskDelayUntil(&ultimo, pdMS_TO_TICKS(TS_MS));
     ciclos = ciclos + 1;
@@ -64,8 +75,12 @@ void tarea(void *) {
     const float g = leerGrados();
     q = g;
     fc = digitalRead(PIN_F) == LOW;
+    for (int i = 0; i < VENTANA; i++) hist[i] = hist[i + 1];
+    hist[VENTANA] = g;
+    const float w = (hist[VENTANA] - hist[0]) / (VENTANA * TS_MS / 1000.0f);
     if (!activo) {
-      uHold = 0.0f;
+      uHold = uHoldV = 0.0f;
+      llegoV = frenadaV = false;
       if (u != 0.0f) aplicar(0.0f);  // por si parar() llegó en medio de un periodo
       continue;
     }
@@ -78,18 +93,57 @@ void tarea(void *) {
       digitalWrite(PIN_BRAZO_EN, HIGH);
       ref = g;
       uHold = 0.0f;
-      msError = msAtasco = 0;
+      msError = msAtasco = msQuieta = 0;
       atascada = false;
       qAtasco = g;
-      reiniciar = false;
+      llegoV = frenadaV = false;
+      for (auto &h : hist) h = g;
+      reiniciar = destrabar = false;
+    }
+    if (destrabar) {  // "o" de nuevo: deja de estar atascada y vuelve a empujar
+      atascada = false;
+      msAtasco = 0;
+      qAtasco = g;
+      destrabar = false;
     }
     // Referencia hacia el destino a OTRA.vel °/s
-    const float r = ref, paso = OTRA.vel * dt, d = dest - r;
+    const uint32_t pe = pedido;  // leído antes que dest: si llega uno nuevo en el medio, se ve en el próximo periodo
+    const float de = dest, r = ref, paso = OTRA.vel * dt, d = de - r;
     ref = r + (d > paso ? paso : (d < -paso ? -paso : d));
     const float e = ref - g;
-    uHold += ki * e * dt;
+    // Llegada (mismo criterio que la activa): referencia en el destino, cerca y quieta LLEGADA_MS; con histéresis
+    const float eDest = de - g;
+    bool llego = llegoV;
+    if (pe != pedidoVisto) {  // pedido nuevo: tiene que volver a llegar
+      llego = false;
+      msQuieta = 0;
+      pedidoVisto = pe;
+    }
+    if (ref != de) {
+      llego = false;
+      msQuieta = 0;
+    } else if (llego) {
+      if (fabsf(eDest) > otra_cfg::TOL_SALIDA) {
+        llego = false;
+        msQuieta = 0;
+      }
+    } else {
+      msQuieta = (fabsf(eDest) < otra_cfg::TOL_POS && fabsf(w) < 1.0f) ? msQuieta + TS_MS : 0;
+      if (msQuieta >= otra_cfg::LLEGADA_MS) {
+        llego = true;
+        tLlegada = millis();
+      }
+    }
+    pedidoLlegada = pe;
+    llegoV = llego;
+    // Freno dentro de la banda: llegó -> duty 0 y uHold quieto, hasta que se aleje más de TOL_SALIDA
+    const bool frenada = frenoBanda && llego && pe == pedido;
+    frenadaV = frenada;
+    // Banda del integrador: errores más chicos no integran (no va y viene entre dos puntos por la fricción)
+    if (!frenada && fabsf(e) >= bandaInt) uHold += ki * e * dt;
     uHold = constrain(uHold, -OTRA.dutyMax, OTRA.dutyMax);
-    float v = constrain(uHold + kp * e, -OTRA.dutyMax, OTRA.dutyMax);
+    uHoldV = uHold;
+    float v = frenada ? 0.0f : constrain(uHold + kp * e, -OTRA.dutyMax, OTRA.dutyMax);
     // Final de carrera apretado (está en el lado -): no empujar contra él
     if (fc && v < 0.0f) {
       v = 0.0f;
@@ -132,11 +186,14 @@ bool begin() {
 void cero() { pedidoCero = true; }
 
 void sostener(float g) {
+  pedido = pedido + 1;  // antes que dest: la tarea no puede dar por llegado el destino nuevo con el pedido viejo
   dest = constrain(g, OTRA.limNeg, OTRA.limPos);
   if (!activo) {
     // El EN (por si "x" lo bajó) lo vuelve a subir la tarea al reiniciar, sin pasar por coast(): ver tarea()
     reiniciar = true;
     activo = true;
+  } else {
+    destrabar = true;
   }
 }
 
@@ -154,7 +211,15 @@ bool activa() { return activo; }
 float grados() { return q; }
 float destino() { return dest; }
 float referencia() { return ref; }
-bool enCamino() { return activo && (reiniciar || ref != dest); }
+bool enCamino() { return activo && (reiniciar || !llegoV); }
+bool llego() { return activo && !reiniciar && llegoV && pedidoLlegada == pedido; }
+uint32_t msDesdeLlegada() { return llego() ? millis() - tLlegada : 0; }
+bool frenada() { return llego() && frenadaV; }
+float uHold() { return uHoldV; }
+void opciones(float b, bool f) {
+  bandaInt = b;
+  frenoBanda = f;
+}
 float duty() { return u; }
 bool finalCarrera() { return fc; }
 void ganancias(float p, float i) {

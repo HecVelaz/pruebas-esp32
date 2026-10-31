@@ -28,7 +28,7 @@ import numpy as np
 DIR_RESULTADOS = Path(__file__).absolute().parent.parent / "resultados"
 RE_META = re.compile(r"^# barrido (.*)$")
 RE_FILA = re.compile(r"^(\d+),([+-]?[\d.]+),([+-]?[\d.]+),([+-]?[\d.]+),([+-]?[\d.]+)$")
-RECHAZOS = ("Primero", "Uso", "La base todavía", ">> Cancelado")
+RECHAZOS = ("Primero", "Uso", "Fuera de rango", "La base todavía", ">> Cancelado", ">> RECHAZADO")
 
 
 def leer_meta(linea):

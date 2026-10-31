@@ -98,3 +98,27 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   la activa de antes del comando (`ejecutar()` lo apaga mientras corre); `parar()` espera a que la tarea termine un
   periodo entero con `activo = false` (si no, la tarea podía volver a subir el EN después de `x`); `x` escrito
   durante la espera se ejecuta (antes solo cancelaba y las dos seguían sosteniendo).
+- **Prueba en placa de la fase 1 (`-e j2`):** `z` (los dos apretados) → `o 7`, `a 28` (28,02° en 2,26 s), `o 30`,
+  `a 50` (50,21° en 1,92 s); `a 75` rechazado (J3 en 30° → J2 ≤ 52°); `o 52`, `a 48` (48,21°); `a 26` rechazado
+  porque J3 todavía estaba en ~31,5° (el límite usó el medido, atrasado 1,5° de la referencia); `o 7` rechazado con J2
+  en 48° (J3 ≥ 23°); `x` → `o 23`: J3 vuelve a sostener. Sosteniendo, J2 quedó 0,9–1,4° abajo de lo pedido (49,12°
+  con 50°; 46,6° con 48°) y el duty de J3 quieta en ~30° fue de −19,9 a −0,2 % (el integrador va y viene). No se vio
+  la espera (los `a` se escribieron con J3 ya llegada). Después de `x`, J2 se quedó en 48° sin caer (la fricción de la
+  reductora la sostiene, al menos ahí). El sostener pita (PWM de 1 kHz).
+- **J1 y J3 no se movían con la fuente y sí con la batería:** la fuente entraba por el XT60 con un adaptador; con la
+  fuente marcando 12 V, J2 (bajando, poca corriente) se movía y J1/J3 no. Con la fuente directo a la bornera del bus,
+  se mueven las tres → el adaptador fuente→XT60 tiene un contacto con resistencia. El ATASCO de J3 en la prueba
+  anterior (no subía de 7,5° a 0°) era eso. Con la fuente en la bornera, la seta y el fusible quedan afuera: la
+  protección es el límite de 3 A y la parada, apagar la fuente.
+- **Fase 2 (compila `-e j2` y `-e j3`, sin probar en placa):** banda del integrador `BANDA_INT_HOLD` 0,1° (`bi`) en
+  los dos sostener; la otra con el mismo "llegó" que la activa (referencia en el destino, < `TOL_POS`, quieta
+  `LLEGADA_MS`, histéresis `TOL_SALIDA`) y `esperarOtra()` espera la llegada real; freno dentro de la banda opcional
+  (`fb`, `FRENO_EN_BANDA` = false): al llegar, duty 0 hasta salir de `TOL_SALIDA`; informe `Asentado` a los
+  `ASENTAMIENTO_MS` (2 s) sin bloquear; `o` destraba un ATASCO (antes hacía falta `x`); mensajes de rechazo con el
+  rango y la franja, con un decimal (antes `Uso:` redondeado: decía +18 y rechazaba 18). Todo PROVISORIO.
+- Revisión de Codex de la fase 2, cinco arreglos: la llegada de la otra queda atada al pedido vigente (contador
+  `pedido`: un `o` nuevo la anula enseguida, aunque el destino cambie menos de un paso de la referencia); la activa
+  usa una llegada **firme** (< `TOL_POS` y quieta `LLEGADA_MS`, histéresis `TOL_SALIDA`) para `fb` y `Asentado`;
+  los movimientos con `sa` apagado también piden el informe; si a los 15 s no se asentó, informa `SIN ASENTAR` con
+  los mismos datos; `barrido_carga.py`, `escalon_posicion.py` y `escalon_velocidad.py` (en `10/tools`) reconocen los
+  rechazos `Fuera de rango` y `>> RECHAZADO`.

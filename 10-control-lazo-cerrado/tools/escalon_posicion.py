@@ -37,7 +37,7 @@ import diseno_velocidad as dv  # noqa: E402
 DIR_RESULTADOS = Path(__file__).absolute().parent.parent / "resultados"
 RE_META = re.compile(r"^# escalon_pos (.*)$")
 RE_FILA = re.compile(r"^(\d+)" + r",([+-]?[\d.]+)" * 5 + r"$")
-RECHAZOS = ("Primero", "Desde", "Uso", "La base todavía", ">> Cancelado")
+RECHAZOS = ("Primero", "Desde", "Uso", "Fuera de rango", "La base todavía", ">> Cancelado", ">> RECHAZADO")
 
 
 def leer_meta(linea):

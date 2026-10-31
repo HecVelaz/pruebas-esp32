@@ -10,13 +10,22 @@ namespace otra {
 
 bool begin();                 // configura puente, encoder y final de carrera y arranca la tarea (sin sostener)
 void cero();                  // cero en la posición actual (lo hace la tarea en su próximo periodo)
-void sostener(float grados);  // empieza (o sigue) sosteniendo; la referencia va hacia ese ángulo a OTRA.vel °/s
+void sostener(float grados);  // empieza (o sigue) sosteniendo; la referencia va hacia ese ángulo a OTRA.vel °/s.
+                              // También destraba un ATASCO
 void parar();                 // deja de sostener: duty 0 (freno, lo aplica la tarea); el EN lo maneja quien llama
 bool activa();
 float grados();               // ángulo medido
 float destino();              // ángulo pedido (al que va o en el que está)
 float referencia();           // referencia del lazo: va del ángulo de partida al destino a OTRA.vel °/s
-bool enCamino();              // sosteniendo y la referencia todavía no llegó al destino
+bool enCamino();              // sosteniendo y todavía no llegó (ver llego())
+// Llegó: la referencia en el destino, |destino - medido| < TOL_POS y quieta (< 1 °/s) durante LLEGADA_MS (los de su
+// config, como la activa); deja de haber llegado si se aleja más de TOL_SALIDA o cambia el destino.
+bool llego();
+uint32_t msDesdeLlegada();    // 0 si no llegó
+bool frenada();               // llegó y el freno dentro de la banda está prendido: duty 0
+float uHold();                // duty aprendido que sostiene el peso (%)
+// Banda del integrador (°) y freno dentro de la banda (ver config.h)
+void opciones(float bandaInt, bool frenoEnBanda);
 float duty();                 // % aplicado
 bool finalCarrera();          // apretado
 void ganancias(float khp, float khi);

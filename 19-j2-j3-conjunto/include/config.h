@@ -249,14 +249,27 @@ constexpr uint32_t OTRA_ATASCO_MS = 1500;
 // PROVISORIO.
 constexpr uint32_t OTRA_ESPERA_MAX_MS = 30000;
 
+// ---------- Sostener quieto (las dos: la activa en main.cpp y la otra en otra.cpp) ----------
+// Banda del integrador: con |error| menor que esto, uHold no integra (con la fricción, la zona muerta de 8-17 % y
+// KHP 3 %/°, integrar errores de décimas hacía que el duty fuera y viniera entre dos puntos). PROVISORIO. En vivo: "bi".
+constexpr float BANDA_INT_HOLD = 0.1f;  // °
+// Freno dentro de la banda: llegada (|error| < TOL_POS y quieta LLEGADA_MS) -> duty 0 (freno, sin pitido ni
+// corriente); si se aleja más de TOL_SALIDA vuelve a corregir con el uHold aprendido. Con la reductora (~695:1) el
+// brazo se quedó quieto frenado (2026-10-31, J2 en 48°): falta ver si en todas las poses. PROVISORIO. En vivo: "fb".
+constexpr bool FRENO_EN_BANDA = false;
+// Asentamiento: después de llegar, cuánto sigue sosteniendo antes de informar la posición final ("Asentado").
+constexpr uint32_t ASENTAMIENTO_MS = 2000;  // PROVISORIO
+
 #if defined(ARTICULACION_J3)
 namespace art = cfg_j3;
+namespace otra_cfg = cfg_j2;  // tolerancias de llegada de la otra (las mismas de su config)
 constexpr ConfigOtra OTRA = OTRA_J2;
 // activa - otra = q3 - q2, entre -Q2_MENOS_Q3_MAX y +Q3_MENOS_Q2_MAX
 constexpr float BANDA_MIN = -Q2_MENOS_Q3_MAX;
 constexpr float BANDA_MAX = Q3_MENOS_Q2_MAX;
 #else
 namespace art = cfg_j2;
+namespace otra_cfg = cfg_j3;
 constexpr ConfigOtra OTRA = OTRA_J3;
 // activa - otra = q2 - q3, entre -Q3_MENOS_Q2_MAX y +Q2_MENOS_Q3_MAX
 constexpr float BANDA_MIN = -Q3_MENOS_Q2_MAX;

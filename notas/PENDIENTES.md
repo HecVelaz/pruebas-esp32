@@ -6,7 +6,11 @@
 ## Brazo (12, 17, 19, lo próximo)
 
 - **`12`: repetir el paso 3** (`escalon_posicion.py -a j1 20 --ciclos 5`, desde unos 40–60° para tener lugar) con el cero en el final de carrera (`z` con J1 apretándolo); flasheado nuevo, sin probar.
-- **`19-j2-j3-conjunto`** (lo próximo después de `12`): probar en placa con `-e j2` y después `-e j3`: paso 1 (cero, la otra sostiene, signos, cuentas por grado), 2 sostener, 3 barrido de carga → feedforward de gravedad, 4 PI de velocidad, 5 posición; programar el paso 6 (movimientos coordinados: llegan juntas) y 7 limón. Antes, revisión de Codex (solo lectura) si se quiere.
+- **`19`, fases (2026-10-31):** prueba F2 en placa (README de 19; incluye ver `Esperando a J3`, pendiente de la
+  fase 1); después fase 3 (mapa de gravedad), 4 (homing), 5 (control conjunto en `20`), 6 (preparar la repetibilidad).
+- **Adaptador fuente → XT60:** contacto con resistencia (con él J1/J3 no se mueven). Rehacerlo (≥ 14 AWG, soldado)
+  para volver a tener el fusible y la seta con la fuente; mientras, la fuente va directo a la bornera del bus.
+- **`19-j2-j3-conjunto`** (pasos del README): probar en placa con `-e j2` y después `-e j3`: paso 1 (cero, la otra sostiene, signos, cuentas por grado), 2 sostener, 3 barrido de carga → feedforward de gravedad, 4 PI de velocidad, 5 posición; programar el paso 6 (movimientos coordinados: llegan juntas) y 7 limón. Antes, revisión de Codex (solo lectura) si se quiere.
 - `17-brazo-joystick`: probar en placa la rampa de bajada de J1, la barra de J3 al revés y el límite de J1 en 118°. Mejora: sostener J2/J3 con un lazo al soltar (hoy frenadas bajan despacio). Límite de J1 con el brazo estirado (choca antes con el soporte): sin medir. Después, fusionar con la tracción por joystick en `recolector_de_frutas`.
 - Al robot (`recolector_de_frutas`, en una sesión de ese repo): J1 polea de 84 (84/18; factor de las ganancias en rpm ×1,286 en vez de ×1,2); cero de las tres en los finales de carrera, + = alejarse de cada uno, J1 0–118°, J2 0–97°, J3 0–113°, franja `q2 − 25° ≤ q3 ≤ q2 + 7,5°` (comparar con `GAMMA4_*` y el marco de `brazo_ik`, `cinematica.py` y el URDF, que usan otro cero); pines `PIN_FC_J2 = 27`, `PIN_FC_J3 = 33` y sus docs.
 - Fotos de `12-j1-base/CERO/` y `17-brazo-joystick/LIMITES/` sin commitear: aparecen personas (repo público); recortarlas o sacar otras.
