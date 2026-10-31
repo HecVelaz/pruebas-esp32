@@ -9,6 +9,8 @@ constexpr uint32_t TRABADA_MS = 100;      // en marcha pero quieta: vuelve a la 
 constexpr float VEL_QUIETA = 1.0f;        // °/s
 constexpr float FR_RAMPA_GRADOS = 0.3f;   // compensación de fricción: llena desde este error
 constexpr float TS_POS = 0.02f;           // s, el P de posición corre cada 2 periodos (50 Hz)
+constexpr float VEL_LLEGADA = 2.0f;       // °/s: "llegó" exige además ir más despacio que esto
+constexpr float REENTRADA_GRADOS = 1.5f;  // después de llegar, si se aleja más: vuelve a la cascada
 }  // namespace
 
 bool Articulacion::begin(const ConfigArticulacion &c) {
@@ -291,10 +293,10 @@ void Articulacion::paso() {
       if (!llegado_) {
         // Ir con la cascada (P de posición a 50 Hz con v mínima y aceleración limitada)
         if (k_ % 2 == 0) {
-          // Llegó: dentro de la tolerancia, o lo cruzó (el error cambió de signo). Sin lo segundo, moviéndose rápido
-          // podía saltar la banda de ±tolPos y volver y volver (2026-10-31: el retroceso de J2, de 0 a 3°, quedó en
-          // 5° y nunca firme). El sostener corrige después el pasado, despacio.
-          if (fabsf(e) < c_.tolPos || e * signoIda_ <= 0.0f) {
+          // Llegó: dentro de la tolerancia Y casi quieta (como 19). Si la daba por llegada pasando rápido por el
+          // destino, seguía de largo y el sostener (hecho para décimas) no la volvía: 2026-10-31, el retroceso de J2
+          // (0 -> 3°) quedaba en 5-6° trabada por la fricción.
+          if (fabsf(e) < c_.tolPos && fabsf(w_) < VEL_LLEGADA) {
             llegado_ = true;
             uHold_ = u_;  // arranca del duty con que venía
             integral_ = 0.0f;
@@ -315,6 +317,21 @@ void Articulacion::paso() {
           protecciones(wRefPos_);
           return;
         }
+      }
+      // Se alejó mucho (se pasó o cayó): volver a la cascada para acercarse otra vez, sin salto desde el duty actual
+      if (fabsf(e) > REENTRADA_GRADOS) {
+        llegado_ = firme_ = frenada_ = false;
+        quietoTicks_ = 0;
+        wRefPos_ = 0.0f;
+        k_ = 1;
+        const int sg = e > 0 ? 1 : -1;
+        signoIda_ = sg;
+        signoAnt_ = sg;
+        despegada_ = false;
+        ffRampa_ = 0.0f;
+        integral_ = integralSinSalto(c_, u_, sg, c_.aMax * TS_POS);
+        aplicar(u_);
+        return;
       }
       // Llegó: PI de posición. Firme = a menos de tolPos y quieta llegadaMs (histéresis tolSalida).
       if (firme_) {

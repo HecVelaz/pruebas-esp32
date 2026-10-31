@@ -298,3 +298,8 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   arrastra / se traba; mecánico). Arreglo: "apoyada en el final de carrera" solo cerca del cero (< 1° sobre el límite
   de abajo). Homing en dos velocidades: con cero previo, rápido (J2 y J3 2 °/s, J1 3 °/s) hasta 1,5° del cero
   anterior y después a la velocidad lenta (el flanco siempre se toma despacio).
+- **Corrección:** no era el final de carrera (el usuario lo revisó: no se traba). Con la protección ya limitada al
+  cero, J2 seguía en 6,1° (pedido 3°) empujando −13,6 % sin moverse: la cascada la daba por "llegada" al pasar por
+  3° todavía rápido (y la regla de "cruzar" lo empeoraba), seguía de largo y el sostener —hecho para décimas— no la
+  bajaba 3° contra la fricción de 20 kHz. Arreglo (como 19): "llegó" exige < 0,3° **y** < 2 °/s; si después de
+  llegar se aleja más de 1,5°, vuelve a la cascada. Se saca la regla de "cruzar".
