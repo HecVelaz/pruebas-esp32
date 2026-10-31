@@ -37,5 +37,5 @@ constexpr int PIN_SERVO_GIRO = 14;
 
 // Finales de carrera (NA a GND, pull-up interno). Estas pruebas no los usan: el cero se fija a mano con "z".
 constexpr int PIN_FC_J1 = 32;
-constexpr int PIN_FC_J2 = 33;
-constexpr int PIN_FC_J3 = 27;
+constexpr int PIN_FC_J2 = 27;  // 2026-10-30: J2 y J3 cruzados respecto de v0.5 (era 33)
+constexpr int PIN_FC_J3 = 33;  // 2026-10-30: era 27

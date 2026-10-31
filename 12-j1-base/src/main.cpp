@@ -20,10 +20,13 @@
 // Pines de la articulación de esta carpeta (los tres IBT-2 comparten el EN, GPIO 23)
 #if defined(ARTICULACION_J3)
 constexpr int PIN_RPWM = PIN_J3_RPWM, PIN_LPWM = PIN_J3_LPWM, PIN_ENC_A = PIN_J3_ENC_A, PIN_ENC_B = PIN_J3_ENC_B;
+constexpr int PIN_FC = PIN_FC_J3;
 #elif defined(ARTICULACION_J2)
 constexpr int PIN_RPWM = PIN_J2_RPWM, PIN_LPWM = PIN_J2_LPWM, PIN_ENC_A = PIN_J2_ENC_A, PIN_ENC_B = PIN_J2_ENC_B;
+constexpr int PIN_FC = PIN_FC_J2;
 #else
 constexpr int PIN_RPWM = PIN_J1_RPWM, PIN_LPWM = PIN_J1_LPWM, PIN_ENC_A = PIN_J1_ENC_A, PIN_ENC_B = PIN_J1_ENC_B;
+constexpr int PIN_FC = PIN_FC_J1;
 #endif
 
 constexpr uint8_t LEDC_CH_R = 0;
@@ -1302,6 +1305,10 @@ void ejecutarComando(char *l) {
     enc.reset();
     ceroFijado = true;
     Serial.println(">> Cero fijado en la marca. Movimientos habilitados.");
+    // Final de carrera (NA a GND, pull-up interno): con el cero en el final de carrera tiene que estar apretado
+    if (digitalRead(PIN_FC) == LOW) Serial.printf("   Final de carrera (GPIO %d) apretado: OK.\n", PIN_FC);
+    else Serial.printf("   OJO: el final de carrera (GPIO %d) NO está apretado. Si la marca es el final de carrera, "
+                       "llevarlo ahí y repetir \"z\".\n", PIN_FC);
   } else if (strcmp(l, "ie") == 0 || strcmp(l, "is") == 0) {
     if (!art::SIGNOS_EN_VIVO) {
       // J1: con límites asimétricos (+135° / -45°), invertir el sentido daría vuelta los límites físicos
@@ -1421,6 +1428,7 @@ void setup() {
   const bool okDriver = motor.begin(PIN_RPWM, PIN_LPWM, PIN_BRAZO_EN, PIN_BRAZO_EN, LEDC_CH_R, LEDC_CH_L,
                                     art::PWM_FREQ_HZ, art::PWM_BITS);
   motor.coast();
+  pinMode(PIN_FC, INPUT_PULLUP);  // final de carrera (NA a GND): lo revisa "z"
   // Encoder SCX-555 (pull-ups de 5,1 kΩ en su placa). J1 (34/35) y J2 (36/39) no tienen pull-up interno (el driver
   // intenta activarlo y no pasa nada); J3 (18/19): además el interno
   const bool okEnc = enc.begin(PIN_ENC_A, PIN_ENC_B);

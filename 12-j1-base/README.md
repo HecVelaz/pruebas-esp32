@@ -31,7 +31,7 @@ Detalle cable por cable: `recolector_de_frutas/docs/CONEXIONES.md` y `docs/html/
 | 23 | R_EN + L_EN de los **3** IBT-2 | pull-down 10 kΩ a GND |
 | 25 · 26 / 36 · 39 | J2 IBT-2 / encoder | conectados, quietos |
 | 16 · 17 / 18 · 19 | J3 IBT-2 / encoder | conectados, quietos |
-| 32 · 33 · 27 | Finales de carrera J1 · J2 · J3 | no se usan acá |
+| 32 · 27 · 33 | Finales de carrera J1 · J2 · J3 | no se usan acá (J2 y J3 cruzados respecto de v0.5, 2026-10-30) |
 
 IBT-2: **VCC al riel de 5 V** (VIN del shield; en `10` iba a 3V3), GND al riel GND, R_IS y L_IS sin conectar; B+ / B− a 12 V. Motor: blanco = M+, amarillo = M−. Encoder:
 verde = 3V3, azul = GND.

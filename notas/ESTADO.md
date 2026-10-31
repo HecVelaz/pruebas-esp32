@@ -5,18 +5,22 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
 
 ## Lo próximo
 
-- **`12-j1-base`: J1 terminada en el brazo montado (pasos 0–5 OK, 2026-10-30).** Cero al frente del robot, + se
-  aleja del mástil de la visión; rango **−30° / +90°** (choca con el soporte a −38°). Polea de la base de **84**
-  dientes: 41,48 cuentas/°. Posición: llega en ~1,8 s, sobrepico 0, error ≤ 0,31°, igual con el limón; saltitos de
-  stick-slip al final (inofensivos). Velocidad: ts ~0,63 s, sobrepico 14,5 % (peor que en `10`). Falta `dg`.
-- **Robot:** `recolector_de_frutas/firmware/brazo` sigue con la polea de 90, los límites y signos viejos de J1.
-- **`13-j2-hombro`, `14-j3-codo`:** a 1 kHz (a 20 kHz J2 no arrancaba con menos de 40 %); resto PROVISORIO (signos
-  sin medir, límites ±15°, duty máx 60 %, ganancias de J1, ff 17/8 %, khp 3 / khi 8). Conexionado v0.5 (EN común 23,
-  VCC de los IBT-2 a 5 V).
+- **Cero del brazo (2026-10-30):** la pose con los **tres finales de carrera apretados**; + = alejarse de cada uno.
+  Límites medidos con el joystick: J1 0–118°, J2 0–97°, J3 0–113° y la franja del cuatro barras
+  `q2 − 25° ≤ q3 ≤ q2 + 7,5°`. Finales de carrera: J1 32, **J2 27, J3 33** (cruzados respecto de v0.5).
+- **`12-j1-base`: J1 terminada (pasos 0–5 con el cero al frente).** Polea de la base de **84** dientes (41,48
+  cuentas/°); posición: ~1,8 s, sobrepico 0, error ≤ 0,31°, igual con el limón. Ya con el cero en el final de
+  carrera (+ hacia el mástil, 0–118°): compila, **falta repetir el paso 3**.
+- **`19-j2-j3-conjunto` (nueva, compila, sin probar):** J2 y J3 juntas; una activa (`-e j2`/`-e j3`, comandos de
+  12–14) y la otra sostenida sola (`o <grados>`); límites con la franja. Falta el paso 6 (movimientos coordinados).
+  Reemplaza a `13`/`14` (quedan como historia: 1 kHz, todo provisorio).
+- **`17-brazo-joystick`: probado en placa**, también desde el celular (`--host 0.0.0.0`). Finales de carrera, cero
+  automático, límites en vivo, "Anotar", franja (`4B`). Sin probar en placa: rampa de bajada de J1, barra de J3 al
+  revés y límite de J1 en 118°.
+- **`18-finales-de-carrera`:** los tres responden.
+- **Robot:** `recolector_de_frutas/firmware/brazo` sigue con la polea de 90, los signos, límites y cero viejos de J1
+  y los pines de los finales de carrera de J2/J3 al revés.
 - **`15`/`16` (J3 con un C3, IBT-2 o L298N):** preparadas el 22–23/10, resultados sin anotar.
-- **`17-brazo-joystick`:** las tres articulaciones con un joystick en Firefox (lazo abierto, puente
-  `tools/joystick.py`, cero al abrir el puente). J1 con la escala, signos y límites del 30/10. Compila; puente
-  probado con un puerto simulado; **sin probar en placa**. Para fusionar después con la tracción en `recolector_de_frutas`.
 
 ## Máquinas
 

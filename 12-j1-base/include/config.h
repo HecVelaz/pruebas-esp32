@@ -10,9 +10,9 @@
 namespace cfg_j1 {
 constexpr const char *NOMBRE = "J1";
 constexpr const char *PIEZA = "base";
-constexpr const char *SENTIDO_POS = "alejándose del mástil de la visión";
-constexpr const char *SENTIDO_NEG = "hacia el mástil de la visión";
-constexpr const char *MARCA = "brazo hacia el frente del robot (fotos en CERO/)";
+constexpr const char *SENTIDO_POS = "alejándose del final de carrera (hacia el frente y el mástil)";
+constexpr const char *SENTIDO_NEG = "hacia el final de carrera";
+constexpr const char *MARCA = "J1 apretando su final de carrera (17-brazo-joystick/LIMITES/ceros_bumpers)";
 constexpr bool SIGNOS_EN_VIVO = false;  // "ie"/"is" deshabilitados: los límites son asimétricos
 // En 10 era false (rueda libre al terminar: la base no carga peso). Con el EN común, rueda libre suelta también J2 y
 // J3, que no se autobloquean: frenado, el brazo cae mucho más despacio. Igual, apoyar el brazo en su tope.
@@ -35,18 +35,18 @@ constexpr float CUENTAS_POR_GRADO = CUENTAS_POR_VUELTA_SALIDA * RELACION_TRANSMI
 //    revés del sentido positivo de q1 (antihorario visto desde arriba). Invierte motor y encoder juntos,
 //    así siguen de acuerdo.
 constexpr bool ENCODER_INVERTIDO = false;
-constexpr bool SENTIDO_INVERTIDO = false;  // 2026-10-30, cero al frente: con true, + iba hacia el mástil
+constexpr bool SENTIDO_INVERTIDO = true;   // 2026-10-30, cero en el final de carrera: + hacia el mástil (17 igual)
 
 // PWM del IBT-2 (igual que en 06). Prueba del 2026-10-26 ("p" de 200 ms): a 1 kHz arranca con ~8-10 %, a 20 kHz
 // con ~20 % (15 % no la mueve). Queda en 20 kHz (sin chillido, el control está ajustado así); 1 kHz si vuelve a trabarse
 constexpr uint32_t PWM_FREQ_HZ = 20000;
 constexpr uint8_t PWM_BITS = 10;
 
-// Seguridad mientras no haya finales de carrera. Límites de software desde el cero (brazo hacia el frente),
-// pedidos por el usuario (2026-10-30): +90° alejándose del mástil de la visión, -30° hacia el mástil (a -38°
-// la base chocó con el soporte de la visión; antes era -45°).
-constexpr float LIMITE_POS_GRADOS = 90.0f;
-constexpr float LIMITE_NEG_GRADOS = -30.0f;
+// Límites desde el cero en el final de carrera (2026-10-30, medidos con 17-brazo-joystick, brazo recogido):
+// 0° es el final de carrera (los comandos llegan hasta +3° por el margen); del lado del mástil, J1 llegó a 121,8°
+// cerca del soporte de la visión -> 118°. Antes (cero al frente, + al revés): +90° / -30°.
+constexpr float LIMITE_POS_GRADOS = 118.0f;
+constexpr float LIMITE_NEG_GRADOS = 0.0f;
 constexpr float DUTY_MAX_PCT = 70.0f;      // ningún movimiento pasa de este duty (40 -> 70 el 2026-10-22: J1 no arrancaba con 30 %)
 constexpr uint32_t PULSO_MAX_MS = 1000;    // duración máxima de un pulso
 constexpr uint32_t PULSO_DEF_MS = 200;     // duración de "p" si no se da

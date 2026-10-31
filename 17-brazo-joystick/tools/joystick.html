@@ -24,6 +24,13 @@
   .con { margin-left: auto; font-size: 13px; color: var(--suave); }
   .con b { color: var(--peligro); } .con b.ok { color: var(--ok); }
   .sticks { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .sticks .panel { text-align: center; }
+  .sticks .ancho { grid-column: 1 / -1; }
+  .pad.horizontal { border-radius: 40px; aspect-ratio: auto; height: 90px; width: 100%; max-width: 420px;
+                    background: var(--fondo); }
+  .pad.horizontal .bola { width: 70px; }
+  .fila { display: flex; align-items: center; gap: 8px; justify-content: center; }
+  .sticks .sentido { font-size: 12px; color: var(--suave); margin: 6px 0; }
   .panel { background: var(--panel); border: 1px solid var(--borde); border-radius: 12px; padding: 14px; }
   .panel h2 { font-size: 14px; margin: 0 0 8px; color: var(--suave); font-weight: 600; }
   .pad { position: relative; width: 100%; max-width: 280px; aspect-ratio: 1; margin: 0 auto; border-radius: 50%;
@@ -45,16 +52,32 @@
   .est.OK { background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok); }
   .est.LIM, .est.SIGNO { background: color-mix(in srgb, var(--alerta) 18%, transparent); color: var(--alerta); }
   .est.TRABA { background: color-mix(in srgb, var(--peligro) 18%, transparent); color: var(--peligro); }
+  .est.B4 { background: color-mix(in srgb, var(--alerta) 18%, transparent); color: var(--alerta); }
+  .est.FC { background: color-mix(in srgb, var(--acento) 18%, transparent); color: var(--acento); }
+  .fc { font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 10px; border: 1px solid var(--borde);
+        color: var(--suave); }
+  .fc.si { background: var(--acento); color: #fff; border-color: var(--acento); }
+  .ctl { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 8px; font-size: 13px;
+         color: var(--suave); }
+  .ctl button { padding: 6px 10px; font-size: 13px; }
+  .anotar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+  .anotar input { font: inherit; padding: 9px 10px; border-radius: 8px; border: 1px solid var(--borde);
+                  background: var(--panel); color: var(--texto); flex: 1; min-width: 160px; }
   label { font-size: 13px; color: var(--suave); display: flex; align-items: center; gap: 8px; }
   .ayuda { font-size: 13px; color: var(--suave); margin-top: 16px; }
   kbd { border: 1px solid var(--borde); border-radius: 4px; padding: 0 5px; background: var(--panel); }
-  @media (max-width: 600px) { .sticks, .art { grid-template-columns: 1fr; } }
+  @media (max-width: 600px) { .art { grid-template-columns: 1fr; } .sticks { gap: 8px; }
+                              .sticks .panel { padding: 8px; } .pad.vertical { width: 72px; height: 240px; }
+                              .pad.vertical .bola { width: 56px; }
+                              .pad.horizontal { height: 72px; } .pad.horizontal .bola { width: 56px; } }
 </style>
 </head>
 <body>
 <main>
   <h1>Joystick del brazo</h1>
-  <p class="sub">Lazo abierto: el joystick da el duty. Soltarlo frena. Cero = donde arrancó el puente o el último “Cero”.</p>
+  <p class="sub">Lazo abierto: cada barra da el duty de su articulación. Soltarla frena esa articulación.
+    Cero = la pose con los tres finales de carrera apretados: cada articulación lo fija sola al tocar el suyo
+    (también al arrancar el puente o con “Cero aquí”). Alejarse del final de carrera = +.</p>
 
   <div class="barra">
     <button class="freno" id="freno">FRENAR (espacio)</button>
@@ -62,65 +85,91 @@
     <label>Escala <input type="range" id="escala" min="20" max="100" value="60"> <span id="escalaV">60 %</span></label>
     <span class="con">Placa: <b id="con">sin datos</b> · <span id="pad">sin gamepad</span></span>
   </div>
+  <div class="anotar">
+    <input id="nota" placeholder="nota (por ejemplo: J3 toca la barra verde)">
+    <button id="anotarB">Anotar q1 q2 q3</button>
+    <button id="borrarB">Borrar la última</button>
+    <span class="con" id="anotadas"></span>
+  </div>
 
   <div class="sticks">
-    <div class="panel"><h2>J1 base (←→) · J2 hombro (↑↓)</h2><div class="pad" id="padA"><div class="bola"></div></div></div>
-    <div class="panel"><h2>J3 codo (↑↓)</h2><div class="pad vertical" id="padB"><div class="bola"></div></div></div>
+    <div class="panel ancho"><h2>J1 base</h2>
+      <div class="fila"><span class="sentido">← −<br>(final de carrera)</span>
+        <div class="pad horizontal" id="pad0"><div class="bola"></div></div>
+        <span class="sentido">+ →<br>(frente, mástil)</span></div></div>
+    <div class="panel"><h2>J2 hombro</h2><div class="sentido">↑ + (se aleja del final de carrera)</div>
+      <div class="pad vertical" id="pad1"><div class="bola"></div></div><div class="sentido">↓ − (hacia el final de carrera)</div></div>
+    <div class="panel"><h2>J3 codo</h2><div class="sentido">↑ el codo sube (−, hacia el final de carrera)</div>
+      <div class="pad vertical" id="pad2"><div class="bola"></div></div><div class="sentido">↓ el codo baja (+)</div></div>
   </div>
 
   <div class="art" id="arts"></div>
 
-  <p class="ayuda">Teclado: <kbd>A</kbd>/<kbd>D</kbd> J1 · <kbd>W</kbd>/<kbd>S</kbd> J2 · <kbd>I</kbd>/<kbd>K</kbd> J3 ·
+  <p class="ayuda">Barras: J1 derecha = +, J2 arriba = +, J3 arriba = el codo sube (−); se pueden mover varias a la vez con varios dedos.
+    Teclado: <kbd>A</kbd>/<kbd>D</kbd> J1 · <kbd>W</kbd>/<kbd>S</kbd> J2 · <kbd>I</kbd>/<kbd>K</kbd> J3 ·
     <kbd>espacio</kbd> frenar. Gamepad: stick izquierdo J1/J2, stick derecho vertical J3.
-    Estados: <b>LIM</b> en el límite (solo deja volver), <b>TRABA</b> atasco (soltar el joystick),
-    <b>SIGNO</b> el encoder cuenta al revés del duty (anotar para config.h).</p>
+    Estados: <b>LIM</b> en el límite (solo deja volver), <b>FC</b> el final de carrera está apretado (solo deja
+    alejarse), <b>4B</b> en el borde del cuatro barras (J2 y J3 no se pueden separar más: mover la otra o volver),
+    <b>TRABA</b> atasco (soltar el joystick), <b>SIGNO</b> el encoder cuenta al revés del duty.
+    Si al alejarse del final de carrera el ángulo baja, apretar <b>Invertir</b> en esa articulación (y avisar, para
+    pasarlo a config.h). Límites: “máx ±10” cambia el de arriba en vivo (al reiniciar la placa vuelven los de config.h).</p>
 </main>
 <script>
 const NOMBRES = ["J1 base", "J2 hombro", "J3 codo"];
-const LIMITES = [[-45, 135], [-15, 15], [-15, 15]];  // como config.h
+let LIMITES = [[-5, 118], [-5, 97], [-5, 113]];
+// Sentido de cada control respecto del + de la articulación: J3 al revés (2026-10-30, a pedido del usuario), así la
+// barra (y I/K y el stick) hacia arriba sube el codo, que en la articulación es el − (hacia su final de carrera)
+const SIGNO_EJE = [1, 1, -1];  // los manda la placa; estos son los de config.h
 const ejes = { pantalla: [0, 0, 0], teclado: [0, 0, 0] };
 let frenado = false;
 
 const arts = document.getElementById("arts");
 NOMBRES.forEach((n, i) => {
-  arts.insertAdjacentHTML("beforeend", `<div class="panel"><h2>${n} <span class="est" id="e${i}">?</span></h2>
+  arts.insertAdjacentHTML("beforeend", `<div class="panel"><h2>${n} <span class="est" id="e${i}">?</span>
+    <span class="fc" id="f${i}">FC</span></h2>
     <div class="valor" id="q${i}">–</div><div class="rango" id="r${i}"><u></u><i></i></div>
-    <div class="det">duty <span id="d${i}">–</span> % · límites ${LIMITES[i][0]}° / ${LIMITES[i][1]}°</div></div>`);
-  const [a, b] = LIMITES[i];
-  document.querySelector(`#r${i} u`).style.left = `${(-a) / (b - a) * 100}%`;
+    <div class="det">duty <span id="d${i}">–</span> % · límites <span id="l${i}">–</span><span id="v${i}"></span></div>
+    <div class="ctl">máx <button data-i="${i}" data-d="-10">−10</button><button data-i="${i}" data-d="10">+10</button>
+      <button data-inv="${i}">Invertir</button></div></div>`);
+});
+arts.addEventListener("click", ev => {
+  const b = ev.target.closest("button");
+  if (!b) return;
+  if (b.dataset.inv !== undefined) {
+    const i = +b.dataset.inv;
+    if (confirm(`¿Invertir el sentido de ${NOMBRES[i]}? (motor y encoder juntos)`)) post("/inv", JSON.stringify(i + 1)).then(mostrar).catch(() => {});
+  } else {
+    const i = +b.dataset.i, [a, m] = LIMITES[i], nuevo = m + +b.dataset.d;
+    if (nuevo > a) post("/lim", JSON.stringify([i + 1, a, nuevo])).then(mostrar).catch(() => {});
+  }
 });
 
-function stick(id, ix, iy, vertical) {
-  const pad = document.getElementById(id), bola = pad.querySelector(".bola");
+// Una barra por articulación, independiente (cada una sigue a su propio dedo); al soltarla vuelve a 0.
+// J1 horizontal (derecha = +), J2 y J3 verticales (arriba = +).
+function barra(i) {
+  const pad = document.getElementById(`pad${i}`), bola = pad.querySelector(".bola");
+  const horizontal = pad.classList.contains("horizontal");
   let activo = null;
   const mover = ev => {
     const r = pad.getBoundingClientRect();
-    let x = (ev.clientX - r.left - r.width / 2) / (r.width / 2 - bola.offsetWidth / 2);
-    let y = -(ev.clientY - r.top - r.height / 2) / (r.height / 2 - bola.offsetHeight / 2);
-    if (vertical) x = 0;
-    const m = Math.hypot(x, y);
-    if (m > 1) { x /= m; y /= m; }
-    pintar(x, y);
-    if (ix >= 0) ejes.pantalla[ix] = x;
-    ejes.pantalla[iy] = y;
+    const v = horizontal ? (ev.clientX - r.left - r.width / 2) / (r.width / 2 - bola.offsetWidth / 2)
+                         : -(ev.clientY - r.top - r.height / 2) / (r.height / 2 - bola.offsetHeight / 2);
+    const y = Math.max(-1, Math.min(1, v));
+    pintar(y);
+    ejes.pantalla[i] = y;
   };
-  const pintar = (x, y) => {
-    bola.style.left = `${50 + x * (50 - bola.offsetWidth / pad.offsetWidth * 50)}%`;
-    bola.style.top = `${50 - y * (50 - bola.offsetHeight / pad.offsetHeight * 50)}%`;
+  const pintar = y => {
+    if (horizontal) bola.style.left = `${50 + y * (50 - bola.offsetWidth / pad.offsetWidth * 50)}%`;
+    else bola.style.top = `${50 - y * (50 - bola.offsetHeight / pad.offsetHeight * 50)}%`;
   };
-  const soltar = () => {
-    activo = null; pintar(0, 0);
-    if (ix >= 0) ejes.pantalla[ix] = 0;
-    ejes.pantalla[iy] = 0;
-  };
+  const soltar = () => { activo = null; pintar(0); ejes.pantalla[i] = 0; };
   pad.addEventListener("pointerdown", ev => { activo = ev.pointerId; pad.setPointerCapture(activo); frenado = false; mover(ev); });
   pad.addEventListener("pointermove", ev => { if (ev.pointerId === activo) mover(ev); });
   pad.addEventListener("pointerup", soltar);
   pad.addEventListener("pointercancel", soltar);
   pad.addEventListener("lostpointercapture", soltar);
 }
-stick("padA", 0, 1, false);
-stick("padB", -1, 2, true);
+[0, 1, 2].forEach(barra);
 
 const TECLAS = { a: [0, -1], d: [0, 1], w: [1, 1], s: [1, -1], i: [2, 1], k: [2, -1] };
 const apretadas = new Set();
@@ -154,6 +203,13 @@ async function post(ruta, cuerpo) {
 function frenar() { frenado = true; apretadas.clear(); teclado(); post("/freno").then(mostrar).catch(() => {}); }
 document.getElementById("freno").onclick = frenar;
 document.getElementById("cero").onclick = () => post("/cero").then(mostrar).catch(() => {});
+document.getElementById("anotarB").onclick = () => {
+  const nota = document.getElementById("nota");
+  post("/anotar", nota.value).then(s => { nota.value = ""; mostrar(s); }).catch(() => {});
+};
+document.getElementById("borrarB").onclick = () => {
+  if (confirm("¿Borrar la última fila anotada?")) post("/borrar").then(mostrar).catch(() => {});
+};
 
 function mostrar(s) {
   const con = document.getElementById("con");
@@ -164,10 +220,17 @@ function mostrar(s) {
     document.getElementById(`q${i}`).textContent = `${q >= 0 ? "+" : ""}${q.toFixed(1)}°`;
     document.getElementById(`d${i}`).textContent = s.d[i].toFixed(0);
     const e = document.getElementById(`e${i}`);
-    e.textContent = s.e[i]; e.className = `est ${s.e[i]}`;
+    e.textContent = s.e[i]; e.className = `est ${s.e[i] === "4B" ? "B4" : s.e[i]}`;  // clase CSS sin dígito inicial
+    const f = document.getElementById(`f${i}`);
+    f.textContent = s.fc[i] ? "FC APRETADO" : "FC suelto"; f.className = s.fc[i] ? "fc si" : "fc";
+    if (s.lim) LIMITES[i] = s.lim[i];
     const [a, b] = LIMITES[i];
+    document.getElementById(`l${i}`).textContent = `${a}° / ${b}°`;
+    document.getElementById(`v${i}`).textContent = s.inv && s.inv[i] ? " · INVERTIDO en vivo" : "";
+    document.querySelector(`#r${i} u`).style.left = `${Math.min(100, Math.max(0, (-a) / (b - a) * 100))}%`;
     document.querySelector(`#r${i} i`).style.left = `calc(${Math.min(100, Math.max(0, (q - a) / (b - a) * 100))}% - 2px)`;
   });
+  document.getElementById("anotadas").textContent = s.anotadas ? `${s.anotadas} anotadas` : "";
 }
 
 let enVuelo = false;
@@ -175,7 +238,7 @@ setInterval(async () => {
   if (enVuelo) return;
   const g = gamepad(), k = escala.value / 100;
   const e = [0, 1, 2].map(i => {
-    const v = Math.max(-1, Math.min(1, ejes.pantalla[i] + ejes.teclado[i] + g[i]));
+    const v = SIGNO_EJE[i] * Math.max(-1, Math.min(1, ejes.pantalla[i] + ejes.teclado[i] + g[i]));
     return frenado || document.hidden ? 0 : +(v * k).toFixed(3);
   });
   enVuelo = true;
