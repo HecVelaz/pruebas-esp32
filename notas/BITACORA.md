@@ -190,3 +190,8 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   `FR·clamp(error / 0,3°, −1, 1)` al duty (`FR_SOSTENER` = 0, apagada; en vivo `fr` y `ofr`). Umbrales para 20 kHz
   (PROVISORIOS): `ARRANQUE_PCT` 35 → 45 %, `ATASCO_DUTY_PCT` 50 → 60 %, `DUTY_MAX_PCT` 60 → 70 %, la otra: duty
   máximo 50 → 60 % y atasco 45 → 55 %.
+- **Ajuste a 20 kHz en placa (`-e j2`, J2 en 20°):** J3 de 14° a 10°: con `ofr 0` se pasa hasta 8,53° y queda en
+  −0,20°; `ofr 10` +0,22°; **`ofr 15` no se pasa (10,16 → 9,91°), +0,09°, `LLEGÓ` enseguida**; `ofr 20` en 14°,
+  −0,24°. J2 no necesita compensación (`a 25` / `a 20`: +0,19° / −0,05°, duty ~0 %: la fricción la sostiene). Con
+  `fb`: las dos `frenada` (duty 0) y **sin ruido**. Quedan `FR_SOSTENER` J3 15 %, J2 0 % (por articulación,
+  PROVISORIO). **20 kHz se queda** (no hace falta 5 kHz).

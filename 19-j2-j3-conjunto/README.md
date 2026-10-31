@@ -89,7 +89,8 @@ duty arranca subiendo y bajando) y `o 12` → `oc` (¿J3 llega? ¿con qué duty 
 arranca subiendo con 25 % y bajando con 15 %; a 20 kHz J2 va y sostiene bien (error ≤ 0,20°, duty estable) y no pita
 → **20 kHz** (`PWM_FREQ_HZ`). A 20 kHz (pulsos): J2 arranca subiendo con 35 %, bajando con más de 15 %; J3 sostenida
 va y viene ±1° (fricción ancha en duty) → compensación de fricción `fr` / `ofr` (ajuste en placa: alternar `o 10` /
-`o 14` con `ofr 10`, `15`, `20`; J2 con `a 20` / `a 25` y `fr`). Si no anda: 5 kHz con `fb`.
+`o 14` con `ofr 10`, `15`, `20`; J2 con `a 20` / `a 25` y `fr`). **Resultado:** J3 con 15 % no se pasa y queda con
+0,09°; J2 no la necesita (0,19° / 0,05°); con `fb`, frenadas y sin ruido → `FR_SOSTENER` J3 15 %, J2 0 %, 20 kHz.
 
 **Prueba F3a (captura del mapa de gravedad, con `-e j2`):** **abrir el puerto serie puede reiniciar la WROOM**
 (2026-10-31: al volver a abrir el monitor, cero perdido y las dos sueltas), así que el cero lo hace el script: J2 y

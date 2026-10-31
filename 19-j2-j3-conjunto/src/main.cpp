@@ -106,7 +106,7 @@ bool sostenerAuto = art::SOSTENER_AUTO;     // "sa" (ver sostenerPaso)
 float khP = art::KHP_SOSTENER;  // % por grado
 float khI = art::KHI_SOSTENER;  // % por grado y por segundo
 uint32_t pwmHz = art::PWM_FREQ_HZ;   // "pwm": frecuencia del PWM de las dos (en vivo; config.h tiene la medida)
-float frA = FR_SOSTENER;              // % ("fr"): compensación de fricción al sostener de la activa
+float frA = art::FR_SOSTENER;              // % ("fr"): compensación de fricción al sostener de la activa
 float bandaInt = BANDA_INT_HOLD;      // ° ("bi"): con |error| menor, uHold no integra (las dos)
 bool frenoEnBanda = FRENO_EN_BANDA;   // "fb": al llegar, freno (duty 0) hasta que se aleje más de TOL_SALIDA (las dos)
 

@@ -18,9 +18,8 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
   opcional `fb`, `Asentado`). **Fase 3a hecha** (`an` + `tools/mapa_gravedad.py --cero`, sin captura todavía). **J2 y J3 pasan a
   20 kHz** (2026-10-31, decisión del usuario); la primera captura se cortó (a 20 kHz hace falta más
   duty: J2 27 %, J3 −34 % en (10°, 3°)). Hechos: arranque sin salto de la cascada y `p` hasta el final de carrera.
-  A 20 kHz J2 arranca con 35 % (subiendo) y J3 va y viene ±1° al sostener: compensación de fricción `fr`/`ofr` y
-  umbrales subidos (sin probar). Sigue: ajustar `ofr`/`fr` en placa (si no anda, 5 kHz con `fb`); después el mapa y
-  la 3b.
+  A 20 kHz, con compensación de fricción (J3 15 %, J2 0 %), las dos llegan con < 0,3° y con `fb` frenan
+  quietas y sin ruido (probado). Sigue: capturar el mapa (`mapa_gravedad.py capturar --cero`) y la 3b.
   Abrir el puerto serie reinicia la WROOM (cero perdido, brazo suelto).
 - **Fuente:** conectada a la bornera del bus de 12 V (el adaptador al XT60 tiene un contacto malo: J1/J3 no se
   movían). Así no pasa por el fusible ni la seta: límite de 3 A y apagar la fuente como parada.

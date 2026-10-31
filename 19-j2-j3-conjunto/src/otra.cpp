@@ -42,7 +42,7 @@ volatile uint32_t tLlegada = 0;   // millis() al llegar
 volatile float uHoldV = 0.0f;
 volatile float bandaInt = BANDA_INT_HOLD;
 volatile bool frenoBanda = FRENO_EN_BANDA;
-volatile float fr = FR_SOSTENER;  // compensación de fricción (%)
+volatile float fr = otra_cfg::FR_SOSTENER;  // compensación de fricción (%)
 volatile uint32_t pedidoPwm = 0;          // != 0: la tarea cambia la frecuencia del PWM
 volatile uint32_t pwmVigente = OTRA.pwmHz;
 

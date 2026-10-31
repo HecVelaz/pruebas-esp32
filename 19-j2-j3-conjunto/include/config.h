@@ -122,6 +122,9 @@ constexpr bool KICK_SOLO_POSITIVO = true;
 // PROVISORIO a la mitad. Si oscila quieto, bajar khp; si cae y tarda en volver, subir khi (en vivo: "khp", "khi").
 constexpr float KHP_SOSTENER = 3.0f;   // % por grado
 constexpr float KHI_SOSTENER = 8.0f;   // % por grado y por segundo
+// Compensación de fricción al sostener (ver FR_RAMPA_GRADOS abajo). 2026-10-31 a 20 kHz (-e j2): J2 llega y se
+// asienta sin ella (a 25 / a 20: error +0,19° / -0,05°, duty ~0 %). PROVISORIO.
+constexpr float FR_SOSTENER = 0.0f;   // %
 }  // namespace cfg_j2
 
 // ---------- J3 (codo) ----------
@@ -233,6 +236,10 @@ constexpr bool KICK_SOLO_POSITIVO = true;
 // más par por % de duty. Si oscila quieto, bajar khp; si cae y tarda en volver, subir khi (en vivo: "khp", "khi").
 constexpr float KHP_SOSTENER = 3.0f;   // % por grado
 constexpr float KHI_SOSTENER = 8.0f;   // % por grado y por segundo
+// Compensación de fricción al sostener. 2026-10-31 a 20 kHz (-e j2, J3 como la otra, J2 en 20°), de 14° a 10°: sin
+// ella se pasaba hasta 8,53° y quedaba con -0,20°; con 10 % +0,22°; con 15 % no se pasa (10,16 -> 9,91°) y queda con
+// +0,09°, LLEGÓ enseguida; con 20 % en 14°, -0,24°. Queda 15 %. PROVISORIO (medido en una sola pose).
+constexpr float FR_SOSTENER = 15.0f;  // %
 }  // namespace cfg_j3
 
 // ---------- La otra articulación (la que se sostiene en segundo plano, otra.cpp) ----------
@@ -279,8 +286,7 @@ constexpr float HASTA_FC_MAX_GRADOS = 10.0f;
 // Compensación de fricción al sostener (las dos): suma FR·clamp(error / FR_RAMPA_GRADOS, -1, 1) al duty. A 20 kHz la
 // franja de duty en la que la fricción no deja moverse es ancha (J3 en ~10°: de +13 a -33 %) y el integrador la
 // cruzaba de a saltos (J3 iba y venía ±1°). Con 0,3° de error o más suma FR entero; cerca de 0 casi nada (no tiembla).
-// PROVISORIO: arranca apagada; ajustar en vivo con "fr" (activa) y "ofr" (otra).
-constexpr float FR_SOSTENER = 0.0f;       // %
+// El valor de cada una está en su cfg_jX::FR_SOSTENER; en vivo, "fr" (activa) y "ofr" (otra).
 constexpr float FR_RAMPA_GRADOS = 0.3f;
 // Asentamiento: después de llegar, cuánto sigue sosteniendo antes de informar la posición final ("Asentado").
 constexpr uint32_t ASENTAMIENTO_MS = 2000;  // PROVISORIO
