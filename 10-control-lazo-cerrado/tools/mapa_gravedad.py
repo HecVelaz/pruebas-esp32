@@ -197,7 +197,7 @@ def preparar(s, args):
     """Con --cero: "z" (los dos finales de carrera tienen que estar apretados). Siempre: "fb" apagado."""
     if args.cero:
         mandar(s, "z")
-        l = esperar(s, ("   Final de carrera",), 3)
+        l = esperar(s, ("Final de carrera",), 3)  # esperar() le saca los espacios del principio
         if "SUELTO" in l:
             raise RuntimeError("al hacer el cero algún final de carrera está SUELTO: llevarlos ahí (joystick) y repetir")
     s.reset_input_buffer()
