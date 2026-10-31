@@ -245,6 +245,9 @@ constexpr float OTRA_ERROR_AVISO = 5.0f;   // ° de error durante OTRA_ERROR_MS:
 constexpr uint32_t OTRA_ERROR_MS = 1000;
 constexpr float OTRA_ATASCO_DUTY = 45.0f;  // con este duty o más y sin moverse OTRA_ATASCO_MS: deja de empujar (freno)
 constexpr uint32_t OTRA_ATASCO_MS = 1500;
+// Mientras la otra va a su destino, los movimientos de la activa esperan como mucho esto (a 5 °/s, 113° son ~23 s).
+// PROVISORIO.
+constexpr uint32_t OTRA_ESPERA_MAX_MS = 30000;
 
 #if defined(ARTICULACION_J3)
 namespace art = cfg_j3;

@@ -80,3 +80,21 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
 - **Límites medidos con el joystick:** J1 llegó a 121,8° cerca del soporte de la visión con el brazo recogido (`limites_20261030_221357.csv`) → **118°**. **J2/J3 (`limites_20261030_210733.csv`):** borde "el codo no baja más" (q2; q3) = (−0,6; 11,9) (9,9; 21,2) (20,0; 29,6) (30,0; 40,1) (53,4; 66,5) (79,2; 91,8) (97,3; 112,9) → q3 − q2 entre +9,7 y +15,6; borde "el hombro arrastra a J3" = (30,0; 0,1) (53,4; 20,0) (79,2; 45,1) (97,3; 70,0) → q2 − q3 entre 27,3 y 34,2. **Franja: `q2 − 25° ≤ q3 ≤ q2 + 7,5°`** (peores casos con 2° de margen), J2 ≤ 97°, J3 ≤ 113° (el usuario cortó ahí). Probada en placa: con J3 en 10,1° J2 frena (4B) en 35,8°; con J2 en 35,8° J3 frena en 44,6° (se pasa 0,7–1,3° al frenar). `limites_20261030_205619.csv`: una fila de prueba (q2 56,8°, q3 46,1°).
 - **`12` con el cero nuevo (compila, sin probar):** `SENTIDO_INVERTIDO = true` (+ hacia el mástil), límites 0° / 118°, `z` avisa si el final de carrera de J1 (GPIO 32) no está apretado. Las ganancias no cambian. (Un `pinMode` del final de carrera había quedado dentro de `reposo()`; corregido a `setup()` antes de flashear.)
 - **`19-j2-j3-conjunto` (nueva, compila `-e j2` y `-e j3`, sin probar en placa):** firmware de `12`–`14` con una articulación **activa** (todos los comandos y scripts de siempre) y la **otra sostenida sola** en una tarea del núcleo 0 (`src/otra.cpp`: referencia a 5 °/s hacia `o <grados>`, duty = uHold + khp·e, no empuja contra su final de carrera, corta por atasco). Límites de la activa = propios ∩ franja alrededor del ángulo pedido de la otra. `z` pone el cero de las dos. `liberar()`: freno en vez de rueda libre mientras la otra sostiene (EN común); `dg` solo con la otra suelta; `x` suelta las dos. Falta: movimientos coordinados (paso 6). Reemplaza a `13`/`14`.
+
+## 2026-10-31 — 19: fase 1, seguridad de la franja
+
+- Plan de seis fases para `19-j2-j3-conjunto` (antes del test de repetibilidad estilo ISO 9283): 1 seguridad de la
+  franja, 2 sostener sin oscilación y criterio de llegada común, 3 mapa de gravedad, 4 homing, 5 control conjunto
+  (propuesta: carpeta nueva `20`), 6 preparar el test.
+- **Fase 1 (compila `-e j2` y `-e j3`, sin probar en placa):** los límites de la activa usaban el destino de la otra,
+  que viaja a 5 °/s: con `-e j2`, J2 en 50°, J3 en 30° y `o 55`, J2 quedaba habilitada hasta 80° con J3 cerca de
+  30° (q2 − q3 ≈ 50°; el ejemplo del enunciado, J2 en 30° y `o 60`, ya lo rechazaba `o`). Ahora: peor caso entre el medido, la referencia y el destino de la otra (`intervaloOtra()`; con
+  la otra sin sostener, el medido, después de `z`); los comandos que mueven la activa esperan a la otra sosteniendo
+  la activa (`esperarOtra()`, Enter cancela, 30 s rechaza); `o` valida con el medido y la referencia de la activa;
+  `oc` muestra referencia, destino y `EN CAMINO`. `otra::sostener()` ya no llama a `coast()` (bajaba el EN común un
+  instante): la tarea pone el PWM en 0 y sube el EN (arregla `enabled_` desfasado después de `x` sin tocar la
+  biblioteca); solo la tarea toca el motor de la otra (`parar()` espera a que aplique 0).
+- Revisión de Codex (solo lectura) de la fase 1, tres arreglos: `o` valida también con la referencia del sostener de
+  la activa de antes del comando (`ejecutar()` lo apaga mientras corre); `parar()` espera a que la tarea termine un
+  periodo entero con `activo = false` (si no, la tarea podía volver a subir el EN después de `x`); `x` escrito
+  durante la espera se ejecuta (antes solo cancelaba y las dos seguían sosteniendo).

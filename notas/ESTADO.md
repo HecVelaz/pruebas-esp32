@@ -1,4 +1,4 @@
-# Estado de pruebas-esp32 (al 2026-10-30)
+# Estado de pruebas-esp32 (al 2026-10-31)
 
 Foto de hoy. La historia, las mediciones completas y los nombres de los CSV están en `BITACORA.md`; lo que sigue, en
 `PENDIENTES.md`; los pines de la S3, en `PINES_S3.md`.
@@ -11,8 +11,10 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
 - **`12-j1-base`: J1 terminada (pasos 0–5 con el cero al frente).** Polea de la base de **84** dientes (41,48
   cuentas/°); posición: ~1,8 s, sobrepico 0, error ≤ 0,31°, igual con el limón. Ya con el cero en el final de
   carrera (+ hacia el mástil, 0–118°): compila, **falta repetir el paso 3**.
-- **`19-j2-j3-conjunto` (nueva, compila, sin probar):** J2 y J3 juntas; una activa (`-e j2`/`-e j3`, comandos de
-  12–14) y la otra sostenida sola (`o <grados>`); límites con la franja. Falta el paso 6 (movimientos coordinados).
+- **`19-j2-j3-conjunto` (compila, sin probar):** J2 y J3 juntas; una activa (`-e j2`/`-e j3`, comandos de
+  12–14) y la otra sostenida sola (`o <grados>`); límites con la franja. **Plan de 6 fases** (preparar el test de
+  repetibilidad ISO 9283) en su README; **fase 1 hecha (2026-10-31, sin probar en placa)**: límites con el peor caso
+  de la otra, la activa la espera, `o` sin `coast()`. Sigue la fase 2. Falta el paso 6 (movimientos coordinados).
   Reemplaza a `13`/`14` (quedan como historia: 1 kHz, todo provisorio).
 - **`17-brazo-joystick`: probado en placa**, también desde el celular (`--host 0.0.0.0`). Finales de carrera, cero
   automático, límites en vivo, "Anotar", franja (`4B`). Sin probar en placa: rampa de bajada de J1, barra de J3 al

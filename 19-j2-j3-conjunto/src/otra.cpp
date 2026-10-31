@@ -31,9 +31,11 @@ volatile bool fc = false;
 volatile float kp = OTRA.khp, ki = OTRA.khi;
 volatile const char *avisoPendiente = nullptr;
 volatile bool reiniciar = false;  // sostener() desde parado: la tarea arranca la referencia donde está
+volatile float ref = 0.0f;        // referencia del lazo (la lee la activa para sus límites: peor caso de la franja)
+volatile uint32_t ciclos = 0;     // periodos empezados por la tarea (parar() espera a que termine uno entero)
 
 int64_t ceroCuentas = 0;
-float ref = 0.0f, uHold = 0.0f;
+float uHold = 0.0f;
 
 float leerGrados() {
   int64_t c = enc.count() - ceroCuentas;
@@ -53,6 +55,7 @@ void tarea(void *) {
   bool atascada = false;
   for (;;) {
     vTaskDelayUntil(&ultimo, pdMS_TO_TICKS(TS_MS));
+    ciclos = ciclos + 1;
     if (pedidoCero) {
       ceroCuentas = enc.count();
       ref = 0.0f;
@@ -68,6 +71,11 @@ void tarea(void *) {
     }
     const float dt = TS_MS / 1000.0f;
     if (reiniciar) {  // arranca donde está, sin salto
+      // El EN es común: si la activa lo bajó ("x"), el estado enabled_ de este BTS7960 quedó en "habilitado" y su
+      // setDuty() no lo vuelve a subir. Primero PWM en 0 y después EN en alto: las tres quedan frenadas, sin bajar
+      // nunca el EN (antes coast() lo bajaba un instante y soltaba la activa y J1). Solo esta tarea toca este motor.
+      aplicar(0.0f);
+      digitalWrite(PIN_BRAZO_EN, HIGH);
       ref = g;
       uHold = 0.0f;
       msError = msAtasco = 0;
@@ -76,8 +84,8 @@ void tarea(void *) {
       reiniciar = false;
     }
     // Referencia hacia el destino a OTRA.vel °/s
-    const float paso = OTRA.vel * dt, d = dest - ref;
-    ref += d > paso ? paso : (d < -paso ? -paso : d);
+    const float r = ref, paso = OTRA.vel * dt, d = dest - r;
+    ref = r + (d > paso ? paso : (d < -paso ? -paso : d));
     const float e = ref - g;
     uHold += ki * e * dt;
     uHold = constrain(uHold, -OTRA.dutyMax, OTRA.dutyMax);
@@ -126,23 +134,27 @@ void cero() { pedidoCero = true; }
 void sostener(float g) {
   dest = constrain(g, OTRA.limNeg, OTRA.limPos);
   if (!activo) {
-    // El puente pudo quedar deshabilitado por la activa ("x"): coast() pone en cero el estado de la biblioteca y el
-    // primer setDuty() vuelve a habilitar el EN
-    motor.coast();
-    motor.brake();
+    // El EN (por si "x" lo bajó) lo vuelve a subir la tarea al reiniciar, sin pasar por coast(): ver tarea()
     reiniciar = true;
     activo = true;
   }
 }
 
+// El duty 0 lo aplica la tarea (así solo ella toca este motor). Se espera a que empiece un periodo DESPUÉS de bajar
+// "activo" y a que termine: ese ya vio activo = false y aplicó 0, y el que estaba en curso (que pudo haber visto
+// true, e incluso subir el EN al reiniciar) ya terminó. Así, el que llama puede bajar el EN sin que la tarea lo
+// vuelva a subir. Como mucho ~3 periodos (30 ms; 50 ms de tope por las dudas).
 void parar() {
   activo = false;
-  aplicar(0.0f);
+  const uint32_t c0 = ciclos, t0 = millis();
+  while (ciclos - c0 < 2 && millis() - t0 < 5 * TS_MS) delay(1);
 }
 
 bool activa() { return activo; }
 float grados() { return q; }
 float destino() { return dest; }
+float referencia() { return ref; }
+bool enCamino() { return activo && (reiniciar || ref != dest); }
 float duty() { return u; }
 bool finalCarrera() { return fc; }
 void ganancias(float p, float i) {

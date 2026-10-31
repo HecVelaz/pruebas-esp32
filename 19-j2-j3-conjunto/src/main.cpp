@@ -41,13 +41,33 @@ constexpr uint32_t MONITOR_CADA_MS = 200;
 constexpr uint32_t QUIETO_MS = 100;       // antes de mover, la articulación tiene que estar quieta este tiempo
 constexpr float VEL_QUIETO = 1.0f;        // °/s: por debajo, el feedforward es el de despegue (J3: 1 cuenta en 40 ms = 0,72)
 constexpr float RAMPA_DESPEGUE = 300.0f;  // %/s: del feedforward de marcha al de despegue (3 % cada 10 ms)
-// Límites de la activa: los propios y la franja del cuatro barras alrededor del ángulo PEDIDO de la otra (el que
-// sostiene; no el medido, que oscila un poco). Mientras la otra no sostiene, solo los propios.
+bool ceroFijado = false;  // sin "z" no se mueve: el cero tiene que estar en la marca, lejos de los topes
+
+// Dónde puede estar la otra (peor caso): entre su ángulo medido y, si se está sosteniendo, su referencia y su destino.
+// La otra va al destino a OTRA.vel °/s: con solo el destino, la activa quedaba habilitada para ir a la franja del
+// destino mientras la otra seguía lejos (ej. -e j2, J3 de 10° a 60°: J2 hasta 85° con J3 todavía en ~20°).
+// El medido cubre que la otra caiga o se atasque (ATASCO).
+void intervaloOtra(float &mn, float &mx) {
+  mn = mx = otra::grados();
+  if (otra::activa()) {
+    const float r = otra::referencia(), d = otra::destino();
+    mn = fminf(mn, fminf(r, d));
+    mx = fmaxf(mx, fmaxf(r, d));
+  }
+}
+// Límites de la activa: los propios y la franja del cuatro barras con la otra en cualquier punto de su intervalo.
+// Antes de "z" el ángulo de la otra no significa nada (y sin "z" no se mueve): solo los propios.
 float limPosG() {
-  return otra::activa() ? fminf(art::LIMITE_POS_GRADOS, otra::destino() + BANDA_MAX) : art::LIMITE_POS_GRADOS;
+  if (!ceroFijado) return art::LIMITE_POS_GRADOS;
+  float mn, mx;
+  intervaloOtra(mn, mx);
+  return fminf(art::LIMITE_POS_GRADOS, mn + BANDA_MAX);
 }
 float limNegG() {
-  return otra::activa() ? fmaxf(art::LIMITE_NEG_GRADOS, otra::destino() + BANDA_MIN) : art::LIMITE_NEG_GRADOS;
+  if (!ceroFijado) return art::LIMITE_NEG_GRADOS;
+  float mn, mx;
+  intervaloOtra(mn, mx);
+  return fmaxf(art::LIMITE_NEG_GRADOS, mx + BANDA_MIN);
 }
 int64_t limPosC() { return (int64_t)(limPosG() * art::CUENTAS_POR_GRADO); }
 int64_t limNegC() { return (int64_t)(limNegG() * art::CUENTAS_POR_GRADO); }
@@ -55,7 +75,6 @@ int64_t limNegC() { return (int64_t)(limNegG() * art::CUENTAS_POR_GRADO); }
 BTS7960 motor;
 EncoderPCNT enc;
 bool hwOk = false;
-bool ceroFijado = false;  // sin "z" no se mueve: el cero tiene que estar en la marca, lejos de los topes
 
 // Signos: arrancan con los de config.h (paso 0). "ie" e "is" los cambian solo si art::SIGNOS_EN_VIVO
 bool encInvertido = art::ENCODER_INVERTIDO;
@@ -174,7 +193,9 @@ void ayuda() {
   Serial.println("  c            mostrar cuentas y grados");
   Serial.println("  dg           diagnóstico del cableado al IBT-2: EN, RPWM y LPWM de a uno, y la salida M+/M-");
   Serial.printf("  o <°>        llevar %s (la otra, se sostiene sola) a un ángulo y sostenerla ahí. Ej: o 40\n", OTRA.nombre);
-  Serial.println("  oc           dónde está la otra y los límites de la activa que salen de la franja (c muestra las dos)");
+  Serial.printf("               Mientras va, los movimientos de %s esperan (hasta %lu s; Enter cancela)\n", art::NOMBRE,
+                (unsigned long)(OTRA_ESPERA_MAX_MS / 1000));
+  Serial.println("  oc           dónde está la otra (medido, referencia, destino) y los límites de la activa (c: las dos)");
   Serial.println("  okp <x>, oki <x>  ganancias del sostener de la otra (%/°, %/(°·s))");
   Serial.println("  x            rueda libre de las DOS (el brazo cae)");
   Serial.println("  ?            esta ayuda");
@@ -1279,14 +1300,93 @@ void comandoMover(const char *args) {
 }
 
 void ejecutarComando(char *l);
+// El sostener de la activa antes del comando que se está ejecutando (ejecutar() lo apaga mientras corre)
+bool cmdSosteniendo = false;
+float cmdRefSostener = 0.0f;
 
 // ---------- La otra articulación (otra.cpp) ----------
 
 void mostrarOtra() {
-  Serial.printf("%s (se sostiene sola): %+.2f° | pedido %+.2f° | duty %+.1f %% | final de carrera %s | %s\n",
-                OTRA.nombre, otra::grados(), otra::destino(), otra::duty(), otra::finalCarrera() ? "apretado" : "suelto",
-                otra::activa() ? "sosteniendo" : "SIN SOSTENER");
-  Serial.printf("   Límites de %s con la otra ahí: %+.1f° / %+.1f°\n", art::NOMBRE, limNegG(), limPosG());
+  Serial.printf("%s (se sostiene sola): %+.2f° | referencia %+.2f° | destino %+.2f° | duty %+.1f %% | final de carrera "
+                "%s | %s\n", OTRA.nombre, otra::grados(), otra::referencia(), otra::destino(), otra::duty(),
+                otra::finalCarrera() ? "apretado" : "suelto",
+                !otra::activa() ? "SIN SOSTENER" : (otra::enCamino() ? "EN CAMINO" : "en destino"));
+  float mn, mx;
+  intervaloOtra(mn, mx);
+  Serial.printf("   Límites de %s con %s entre %+.1f° y %+.1f° (peor caso): %+.1f° / %+.1f°\n", art::NOMBRE, OTRA.nombre,
+                mn, mx, limNegG(), limPosG());
+}
+
+// Los comandos que mueven la activa esperan a que la otra llegue a su destino (sus límites dependen de dónde esté).
+// Mientras tanto la activa sigue sosteniéndose. Devuelve false si se canceló con Enter o pasó OTRA_ESPERA_MAX_MS.
+bool esperarOtra() {
+  if (!otra::enCamino()) return true;
+  Serial.printf(">> Esperando a %s: en %+.1f°, va a %+.1f° (Enter cancela).\n", OTRA.nombre, otra::grados(),
+                otra::destino());
+  const uint32_t t0 = millis();
+  uint32_t tInforme = t0;
+  while (otra::enCamino()) {
+    sostenerPaso();
+    if (const char *av = otra::aviso()) Serial.printf(">> %s: %s\n", OTRA.nombre, av);
+    if (Serial.available()) {
+      // Cualquier tecla cancela. Se lee la línea entera (hasta 1 s, sosteniendo): si es "x", se ejecuta (soltar
+      // las dos no puede perderse); si no, se descarta.
+      char l[4];
+      size_t n = 0;
+      bool fin = false;
+      const uint32_t tl = millis();
+      while (!fin && millis() - tl < 1000) {
+        sostenerPaso();
+        while (Serial.available()) {
+          const char ch = (char)Serial.read();
+          if (ch == '\n' && ultimoFueCR) {
+            ultimoFueCR = false;
+            continue;
+          }
+          ultimoFueCR = (ch == '\r');
+          if (ch == '\r' || ch == '\n') {
+            fin = true;
+            break;
+          }
+          if (n < sizeof(l) - 1) l[n++] = ch;
+          else n = sizeof(l);  // más larga: no es "x"
+        }
+        delay(1);
+      }
+      descartando = !fin;  // sin Enter todavía: leerSerial() tira el resto de la línea
+      const bool esX = n == 1 && l[0] == 'x';
+      if (esX) {
+        hold.activo = false;
+        aplicarDuty(0.0f);
+        char cmd[] = "x";
+        ejecutarComando(cmd);
+      } else {
+        Serial.println(">> Cancelado: el comando no se ejecutó.");
+      }
+      return false;
+    }
+    if (millis() - t0 >= OTRA_ESPERA_MAX_MS) {
+      Serial.printf(">> RECHAZADO: %s no llegó en %lu s (en %+.1f°, va a %+.1f°). Ver \"oc\".\n", OTRA.nombre,
+                    (unsigned long)(OTRA_ESPERA_MAX_MS / 1000), otra::grados(), otra::destino());
+      return false;
+    }
+    if (millis() - tInforme >= 1000) {
+      tInforme = millis();
+      Serial.printf("   %s en %+.1f° (va a %+.1f°)\n", OTRA.nombre, otra::grados(), otra::destino());
+    }
+    delay(1);
+  }
+  Serial.printf(">> %s llegó: en %+.2f°.\n", OTRA.nombre, otra::grados());
+  return true;
+}
+
+// Comandos que mueven la activa (esperan a la otra): p, m, a, s, ev, ep, bc ("sa" no)
+bool mueveActiva(const char *l) {
+  for (const char *n : {"p", "m", "a", "s", "ev", "ep", "bc"}) {
+    const size_t k = strlen(n);
+    if (strncmp(l, n, k) == 0 && (l[k] == ' ' || l[k] == '\0')) return true;
+  }
+  return false;
 }
 
 // "o <grados>": llevar la otra a un ángulo (despacio, a OTRA.vel °/s) y sostenerla ahí. Tiene que quedar dentro de
@@ -1302,9 +1402,14 @@ void comandoOtra(const char *args) {
     Serial.println("Uso: o <grados>   (llevar la otra articulación a ese ángulo y sostenerla)");
     return;
   }
+  // La activa, entre su ángulo medido y la referencia de su sostener (si sostenía antes de este comando; ejecutar()
+  // lo apaga mientras corre y después vuelve a esa referencia): peor caso de los dos
   const float qa = grados(cuentas());
-  // activa - otra entre BANDA_MIN y BANDA_MAX  ->  otra entre qa - BANDA_MAX y qa - BANDA_MIN
-  const float mn = fmaxf(OTRA.limNeg, qa - BANDA_MAX), mx = fminf(OTRA.limPos, qa - BANDA_MIN);
+  const float qaMin = cmdSosteniendo ? fminf(qa, cmdRefSostener) : qa;
+  const float qaMax = cmdSosteniendo ? fmaxf(qa, cmdRefSostener) : qa;
+  // activa - otra entre BANDA_MIN y BANDA_MAX  ->  otra entre qa - BANDA_MAX y qa - BANDA_MIN, para toda qa
+  // (la franja es convexa: si el destino está adentro, todo el camino desde donde está también)
+  const float mn = fmaxf(OTRA.limNeg, qaMax - BANDA_MAX), mx = fminf(OTRA.limPos, qaMin - BANDA_MIN);
   if (g < mn || g > mx) {
     Serial.printf("%s a %+.1f° saca el cuatro barras de la franja: con %s en %+.1f°, %s puede ir de %+.1f° a %+.1f°.\n",
                   OTRA.nombre, g, art::NOMBRE, qa, OTRA.nombre, mn, mx);
@@ -1318,8 +1423,12 @@ void comandoOtra(const char *args) {
 void ejecutar(char *l) {
   while (*l == ' ') l++;
   if (*l == '\0') return;
+  // Si la otra todavía va hacia su destino, esperarla antes de cortar el sostener de la activa
+  if (ceroFijado && hwOk && mueveActiva(l) && !esperarOtra()) return;
   const bool sosteniendo = hold.activo;
   const float refAntes = hold.ref;
+  cmdSosteniendo = sosteniendo;
+  cmdRefSostener = refAntes;
   if (sosteniendo) {
     hold.activo = false;
     aplicarDuty(0.0f);  // freno mientras corre el comando
