@@ -1,4 +1,4 @@
-# Pendientes de pruebas-esp32 (al 2026-10-31, segunda sesión)
+# Pendientes de pruebas-esp32 (al 2026-11-02)
 
 <!-- Movido desde CLAUDE.md (2026-10-22). Los bloques "Pendiente GPS", "Pendiente" de 08 y "Falta" se movieron
      tal cual; el resto se copió de los "Pendiente:" que siguen dentro de cada entrada de BITACORA.md. -->
@@ -11,8 +11,10 @@
   30 ciclos, mismo camino, RP = l̄ + 3σ, articular contra en el espacio; `trayectoria.py` ya sirve para capturarlo) y
   pedir los datos que faltan (largos de los eslabones del cuatro barras y hasta la pinza, ángulos del cero contra la
   horizontal, cómo medir afuera); (3) **zona prohibida**: medir con el joystick dónde choca el brazo con la caja y
-  agregarla a `mv`/`j`; (4) límite de J1 con el brazo estirado (hoy 90° PROVISORIO); (5) revisión de Codex de lo de
-  hoy (telemetría, `uHold` del peso, aproximación para todas).
+  agregarla a `mv`/`j`; (4) límite de J1 con el brazo estirado (hoy 90° PROVISORIO). **Antes de (1):** flashear
+  los arreglos de la revisión de Codex del 02/11 (`ff` rechaza `nan`; telemetría con la referencia del período), que
+  compilan pero **no se probaron en placa**: `ff 2 35 nan 22 8` tiene que dar "Cada valor entre 0 y 70 %", y en la
+  captura de `trayectoria.py` el atraso en el recorrido tiene que bajar ~0,1° a 10 °/s.
 - **Mecánico:** fijar los finales de carrera con un segundo punto de apoyo (el golpe los gira; el 31/10 corrió el
   cero ~9° en J3 y ~30° en J2). Mientras, llegar despacio (`h`); el joystick (`17`) pega fuerte.
 - **Adaptador fuente → XT60:** contacto con resistencia (con él J1/J3 no se mueven). Rehacerlo (≥ 14 AWG, soldado)

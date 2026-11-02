@@ -459,7 +459,7 @@ void comandoFF(const char *args) {
     return;
   }
   for (float x : v) {
-    if (x < 0.0f || x > 70.0f) {
+    if (!(x >= 0.0f && x <= 70.0f)) {  // así también rechaza nan (con NaN toda comparación da falso)
       msg("Cada valor entre 0 y 70 %%.");
       return;
     }
@@ -552,7 +552,13 @@ void control(void *) {
       ejecutar(x);
     }
     while (xQueueReceive(colaComandos, &ln, 0) == pdTRUE) ejecutar(ln.t);
-    for (auto &a : art) a.paso();
+    // La referencia con la que paso() calcula el duty de este período (mvPaso() ya pone la del siguiente): es la que
+    // va a la telemetría, si no ref − q tenía un adelanto falso de 10 ms (~0,1° a 10 °/s)
+    float refUsada[N];
+    for (int i = 0; i < N; i++) {
+      refUsada[i] = art[i].referencia();
+      art[i].paso();
+    }
     homingPaso();
     mvPaso();
     static uint32_t kTele = 0;
@@ -562,7 +568,7 @@ void control(void *) {
       m.etapa = mv.activo ? (uint8_t)mv.etapa : (hm.activo ? 9 : 0);
       for (int i = 0; i < N; i++) {
         m.q[i] = art[i].q();
-        m.r[i] = art[i].referencia();
+        m.r[i] = refUsada[i];
         m.u[i] = art[i].duty();
         m.w[i] = art[i].w();
         m.est[i] = estadoTele(art[i]);

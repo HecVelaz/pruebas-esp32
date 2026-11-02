@@ -371,3 +371,16 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   venía del perfil sino del paso al sostener y del stick-slip. Si hace falta, `MV_FACTOR_VEL` 0,5 → 0,3.
 - Commits: `79bb390`, `3c08116`, `75b1b29` (sin revisión de Codex en esta sesión). Útil: abrir el puerto reinicia
   la WROOM, por eso la lista de `trayectoria.py` empieza con `h`; `--archivo` vuelve a graficar sin la placa.
+
+## 2026-11-02 — 20: revisión de Codex de la sesión del 31/10 (sin placa)
+
+- Codex (`--sandbox read-only`) sobre `20-brazo-coordinado`, mirando `79bb390..36708bf`. Tres problemas, verificados:
+  1. **Alta:** `ff` aceptaba `nan` (`x < 0 || x > 70` da falso con NaN). Con `uHold = (ffMarchaPos − ffMarchaNeg) / 2`,
+     el sostener de J2 quedaba en NaN al llegar. **Arreglado:** `!(x >= 0 && x <= 70)`.
+  2. **Media:** `mv.aprox` se decide con 0,05°, menos que `tolPos`: una que ya está firme en su objetivo (p. ej. J1 en
+     19,94° con objetivo 20°) igual baja 2° y vuelve. **Se deja así (decisión del usuario):** llegan siempre igual.
+  3. **Media:** la telemetría juntaba el duty del período con la referencia del siguiente (`mvPaso()` la actualiza
+     después de `paso()`): `ref − q` con 10 ms de adelanto falso (~0,1° a 10 °/s, comparable a `tolPos` 0,15° de J3).
+     **Arreglado:** se guarda la referencia antes de `paso()`. Los gráficos de antes (`trayectoria_20261031_*`)
+     exageran el atraso en el recorrido; el error al quedar firme no cambia.
+- Compila; **sin flashear ni probar** (no estaba la placa): pendiente en `PENDIENTES.md`.
