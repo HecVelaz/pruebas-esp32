@@ -419,4 +419,8 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   franja (3° de margen), hombre muerto 300 ms; `jv 0 0 0` no corta el homing ni un `mv`. Puente:
   `17-brazo-joystick/tools/joystick.py --placa 20` (`798f4b0`): botón Homing (`h`), estado por la telemetría y `c`,
   "Anotar" en `20/resultados/limites_*.csv`. Probado con una placa simulada (pty); **sin probar en placa**.
+- **Joystick usado en placa** para el paso 1 (`20/resultados/limites_20261103_100457.csv`): con el brazo estirado
+  (J2 74,3°, J3 69,2–70,2°) J1 en 20°, 40° y 60° **libre** de la caja. Poses del paso 1b: `mv 20 74 70` / `mv 60 74 70`.
+  J3 pasó de 69,84° a 69,22° mientras solo se movía J1 (¿se tocó la barra de J3?). La zona prohibida (anotar el
+  borde, lo que no se alcanza) queda para después.
 
