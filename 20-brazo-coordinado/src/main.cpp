@@ -325,6 +325,13 @@ void mvIniciar(const float obj[N]) {
     // invertir (2026-11-03: la vuelta a mv 3 3 3 cortó porque J1 quedó 0,42° corta de su punto previo)
     mv.esperar[i] = mv.aprox[i] && !APROX_MISMO_SENTIDO[i];
     if (APROX_MISMO_SENTIDO[i] && fabsf(obj[i] - art[i].q()) <= APROX_GRADOS[i]) mv.antes[i] = art[i].referencia();
+    // El punto previo no sale del margen de los límites (2026-11-03: en la vuelta a "mv 3 3 3" J2 y J3 bajaban a 1°,
+    // a 1° del final de carrera, y subían de nuevo): si saldría, va directo al objetivo, sin aproximación
+    const ConfigArticulacion &c = art[i].cfg();
+    if (mv.aprox[i] && (mv.antes[i] < c.limNeg + MARGEN_LIMITE || mv.antes[i] > c.limPos - MARGEN_LIMITE)) {
+      mv.aprox[i] = false;
+      mv.esperar[i] = false;
+    }
   }
   mv.activo = true;
   bool algunaAprox = false;
