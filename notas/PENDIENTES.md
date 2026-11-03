@@ -6,10 +6,8 @@
 ## Brazo (20, lo próximo)
 
 - **`20-brazo-coordinado`, en orden:**
-  1. **Joystick (revisión de Codex del 03/11, `src/main.cpp`):** (a) después de un corte, no reactivar hasta un
-     `jv 0 0 0` (~591); (b) con la medición fuera de la franja, que el joystick solo deje mover hacia adentro mirando
-     la medición, no la referencia (~832); (c) al activar el joystick, frenar donde están las que estaban yendo con `j`
-     (~595). Un commit de firmware, probarlo con el joystick en placa.
+  1. **Joystick:** los tres arreglos de la revisión de Codex hechos (`b0ab0ec`, `3901d8c`, `ee245d5`), compilan,
+     **sin probar en placa**: uso normal con `joystick.py --placa 20` y un `j` cortado por `jv` desde el monitor.
   2. **Precisión de J1:** cae en dos valores (salto de stick-slip de 0,2–0,3°; RP 0,33°) y a veces queda 0,41° corta
      (frena a 0,3° y la correa retrocede). Probar: un empujón más si después de frenar queda a > 0,2° (ojo con el
      ciclo límite de `tolPos` 0,15) o apuntar la aproximación un poco más corto. Medir con

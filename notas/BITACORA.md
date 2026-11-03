@@ -521,3 +521,7 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
 - Sin versionar a propósito: los videos (`~/Vídeos/brazo/`, `20/20_20_24.mp4`) y las capturas sueltas
   `trayectoria_20261103_111523` y `_112915`. Comandos útiles: `python3 tools/trayectoria.py ... --comparar <csv>`,
   `--archivo <csv> --solo-resumen`; `python3 tools/repetibilidad.py --ciclos N [--calentar N] [--poses ...]`.
+- **Arreglos del joystick** (después del cierre, misma sesión; compilan, sin probar en placa): al activarse frena
+  donde están las que iban a otro lado (`b0ab0ec`); después de un corte no se reactiva hasta `jv 0 0 0` (palanca
+  soltada; `3901d8c`); con la medición de J2/J3 fuera de la franja solo deja ir hacia adentro y lleva la referencia a
+  la medición si quedaba del lado de afuera (`ee245d5`).
