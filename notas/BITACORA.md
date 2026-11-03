@@ -423,4 +423,16 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   (J2 74,3°, J3 69,2–70,2°) J1 en 20°, 40° y 60° **libre** de la caja. Poses del paso 1b: `mv 20 74 70` / `mv 60 74 70`.
   J3 pasó de 69,84° a 69,22° mientras solo se movía J1 (¿se tocó la barra de J3?). La zona prohibida (anotar el
   borde, lo que no se alcanza) queda para después.
+- **Homing que trabó el brazo:** el joystick dejó el brazo estirado (60 / 74 / 69); al abrir el puerto la WROOM se
+  reinició sin cero y el homing (que lo supone recogido) subió J3 28° con J2 en 74°: fuera de la franja, trabado,
+  cortado a los 22 s por "no avanza" (`trayectoria_20261103_102001_cortado`). Los motores sostienen el brazo sin
+  corriente (no se puede mover a mano: se rompe). Rescate: `zq q1 q2 q3` (`92b2ec5`, cero estimado de la anotación
+  menos lo que movió el homing: 27,3 / 74,3 / 41,3) y `joystick.py --placa 20 --zq` (`5248171`); el joystick solo
+  deja volver hacia adentro de la franja. Bajado y con homing: OK. Protección: sin cero el homing corta a los 15°
+  (`f24114c`, sin probar en placa).
+- **Paso 1a** (`trayectoria_20261103_103503`, J1 20 ↔ 60° con el brazo recogido): J2 y J3 no se mueven (0,01°). J1
+  en la aproximación a 2 °/s tiene stick-slip: trabada con 16–18 % de duty, salta 1,7° a ~6 °/s y se vuelve a
+  trabar; al llegar y frenar retrocede 0,1° (elasticidad de la correa) y queda 0,38° corta en 60° (firme por
+  `tolSalida` 0,6°). El encoder de J1 está en el motor: una oscilación de la base por la correa no se ve en él.
+  **Hipótesis:** con el brazo estirado, esos saltos de J1 en la aproximación sacuden la punta.
 
