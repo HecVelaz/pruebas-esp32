@@ -468,4 +468,11 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   frenada en 19,89°, J2 y J3 frenadas): es la correa y la estructura, el encoder de J1 (en el motor) no lo ve. La
   primera subida (3 → 20 / 74 / 70) oscila igual a ~1,5 Hz (±45 px, amortiguamiento ~0,15–0,2). La vuelta a
   `mv 3 3 3` cortó con "no bajó por debajo del objetivo" (quedó en 2,9 / 0,9 / 1,3, abajo).
-
+- **J1 llega en el sentido en que viene** (`a71f355`; `trayectoria_20261103_120620` con video
+  `VID_20261103_120507.mp4`, 1920×1080 a 60 fps, de costado, fuera del repo; antes `trayectoria_20261103_120141`, la
+  misma lista sin video). Llegadas de J1 sola (20 → 60 → 20 → 60): **la punta ya no se hamaca**, desvío 1,4–1,8 px
+  (ruido del video, igual a 60° que a 20°), errores del LLEGO −0,22 a +0,06°. **Queda una oscilación en el primer
+  `mv`** (desde abajo a 20 / 74 / 70): J1 tiene que durar lo mismo que J2/J3 (12,9 s para 17°), el final de su
+  perfil es lentísimo y se traba 1,6 s en 18,68° (15–17 %, w = 0); al empezar la aproximación sube a 28 %, se despega
+  a 16 °/s, se pasa a 21,0° y vuelve con −18 % a 19,86°. En el video: ±35 px a ~1,6 Hz (incluye el ida y vuelta de
+  J1), se apaga en ~1,5 s. Arreglo: J1 con su propia duración en el recorrido (`MV_DURACION_PROPIA`).
