@@ -22,8 +22,10 @@
      largo de la biela y la distancia entre el eje del engranaje y el del antebrazo (manivela 80 mm, pivote a 40 mm).
   5. Opcional, si J2/J3 vuelven a pasarse (una vez en cinco capturas, J2 0,5° y 13,8 s hasta firme): `VEL_APROX` de
      J2/J3 2 → 3 °/s o dither. Más velocidad (`MV_FACTOR_VEL`): solo al final, con video.
-  6. **Zona prohibida:** medir con el joystick dónde choca el brazo con la caja (1c sin hacer: J2/J3 solas en
-     20/60/55) y agregarla a `mv`/`j`; límite de J1 con el brazo estirado (hoy 90° PROVISORIO).
+  6. **Zona prohibida:** medir con el joystick dónde choca el brazo con la caja, una anotación por punto con la nota
+     `caja` (primeras: J2 85,2 / J3 86–87° con J1 en 66,6° y 91,6°, `limites_20261103_145324`; 1c sin hacer: J2/J3
+     solas en 20/60/55) y agregarla a `mv`/`j`. **Límite de J1:** 118° PROVISORIO, libre hasta 115° recogido y medio
+     estirado; falta en 115° con 74/70 y ver si hay lugar más allá (el usuario espera 120–130°).
 - **Mecánico:** fijar los finales de carrera con un segundo punto de apoyo (el golpe los gira; el 31/10 corrió el
   cero ~9° en J3 y ~30° en J2). Mientras, llegar despacio (`h`); el joystick (`17`) pega fuerte.
 - **Adaptador fuente → XT60:** contacto con resistencia (con él J1/J3 no se mueven). Rehacerlo (≥ 14 AWG, soldado)

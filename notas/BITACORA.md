@@ -528,3 +528,8 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
 - **Arreglo 1 del joystick probado en placa** (`trayectoria_20261103_145122`, `trayectoria.py h "j 1 60" "jv 0 0 0.3" c
   --espera 1`): el `jv` a 1 s frenó a J1 en 24,66° (antes seguía sola hasta 60°); J3 subió 0,8° con el joystick y
   todo quedó firme. A mano desde el monitor no se llega a tiempo (el `j` termina en ~2–3 s).
+- **Límite de J1 90 → 118°** (`8d26f99`, PROVISORIO) y medición con el joystick (`20/resultados/limites_20261103_145324.csv`):
+  J1 **libre hasta 115°** (el tope con el margen) recogido (3/3) y medio estirado (J2 69,5 / J3 54,7); sin probar en
+  115° con 74/70. Dos anotaciones "limite" **por la caja** con J2 85,2° / J3 86–87° (J1 66,6° y 91,6°) y dos en el tope
+  de J2 (94,2°, el del firmware). `joystick.py` tenía el límite de J1 de 20 fijo en 90° (solo para mostrar y
+  anotar): pasado a 118° (`2d784f0`). Falta saber si pasados los 115° hay lugar (el usuario esperaba 120–130°).
