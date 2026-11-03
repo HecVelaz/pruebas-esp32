@@ -60,8 +60,7 @@ constexpr ConfigArticulacion CFG_J1 = {
     0.0f, 90.0f, 70.0f,
     0.549f, 4.0f,                         // PI de velocidad de 12 (terminada)
     17.0f, 17.0f, 17.0f, 17.0f, 0.0f,     // feedforward de 12 (sin gravedad)
-    // tolPos 0,3 -> 0,15 (2026-11-03: frenaba a 0,3° y la correa la retrocedía 0,1°: quedaba 0,38° corta)
-    2.0f, 30.0f, 60.0f, 3.0f, 0.15f, 0.6f, 200,
+    2.0f, 30.0f, 60.0f, 3.0f, 0.3f, 0.6f, 200,
     3.0f, 8.0f, 0.0f, 0.2f,               // sostener (J1 se autobloquea por la correa: frena enseguida)
     1.5f, 2.0f, 2.0f, 50.0f, 130.0f, 1500, 3.0f, 1.5f,  // homing a 1,5 °/s (2026-11-03, antes 1; rápido a 3 °/s)
     2.0f, 35.0f, 300, 25.0f, 150, 5.0f, 100, 30.0f,
