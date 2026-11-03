@@ -33,8 +33,11 @@ constexpr float MV_T_MIN = 1.0f;           // s, duración mínima de un movimie
 // Llegada siempre con el ángulo creciendo (el juego de los engranajes queda del mismo lado): todas las que se mueven
 // (también las que suben, desde 2026-10-31) terminan el recorrido APROX_GRADOS por debajo y suben el último tramo a
 // VEL_APROX.
-constexpr float APROX_GRADOS = 2.0f;
-constexpr float VEL_APROX = 2.0f;          // °/s (pico del perfil del último tramo)
+// Por articulación (J1, J2, J3). J1 (2026-11-03): a 2 °/s la correa y la caja 50:1 avanzan a saltos (se traba con
+// 15-18 % y salta a 5-7 °/s, ~2 s por llegada; con el brazo estirado se ve en la punta): un tramo corto y rápido. En
+// la aproximación cada una tiene su duración (J1 termina antes y frena; J2 y J3 siguen juntas)
+constexpr float APROX_GRADOS[3] = {0.5f, 2.0f, 2.0f};
+constexpr float VEL_APROX[3] = {5.0f, 2.0f, 2.0f};  // °/s (pico del perfil del último tramo)
 constexpr float MV_ERROR_MAX = 5.0f;       // ° entre la referencia y la medición: corta (no sigue la trayectoria)
 constexpr uint32_t MV_LLEGADA_MAX_MS = 20000;  // después de la trayectoria, tiempo para quedar las tres firmes
 

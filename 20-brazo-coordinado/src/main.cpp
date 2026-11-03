@@ -215,8 +215,8 @@ void homingPaso() {
 }
 
 // ---------- Fase 5b: movimiento coordinado ("mv") ----------
-// Etapas: 1 recorrido (hasta APROX_GRADOS por debajo del objetivo), 2 aproximación (el último tramo despacio,
-// subiendo), 3 llegada (las tres sostienen el objetivo hasta quedar firmes), 4 asentamiento.
+// Etapas: 1 recorrido (hasta APROX_GRADOS[i] por debajo del objetivo), 2 aproximación (el último tramo despacio,
+// subiendo; cada una con su duración, J1 más corta), 3 llegada (las tres sostienen el objetivo hasta quedar firmes), 4 asentamiento.
 struct {
   bool activo = false;
   int etapa = 0;
@@ -224,6 +224,7 @@ struct {
   bool mueve[N];       // en la etapa: esta se mueve
   bool aprox[N];       // llega desde abajo (todas las que se mueven)
   float T = 1.0f;      // s, duración de la etapa
+  float Ti[N];         // s, en la aproximación: la de cada una (T = la más larga)
   uint32_t k = 0;      // periodos desde el comienzo de la etapa
   uint32_t tEtapa = 0, tFirme = 0;
 } mv;
@@ -250,7 +251,7 @@ void mvEtapa(int etapa) {
   for (int i = 0; i < N; i++) {
     mv.desde[i] = art[i].referencia();
     if (etapa == 1) {
-      mv.hasta[i] = mv.aprox[i] ? mv.obj[i] - APROX_GRADOS : mv.obj[i];
+      mv.hasta[i] = mv.aprox[i] ? mv.obj[i] - APROX_GRADOS[i] : mv.obj[i];
     } else {
       mv.hasta[i] = mv.obj[i];
     }
@@ -259,7 +260,17 @@ void mvEtapa(int etapa) {
     if (!mv.mueve[i]) d[i] = 0.0f;
   }
   if (etapa == 1) mv.T = fmaxf(duracion(d, MV_FACTOR_VEL, 0.0f), MV_T_MIN);
-  if (etapa == 2) mv.T = duracion(d, 1.0f, VEL_APROX);
+  if (etapa == 2) {
+    mv.T = 0.0f;
+    for (int i = 0; i < N; i++) {
+      float di[N] = {0.0f, 0.0f, 0.0f};
+      di[i] = d[i];
+      mv.Ti[i] = duracion(di, 1.0f, VEL_APROX[i]);
+      mv.T = fmaxf(mv.T, mv.Ti[i]);
+    }
+  } else {
+    for (int i = 0; i < N; i++) mv.Ti[i] = mv.T;
+  }
   if (etapa >= 3)
     for (int i = 0; i < N; i++) art[i].sostener(mv.obj[i]);
 }
@@ -309,9 +320,6 @@ void mvPaso() {
   if (mv.etapa == 1 || mv.etapa == 2) {
     mv.k++;
     const float tau = fminf(mv.k * Articulacion::TS / fmaxf(mv.T, 1e-3f), 1.0f);
-    const float t2 = tau * tau, t3 = t2 * tau;
-    const float sp = t3 * (10.0f - 15.0f * tau + 6.0f * t2);                 // posición normalizada
-    const float vp = 30.0f * t2 * (1.0f - 2.0f * tau + t2) / fmaxf(mv.T, 1e-3f);  // su derivada (1/s)
     for (int i = 0; i < N; i++) {
       // Todas, también las quietas: ninguna se puede alejar más de MV_ERROR_MAX de su referencia
       if (fabsf(art[i].referencia() - art[i].q()) > MV_ERROR_MAX) {
@@ -319,6 +327,16 @@ void mvPaso() {
         return;
       }
       if (!mv.mueve[i]) continue;
+      // Perfil quíntico con la duración de esta (en el recorrido, la misma para todas: terminan juntas)
+      const float Ti = fmaxf(mv.Ti[i], 1e-3f);
+      const float ti = fminf(mv.k * Articulacion::TS / Ti, 1.0f);
+      if (ti >= 1.0f && mv.etapa == 2) {  // terminó su aproximación antes que las otras: a sostener (J1 frena)
+        if (art[i].modo() == Articulacion::Modo::Seguir) art[i].sostener(mv.hasta[i]);
+        continue;
+      }
+      const float t2 = ti * ti, t3 = t2 * ti;
+      const float sp = t3 * (10.0f - 15.0f * ti + 6.0f * t2);           // posición normalizada
+      const float vp = 30.0f * t2 * (1.0f - 2.0f * ti + t2) / Ti;       // su derivada (1/s)
       const float D = mv.hasta[i] - mv.desde[i];
       art[i].seguir(mv.desde[i] + D * sp, D * vp);
     }
@@ -327,7 +345,7 @@ void mvPaso() {
         // Antes de subir el último tramo, todas las que se aproximan tienen que estar de verdad por debajo del objetivo (si no,
         // la llegada podía terminar siendo desde arriba): esperar en el punto previo, hasta 3 s
         for (int i = 0; i < N; i++) {
-          if (mv.aprox[i] && art[i].q() > mv.obj[i] - 0.5f * APROX_GRADOS) {
+          if (mv.aprox[i] && art[i].q() > mv.obj[i] - 0.5f * APROX_GRADOS[i]) {
             if (mv.k * Articulacion::TS > mv.T + 3.0f) {
               mvCortar("no bajó por debajo del objetivo para llegar desde abajo");
             }
