@@ -525,3 +525,6 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   donde están las que iban a otro lado (`b0ab0ec`); después de un corte no se reactiva hasta `jv 0 0 0` (palanca
   soltada; `3901d8c`); con la medición de J2/J3 fuera de la franja solo deja ir hacia adentro y lleva la referencia a
   la medición si quedaba del lado de afuera (`ee245d5`).
+- **Arreglo 1 del joystick probado en placa** (`trayectoria_20261103_145122`, `trayectoria.py h "j 1 60" "jv 0 0 0.3" c
+  --espera 1`): el `jv` a 1 s frenó a J1 en 24,66° (antes seguía sola hasta 60°); J3 subió 0,8° con el joystick y
+  todo quedó firme. A mano desde el monitor no se llega a tiempo (el `j` termina en ~2–3 s).

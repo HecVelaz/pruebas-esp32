@@ -7,7 +7,9 @@
 
 - **`20-brazo-coordinado`, en orden:**
   1. **Joystick:** los tres arreglos de la revisión de Codex hechos (`b0ab0ec`, `3901d8c`, `ee245d5`), compilan,
-     **sin probar en placa**: uso normal con `joystick.py --placa 20` y un `j` cortado por `jv` desde el monitor.
+     el 1 (`b0ab0ec`) **probado en placa** (`trayectoria_20261103_145122`: un `j 1 60` cortado por `jv` a 1 s quedó en
+     24,66°); falta el uso normal con `joystick.py --placa 20`. El 2 y el 3 no se fuerzan a propósito (sería provocar un
+     atasco o salir de la franja).
   2. **Precisión de J1:** cae en dos valores (salto de stick-slip de 0,2–0,3°; RP 0,33°) y a veces queda 0,41° corta
      (frena a 0,3° y la correa retrocede). Probar: un empujón más si después de frenar queda a > 0,2° (ojo con el
      ciclo límite de `tolPos` 0,15) o apuntar la aproximación un poco más corto. Medir con
