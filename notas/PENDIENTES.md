@@ -5,21 +5,25 @@
 
 ## Brazo (20, lo próximo)
 
-- **`20-brazo-coordinado`, en orden:** (1) **`VEL_APROX` 2 → 3 °/s** (J3 se traba y se pasa en la subida lenta,
-  hasta 0,55°) y medir con `tools/trayectoria.py h "mv 20 20 24" "mv 40 30 20" "mv 20 20 24" "mv 3 3 3"`; si hace
-  falta, `MV_FACTOR_VEL` 0,5 → 0,3 (frenado más suave); (2) **fase 6**: proponer el test de repetibilidad (5 poses,
-  30 ciclos, mismo camino, RP = l̄ + 3σ, articular contra en el espacio; `trayectoria.py` ya sirve para capturarlo) y
-  pedir los datos que faltan (largos de los eslabones del cuatro barras y hasta la pinza, ángulos del cero contra la
-  horizontal, cómo medir afuera; de J3 ya se sabe: manivela 80 mm en el engranaje 75, pivote a 40 mm del eje del
-  antebrazo; faltan el largo de la biela entre los dos y la distancia entre el eje del engranaje y el del antebrazo:
-  q3 es el ángulo del engranaje y el antebrazo gira ~2 veces eso); (3) **zona prohibida**: medir con el joystick dónde choca el brazo con la caja y
-  agregarla a `mv`/`j`; (4) límite de J1 con el brazo estirado (hoy 90° PROVISORIO). **Antes de (1), sesión del 03/11 (sin el resorte de la pinza; paso 0 hecho, `trayectoria_20261103_092501`):**
-  homing más rápido (propuesto: J2 1 °/s, J3/J1 1,5 °/s, J1 junto con J3, `trayectoria.py` termina en `mv 3 3 3`);
-  paso 1, diagnóstico de la oscilación de la punta (1a J1 sola recogido, 1b J1 sola estirado + limón, 1c J2/J3
-  solas; confirmar que `mv 20 75 70` / `mv 60 75 70` no chocan con la caja); paso 2, feedforward suave (signo desde
-  `wRefSeguir_`, tanh 1 °/s); paso 3, aMax de J1 más bajo en `mv`; paso 4 = (1); paso 5, deriva 30 s estirado con y
-  sin limón. Comparar siempre con `--comparar` contra 180843 y 092501. Falta confirmar que `ff 2 35 nan 22 8` da
-  "Cada valor entre 0 y 70 %".
+- **`20-brazo-coordinado`, en orden:**
+  1. **Joystick (revisión de Codex del 03/11, `src/main.cpp`):** (a) después de un corte, no reactivar hasta un
+     `jv 0 0 0` (~591); (b) con la medición fuera de la franja, que el joystick solo deje mover hacia adentro mirando
+     la medición, no la referencia (~832); (c) al activar el joystick, frenar donde están las que estaban yendo con `j`
+     (~595). Un commit de firmware, probarlo con el joystick en placa.
+  2. **Precisión de J1:** cae en dos valores (salto de stick-slip de 0,2–0,3°; RP 0,33°) y a veces queda 0,41° corta
+     (frena a 0,3° y la correa retrocede). Probar: un empujón más si después de frenar queda a > 0,2° (ojo con el
+     ciclo límite de `tolPos` 0,15) o apuntar la aproximación un poco más corto. Medir con
+     `tools/repetibilidad.py --ciclos 10` contra `repetibilidad_20261103_141454`.
+  3. **Lista fija con el firmware final** (`h "mv 20 20 24" "mv 40 30 20" "mv 20 20 24" "mv 3 3 3"`, `--comparar`
+     contra 092501 y 180843) para cerrar la tabla de la sesión del 03/11.
+  4. **Fase 6 completa:** 30 ciclos (`--ciclos 30 --calentar 3`) y la repetibilidad **en la punta** (video con el
+     celular fijo y una marca en la pinza, o un comparador); para pasar de grados a mm con los encoders faltan los
+     largos de los eslabones del cuatro barras y hasta la pinza, los ángulos del cero contra la horizontal, y de J3 el
+     largo de la biela y la distancia entre el eje del engranaje y el del antebrazo (manivela 80 mm, pivote a 40 mm).
+  5. Opcional, si J2/J3 vuelven a pasarse (una vez en cinco capturas, J2 0,5° y 13,8 s hasta firme): `VEL_APROX` de
+     J2/J3 2 → 3 °/s o dither. Más velocidad (`MV_FACTOR_VEL`): solo al final, con video.
+  6. **Zona prohibida:** medir con el joystick dónde choca el brazo con la caja (1c sin hacer: J2/J3 solas en
+     20/60/55) y agregarla a `mv`/`j`; límite de J1 con el brazo estirado (hoy 90° PROVISORIO).
 - **Mecánico:** fijar los finales de carrera con un segundo punto de apoyo (el golpe los gira; el 31/10 corrió el
   cero ~9° en J3 y ~30° en J2). Mientras, llegar despacio (`h`); el joystick (`17`) pega fuerte.
 - **Adaptador fuente → XT60:** contacto con resistencia (con él J1/J3 no se mueven). Rehacerlo (≥ 14 AWG, soldado)

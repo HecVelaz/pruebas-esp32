@@ -510,3 +510,14 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
     (RP 0,07° a 30°); la peor RP es a 20° (0,32°) por una llegada a +0,16°. J3 ≤ 0,17°.
   - La articulación que no se mueve entre dos poses repite el mismo valor (J1 en P2/P3 y P5/P1, J2 y J3 en P3/P4/P5):
     las llegadas independientes son J1 en P2, P4 y P5 y J2/J3 en P1, P2 y P3.
+- **Revisión de Codex** (`codex exec --sandbox read-only`, sobre lo cambiado desde `4fd8b78^`): 4 hallazgos.
+  Arreglado (`b070e97`): `trayectoria.py` y `repetibilidad.py` mandan `s` si un comando no termina a tiempo (antes el
+  script se cortaba y el brazo seguía solo). **Pendientes, los tres del joystick** (`src/main.cpp`): (1) después de
+  un corte, el siguiente `jv` lo reactiva y borra el error (con la palanca sostenida empuja una y otra vez contra el
+  obstáculo; ~591); (2) con la medición ya fuera de la franja, la articulación que mueve el joystick no se frena si
+  su referencia sigue adentro (~832); (3) activar el joystick no frena un `j` en curso de otra articulación (~595).
+- **README de 20:** tabla de resultados con todas las capturas del día (`67298ca`). Falta correr la lista fija
+  (`h "mv 20 20 24" "mv 40 30 20" "mv 20 20 24" "mv 3 3 3"`) con el firmware final para compararla con 092501 y 180843.
+- Sin versionar a propósito: los videos (`~/Vídeos/brazo/`, `20/20_20_24.mp4`) y las capturas sueltas
+  `trayectoria_20261103_111523` y `_112915`. Comandos útiles: `python3 tools/trayectoria.py ... --comparar <csv>`,
+  `--archivo <csv> --solo-resumen`; `python3 tools/repetibilidad.py --ciclos N [--calentar N] [--poses ...]`.

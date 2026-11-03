@@ -6,19 +6,22 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
 ## Brazo: lo próximo
 
 - **`20-brazo-coordinado` (lo actual):** J1, J2 y J3 con el mismo controlador (`lib/Articulacion`) en un lazo no
-  bloqueante a 100 Hz, a 20 kHz. **5a, 5b y 5c probadas en placa.** `h` (homing J3 → J2 → J1, cero en el flanco)
-  repite al nivel de una cuenta del encoder; `mv q1 q2 q3` mueve las tres juntas (perfil quíntico, recta en (q2, q3)),
-  **todas llegan con la aproximación desde abajo** (2° por debajo y el último tramo a 2 °/s) y el sostener arranca
-  del duty que sostiene el peso (J2 +8,5 %, J3 −10 %). Repetir `mv 20 20 24` desde poses distintas: J1 0,00°, J2
-  0,008°, J3 0,04°; firmes en 0,2–0,5 s. Tolerancias: J1 y J2 `tolPos` 0,3° / `bandaInt` 0,2°, J3 0,15° / 0,1°;
-  `khi` 8 (con 4 no quedaban firmes). Queda: J3 se traba y se pasa en la subida lenta (hasta 0,55°). Telemetría:
-  `t` y `tools/trayectoria.py h "mv ..." ...` (CSV y PNG en `resultados/`). J1 0–90° PROVISORIO; feedforward de J3
-  en cascada medido con la telemetría ≈ el de `config.h`; `MV_FACTOR_VEL` 0,5 PROVISORIO. No esquiva la caja.
-  **Revisión de Codex (02/11):** arreglados `ff` con `nan` y la referencia de la telemetría (10 ms adelantada);
-  flasheados el 03/11. **Sin el resorte de la pinza (03/11):** paso 0 (`trayectoria_20261103_092501`) J2/J3 llegan y
-  quedan firmes igual, el feedforward sirve; `trayectoria.py` imprime un resumen y `--comparar`. Sigue: homing más
-  rápido, diagnóstico de la oscilación de la punta con el brazo estirado (pasos 1–5 en `PENDIENTES.md`). Se deja a propósito que una que ya está en su objetivo (a más de
-  0,05°) también haga la aproximación desde abajo.
+  bloqueante a 100 Hz, a 20 kHz; 5a, 5b, 5c y la primera parte de la fase 6 probadas en placa (03/11, **sin el
+  resorte de la pinza**). Firmware flasheado: `1c8a0ea` (lo posterior son scripts y notas).
+  - `h`: las tres juntas si el brazo está abajo (3,5 s desde ~3°), cero en el flanco; sin cero corta si una avanza
+    15° sin su final de carrera (el brazo tiene que estar recogido). `zq q1 q2 q3` para rescatarlo sin cero.
+  - `mv`: perfil quíntico, J2 y J3 terminan juntas (recta en (q2, q3)); **J1 con su duración y a ≤ 10 °/s²**
+    (`MV_DURACION_PROPIA`, `MV_ACEL_MAX`). Aproximación: J2 y J3 desde abajo (2° a 2 °/s); **J1 0,5° a 5 °/s en el
+    sentido en que viene** (invertir hamacaba la punta ±1,4 cm a 1,5 Hz: el encoder de J1 está en el motor y no lo
+    ve). La que ya está en `tolPos` no se mueve; si el punto previo sale del margen de 3° de un límite, va directo.
+    Feedforward multiplicado por tanh(|w|/0,5 °/s): inversiones del duty 0. No esquiva la caja.
+  - Resultado (video y capturas): **sin balanceo de la punta**, `LLEGO` ≤ 0,2° (J1 una vez 0,41° corta), firmes en
+    ≤ 0,5 s; deriva 0,000° en 30 s con y sin limón (las tres frenadas).
+  - **Repetibilidad articular** (`tools/repetibilidad.py`, 10 ciclos × 5 poses): RP J1 0,33°, J2 0,32°, J3 0,17°.
+    J1 cae en dos valores (un salto de stick-slip de 0,2–0,3°); J2 con un sesgo fijo por pose.
+  - Joystick `jv` (puente `17/tools/joystick.py --placa 20`) usado en placa; **3 problemas de seguridad de la
+    revisión de Codex sin arreglar** (ver `PENDIENTES.md`): usarlo con cuidado.
+  - J1 0–90° PROVISORIO; `MV_FACTOR_VEL` 0,5 PROVISORIO (más velocidad: no por ahora, ver la bitácora).
 - **`19-j2-j3-conjunto`:** banco de pruebas de J2 y J3 (una activa, la otra sostenida). Fases 1–4 del plan probadas
   en placa (franja, sostener con banda 0,2° / compensación de fricción / freno en banda, mapa de gravedad, homing);
   20 kHz. La fase 5 siguió en `20`.
