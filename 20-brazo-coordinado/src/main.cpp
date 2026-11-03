@@ -639,6 +639,15 @@ void joyPaso() {
     // Frenar a tiempo: con la aceleración acel, la velocidad que todavía para antes del borde
     if (w > 0.0f) w = fminf(w, sqrtf(fmaxf(2.0f * acel * (mx - joy.ref[i]), 0.0f)));
     if (w < 0.0f) w = fmaxf(w, -sqrtf(fmaxf(2.0f * acel * (joy.ref[i] - mn), 0.0f)));
+    // Con la MEDICIÓN de J2/J3 ya fuera de la franja (moviéndose la otra, la referencia de esta puede seguir adentro):
+    // solo hacia adentro, y la referencia no queda del lado de afuera de la medición (si no, el PI seguía empujando
+    // hacia afuera sin llegar a los 5° de error que cortan; revisión de Codex, 2026-11-03)
+    if ((i == I2 || i == I3) && fueraFranjaAhora()) {
+      // q3 - q2 demasiado alto (> 0): J3 hacia abajo y J2 hacia arriba; demasiado bajo: al revés
+      const float adentro = (dFranja() > 0.0f ? -1.0f : 1.0f) * (i == I3 ? 1.0f : -1.0f);
+      if (w * adentro < 0.0f) w = 0.0f;
+      if ((joy.ref[i] - art[i].q()) * adentro < 0.0f) joy.ref[i] = art[i].q();
+    }
     joy.w[i] = w;
     joy.ref[i] += w * Articulacion::TS;
     if (fabsf(joy.ref[i] - art[i].q()) > MV_ERROR_MAX) {
