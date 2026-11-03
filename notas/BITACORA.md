@@ -446,4 +446,11 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   J2 quieta (inversiones 92 → 14, correcciones 16 → 0), de la llegada a firmes ≤ 0,3 s. En el video ahora corrige
   **J1**: en la aproximación a 2 °/s se traba, salta a 5–7 °/s, se pasa 0,3–0,6° y el feedforward cambia de signo
   (+17 → −19 %) porque sale de la velocidad pedida con la corrección: vuelve a −3,6 °/s. Es lo que ataca el paso 2.
+- **Transmisión de J3** (dato del usuario): engranajes 75:15 + manivela 80 mm / pivote a 40 mm del eje del antebrazo:
+  q3 es el ángulo del engranaje; el antebrazo gira ~2 veces eso (anotado en el README de 20 y en PENDIENTES, fase 6).
+- **Paso 2, feedforward suave** (`c61c108`; `trayectoria_20261103_105648`): inversiones de las tres a 0. J1 sigue
+  a saltos a 2 °/s (fricción de la correa y la caja) y queda 0,38° corta (frena a 0,3°, la correa la retrocede 0,1°).
+- **J1 (opción A):** último tramo propio de 0,5° a 5 °/s, cada una con su duración en la aproximación (`6ae1805`) y
+  `tolPos` 0,15° (`be11c83`). Sin probar en placa. Después: medir la frecuencia de la oscilación de la punta (video o
+  IMU en la pinza) para un input shaping (ZV) de J1; si no alcanza, menos aceleración de J1 (paso 3).
 
