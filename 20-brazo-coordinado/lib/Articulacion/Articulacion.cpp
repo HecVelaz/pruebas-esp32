@@ -154,12 +154,13 @@ void Articulacion::seguir(float qRef, float wRef) {
   wRefSeguir_ = wRef;
 }
 
-void Articulacion::homing(bool conCero) {
+void Articulacion::homing(bool conCero, float recorridoMax) {
   hConCero_ = conCero;
   error_ = nullptr;
   hEstado_ = Homing::EnCurso;
   hFase_ = fc_ ? 2 : 3;
   hInicio_ = q();
+  hRecorridoMax_ = recorridoMax > 0.0f ? recorridoMax : c_.homingRecorridoMax;
   hSoltadoValido_ = false;
   hVentanaC_ = cuentas();
   hVentanaMs_ = millis();
@@ -287,8 +288,9 @@ void Articulacion::paso() {
       const float wRef = hFase_ == 2 ? c_.homingVelAlejar : -vBuscar;
       const float u = constrain(pasoPI(wRef, g), -c_.homingDutyMax, c_.homingDutyMax);
       aplicar(u);
-      if (fabsf(g - hInicio_) > c_.homingRecorridoMax) {
-        cortar("recorrido máximo sin el final de carrera");
+      if (fabsf(g - hInicio_) > hRecorridoMax_) {
+        cortar(hRecorridoMax_ < c_.homingRecorridoMax ? "sin cero y lejos del final de carrera (¿recogido?)"
+                                                      : "recorrido máximo sin el final de carrera");
         return;
       }
       // Trabada: con el duty al tope, sin avanzar (antes de llegar al tope, el PI va subiendo)

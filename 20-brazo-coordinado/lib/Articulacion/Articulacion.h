@@ -75,7 +75,9 @@ class Articulacion {
   void sostenerAqui();                 // sostener donde está
   void frenarAqui();                   // duty 0 y sostener donde está desde ahí (sin el duty con que se movía)
   void seguir(float qRef, float wRef); // un periodo de trayectoria (el coordinador lo llama en cada paso)
-  void homing(bool conCero = false);  // conCero: rápido hasta homingZonaLenta sobre el cero anterior, después lento
+  // conCero: rápido hasta homingZonaLenta sobre el cero anterior, después lento. recorridoMax > 0: corta si avanza más
+  // que eso sin el final de carrera (en vez de homingRecorridoMax; sin cero, el brazo tiene que empezar abajo)
+  void homing(bool conCero = false, float recorridoMax = 0.0f);
   void homingCancelar();
   void ceroAqui();                     // el ángulo actual pasa a ser 0
   void ceroEnFlanco();                 // el flanco del último homing pasa a ser 0
@@ -140,7 +142,7 @@ class Articulacion {
   // Homing
   Homing hEstado_ = Homing::Nada;
   int hFase_ = 0;  // 2 alejarse, 3 buscar
-  float hSoltado_ = 0.0f, hInicio_ = 0.0f;
+  float hSoltado_ = 0.0f, hInicio_ = 0.0f, hRecorridoMax_ = 0.0f;
   bool hSoltadoValido_ = false, hConCero_ = false;
   int64_t flanco_ = 0;
   int64_t hVentanaC_ = 0;

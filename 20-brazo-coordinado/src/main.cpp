@@ -152,7 +152,7 @@ void homingIniciar() {
 bool homingPasoArt(int i) {
   Articulacion &a = art[i];
   if (hm.etapa[i] == 0) {
-    a.homing(hm.conCero[i]);
+    a.homing(hm.conCero[i], hm.conCero[i] ? 0.0f : HOMING_RECORRIDO_SIN_CERO);
     hm.etapa[i] = 1;
     msg("   %s buscando su final de carrera...", a.cfg().nombre);
     return true;

@@ -17,6 +17,9 @@ constexpr float FRANJA_HOLGURA = 0.5f;  // el control frena todo si la medición
 constexpr float MARGEN_LIMITE = 3.0f;      // ° de margen a los límites (propios y de la franja) para los destinos
 constexpr float HOMING_RETROCESO = 3.0f;   // ° donde queda cada una después de su cero
 constexpr float HOMING_Q2_MAX_ARRANQUE = 20.0f;  // con el cero conocido, J2 más alta: el codo no llega a su final
+// Sin cero el homing supone el brazo abajo y recogido: si una avanza más que esto sin su final de carrera, corta
+// (2026-11-03: arrancó con el brazo estirado, J3 subió 28° y se trabó contra la franja). Desde "mv 3 3 3", ~3°
+constexpr float HOMING_RECORRIDO_SIN_CERO = 15.0f;
 constexpr float HOMING_Q2_J1_JUNTO = 5.0f;  // J1 hace su homing junto con J3 si J2 está abajo (o sin cero: el brazo
                                             // tiene que estar recogido); si no, al final como antes
 constexpr uint32_t ASENTAMIENTO_MS = 2000;
