@@ -442,4 +442,8 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   atraso, duty 11 → 27 %), despega a 6,7 °/s, se pasa 0,72° y baja despacio 0,43° en 1,4 s: probablemente la
   "corrección de la punta" del video. La vuelta a `mv 3 3 3` tardó 29 s: J2 quedó 0,313° abajo (> `tolPos`),
   trabada; el integrador del sostener (khi 8) subió de 10 a 38 % en 11 s para moverla 0,016°.
+- **La que ya está en `tolPos` no hace la aproximación** (`a4d4a99`). 1b de nuevo (`trayectoria_20261103_104918`):
+  J2 quieta (inversiones 92 → 14, correcciones 16 → 0), de la llegada a firmes ≤ 0,3 s. En el video ahora corrige
+  **J1**: en la aproximación a 2 °/s se traba, salta a 5–7 °/s, se pasa 0,3–0,6° y el feedforward cambia de signo
+  (+17 → −19 %) porque sale de la velocidad pedida con la corrección: vuelve a −3,6 °/s. Es lo que ataca el paso 2.
 
