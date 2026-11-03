@@ -405,4 +405,8 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
 - **Homing:** 16,6 s (J3 3,5 s, J2 6,3 s a 0,5 °/s, J1 2,3 s buscando, más ~4,5 s de retrocesos). Lento porque al
   abrir el puerto la WROOM se reinicia y pierde el cero: busca todo a velocidad lenta. Propuesto (sin hacer): buscar
   más rápido (J2 1 °/s, J3 y J1 1,5 °/s), J1 junto con J3, y que `trayectoria.py` termine siempre en `mv 3 3 3`.
+- **Homing más rápido** (`c0c44ca`: buscar a J2 1 °/s, J3 y J1 1,5 °/s) y `trayectoria.py` vuelve a `mv 3 3 3` al
+  final de cada serie (`b2e428b`). `trayectoria_20261103_094631`: homing desde ~3° **16,6 → 12,1 s** (J2 buscando
+  3,4 s; J1 no llega a 1,5 °/s, mediana 0,6). Los `mv` igual que en 092501. `ff 2 35 nan 22 8` → "Cada valor entre
+  0 y 70 %" (arreglo de Codex verificado en placa). El usuario pide J2 todavía más rápido.
 
