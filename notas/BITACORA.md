@@ -485,3 +485,9 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   en las dos capturas. Con el brazo abajo no se ve en la punta; con el brazo estirado sí se vería. **J2**, una vez en
   tres capturas (134042): llegó al final del recorrido 0,7° adelantada, se pasó a 74,53°, bajó despacio a 74,30° y
   quedó firme con −0,30° al borde de su `tolPos` (llegada→firmes 13,8 s).
+- **J1 con la aceleración del recorrido a 10 °/s²** (`a2df224`; `trayectoria_20261103_134817`): en el primer `mv` J1
+  frena en 19,38° (antes se pasaba a 20,15° y volvía), espera quieta y la aproximación la lleva a 20,11° de un
+  empujón. Errores del LLEGO ≤ 0,19°, J2 bien esta vez (−0,07°), llegada→firmes 0,2–0,5 s. **La vuelta a `mv 3 3 3`
+  tarda ~19 s y parece que se corrige**: J2 y J3 bajan hasta 1° (el punto previo, 2° debajo de 3°, a 1° de su final de
+  carrera y dentro del margen de 3°) y suben de nuevo; J2 tan abajo necesita 40 % y llega atrasada 1,2°, se pasa a
+  3,15° y vuelve a 2,98°. J1 baja a 2,87° y vuelve a 3,04°.
