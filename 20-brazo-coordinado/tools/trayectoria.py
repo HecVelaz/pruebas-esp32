@@ -42,7 +42,7 @@ NOMBRES = ("J1", "J2", "J3")
 VOLVER = "mv 3 3 3"  # al final de cada serie (salvo --sin-volver): cerca del cero, listo para el próximo homing
 COLUMNAS = ["t_ms", "etapa"] + [f"{c}{i}" for i in (1, 2, 3) for c in ("q", "r", "u", "w", "s")]
 ESTADOS = {0: "suelta", 1: "yendo", 2: "llegó", 3: "firme", 4: "frenada", 5: "siguiendo", 6: "homing"}
-ETAPAS = {0: "", 1: "recorrido", 2: "aproximación", 3: "llegada", 4: "asentamiento", 9: "homing"}
+ETAPAS = {0: "", 1: "recorrido", 2: "aproximación", 3: "llegada", 4: "asentamiento", 8: "joystick", 9: "homing"}
 
 
 # ---------------------------------------------------------------------------------------------- captura en la placa

@@ -37,7 +37,17 @@ tools/monitor.sh                            # salir con Ctrl+]
 `h` homing de las tres · `j <n> <°>` mover una (1, 2 o 3) dentro de sus límites y de la franja · `mv <q1> <q2> <q3>`
 las tres a la vez (5b) · `t [1|0]` telemetría a 50 Hz (5c; no corta el `mv`) · `s` sostener las
 tres donde están · `z` cero acá (en los finales de carrera; mejor `h`) · `c` estado · `fb` freno en banda sí/no ·
-`ff <n> <desp+> <marcha+> <desp-> <marcha->` feedforward de una (en vivo) · `x` rueda libre de las tres · `?`.
+`ff <n> <desp+> <marcha+> <desp-> <marcha->` feedforward de una (en vivo) · `x` rueda libre de las tres · `?` ·
+`jv <a1> <a2> <a3>` joystick (abajo).
+
+**Joystick `jv`** (2026-11-03, para medir la caja sin cambiar de firmware): cada eje, de −1 a 1, es la velocidad de su
+articulación **en lazo cerrado** (la referencia avanza a esa velocidad, a fondo `JOY_FACTOR_VEL` 0,4 de vMax: J1
+12 °/s, J2 y J3 8 °/s; acelera y frena con la mitad de aMax) y la cascada la sigue. Al soltar (eje en 0) frena y **se
+sostiene donde quedó** (J2 y J3 no caen). No pasa los límites ni la franja con 3° de margen: frena a tiempo para
+quedar en el borde. Hombre muerto: sin `jv` en 300 ms, frena las tres. Necesita el cero (`h`). `jv 0 0 0` con el
+joystick quieto no corta el homing ni un `mv`; cualquier otro comando corta el joystick (se sostienen). Corta y frena si
+una se aleja más de 5° de su referencia o la franja la frena. Telemetría: etapa 8. Desde el monitor un `jv` mueve unos
+300 ms y frena (sirve para probar); para manejarlo, `tools/joystick.py --placa 20` (de `17`).
 
 ## Prueba 5a
 
@@ -81,7 +91,7 @@ python3 tools/trayectoria.py --archivo resultados/trayectoria_....csv --solo-res
 ```
 
 Línea de telemetría: `T,ms,etapa,` y por cada una `q,ref,duty,w,estado` (etapa del `mv`: 1 recorrido,
-2 aproximación, 3 llegada, 4 asentamiento, 9 homing; estado: 0 suelta, 1 yendo, 2 llegó, 3 firme, 4 frenada,
+2 aproximación, 3 llegada, 4 asentamiento, 8 joystick, 9 homing; estado: 0 suelta, 1 yendo, 2 llegó, 3 firme, 4 frenada,
 5 siguiendo, 6 homing). Al prenderla, `TELE_CFG` con `tolPos` y `bandaInt` de las tres; al apagarla, `TELE_FIN,<perdidas>`.
 
 ## Estado
@@ -94,7 +104,8 @@ Línea de telemetría: `T,ms,etapa,` y por cada una `q,ref,duty,w,estado` (etapa
   tramo a 2 °/s (llegada siempre con el ángulo creciendo); el sostener arranca del duty que sostiene el peso; a los 2 s firmes: `LLEGO,t,q1,q2,q3,e1,e2,e3`. Corta si alguna se aleja más de 5° de su referencia, con
   la franja o con cualquier comando. **No esquiva la caja.**
 - [x] 5c (**probada en placa 2026-10-31**, sin muestras perdidas): telemetría `t` y `tools/trayectoria.py`
-- [ ] Zona prohibida: que el brazo no choque con la caja (después)
+- [ ] Joystick `jv` (lazo cerrado, se sostiene al soltar) y `joystick.py --placa 20`: compila, sin probar en placa
+- [ ] Zona prohibida: que el brazo no choque con la caja (después; medirla con el joystick)
 
 ## Resultados
 

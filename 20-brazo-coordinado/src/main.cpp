@@ -39,7 +39,8 @@ struct Mensaje {
 constexpr int TELE_DIV = 2;  // una muestra cada 2 periodos: 50 Hz
 struct Muestra {
   uint32_t ms;
-  uint8_t etapa;       // del mv (1 recorrido, 2 aproximación, 3 llegada, 4 asentamiento), 9 homing, 0 nada
+  uint8_t etapa;       // del mv (1 recorrido, 2 aproximación, 3 llegada, 4 asentamiento), 8 joystick, 9 homing,
+                       // 0 nada
   float q[3], r[3], u[3], w[3];
   uint8_t est[3];      // 0 suelta, 1 sosteniendo yendo, 2 llegó, 3 firme, 4 frenada, 5 siguiendo, 6 homing
 };
@@ -400,6 +401,9 @@ void ayuda() {
   msg("  j <n> <°>    mover una articulación (1, 2 o 3) a un ángulo, dentro de sus límites y de la franja");
   msg("  mv <q1> <q2> <q3>  las tres a la vez, terminan juntas (recta en q2-q3), llegan con el ángulo creciendo;");
   msg("               al asentarse: LLEGO,t,q1,q2,q3,e1,e2,e3. Ojo: no esquiva la caja (zona prohibida pendiente)");
+  msg("  jv <a1> <a2> <a3>  joystick: cada eje (-1 a 1) es la velocidad de su articulación; repetir cada");
+  msg("               < %lu ms (si no, frena); al soltar se sostiene. tools/joystick.py --placa 20",
+      (unsigned long)JOY_HOMBRE_MUERTO_MS);
   msg("  t [1|0]      telemetría a 50 Hz (T,ms,etapa,q,ref,duty,w,estado de cada una); no corta el mv ni el homing");
   msg("  s            sostener las tres donde están");
   msg("  z            cero de las tres acá (tienen que estar en sus finales de carrera; mejor \"h\")");
@@ -475,6 +479,115 @@ void comandoMover(const char *args) {
   msg(">> %s hacia %+.2f°.", art[i].cfg().nombre, g);
 }
 
+// ---------- Joystick ("jv"): velocidad de cada una en lazo cerrado ----------
+struct {
+  bool activo = false;
+  float a[N] = {};        // ejes pedidos (-1 a 1)
+  float w[N] = {};        // °/s de la referencia (aceleración limitada)
+  float ref[N] = {};      // referencia de las que se mueven
+  bool mueve[N] = {};     // siguiendo la referencia del joystick
+  uint32_t tUltimo = 0;   // millis() del último "jv"
+} joy;
+
+// Las que se movían con el joystick: sostener donde están (otro comando) o frenadas (un corte)
+void joyParar(bool frenar) {
+  for (int i = 0; i < N; i++) {
+    if (joy.mueve[i]) frenar ? art[i].frenarAqui() : art[i].sostenerAqui();
+    joy.mueve[i] = false;
+    joy.a[i] = joy.w[i] = 0.0f;
+  }
+  joy.activo = false;
+}
+
+// Lee los tres ejes de "jv" (con la zona muerta y entre -1 y 1); false si no son tres números
+bool joyEjes(const char *args, float e[N]) {
+  if (sscanf(args, "%f %f %f", &e[I1], &e[I2], &e[I3]) != 3) return false;
+  for (int i = 0; i < N; i++) {
+    if (!isfinite(e[i])) return false;
+    e[i] = fabsf(e[i]) < JOY_ZONA_MUERTA ? 0.0f : constrain(e[i], -1.0f, 1.0f);
+  }
+  return true;
+}
+
+void comandoJoy(const char *args) {
+  float e[N];
+  static uint32_t tAviso = 0;  // el puente manda "jv" 10 veces por segundo: los avisos, cada 2 s como mucho
+  const bool avisar = millis() - tAviso > 2000;
+  if (!joyEjes(args, e)) {
+    if (avisar) msg("Uso: jv <a1> <a2> <a3>  (cada eje de -1 a 1; repetir cada < %lu ms)",
+                    (unsigned long)JOY_HOMBRE_MUERTO_MS);
+    tAviso = millis();
+    return;
+  }
+  if (!cero[I1] || !cero[I2] || !cero[I3]) {
+    if (avisar) msg("Joystick: alguna sin cero, primero \"h\".");
+    tAviso = millis();
+    return;
+  }
+  if (!joy.activo) {
+    enAlto();
+    for (auto &a : art) {
+      a.reiniciarEstado();
+      if (a.modo() == Articulacion::Modo::Suelta) a.sostenerAqui();
+    }
+    joy.activo = true;
+  }
+  for (int i = 0; i < N; i++) joy.a[i] = e[i];
+  joy.tUltimo = millis();
+}
+
+// Un período: la referencia de cada una avanza a la velocidad del eje (acelera y frena con JOY_FACTOR_ACEL·aMax) y no
+// pasa los límites ni la franja con margen (frena a tiempo para quedar en el borde); al soltar, sostiene donde quedó
+void joyPaso() {
+  if (!joy.activo) return;
+  const bool vivo = millis() - joy.tUltimo <= JOY_HOMBRE_MUERTO_MS;
+  bool alguna = false;
+  for (int i = 0; i < N; i++) {
+    if (art[i].error()) {
+      joyParar(true);
+      msg(">> Joystick cortado: %s %s. Quedan sosteniendo donde están.", art[i].cfg().nombre, art[i].error());
+      return;
+    }
+    // Otra parte del control la sacó de la trayectoria (la franja la frena): no insistir
+    if (joy.mueve[i] && art[i].modo() != Articulacion::Modo::Seguir) {
+      joyParar(true);
+      msg(">> Joystick cortado: %s dejó de seguir (¿franja?). Quedan sosteniendo donde están.", art[i].cfg().nombre);
+      return;
+    }
+    const ConfigArticulacion &c = art[i].cfg();
+    const float wObj = (vivo ? joy.a[i] : 0.0f) * JOY_FACTOR_VEL * c.vMax;
+    if (!joy.mueve[i]) {
+      if (wObj == 0.0f) continue;
+      joy.mueve[i] = true;
+      joy.ref[i] = art[i].q();
+      joy.w[i] = 0.0f;
+    }
+    float mn, mx;
+    rango(i, mn, mx);  // con las tres con cero siempre da true
+    const float acel = JOY_FACTOR_ACEL * c.aMax;
+    float w = constrain(wObj, joy.w[i] - acel * Articulacion::TS, joy.w[i] + acel * Articulacion::TS);
+    // Frenar a tiempo: con la aceleración acel, la velocidad que todavía para antes del borde
+    if (w > 0.0f) w = fminf(w, sqrtf(fmaxf(2.0f * acel * (mx - joy.ref[i]), 0.0f)));
+    if (w < 0.0f) w = fmaxf(w, -sqrtf(fmaxf(2.0f * acel * (joy.ref[i] - mn), 0.0f)));
+    joy.w[i] = w;
+    joy.ref[i] += w * Articulacion::TS;
+    if (fabsf(joy.ref[i] - art[i].q()) > MV_ERROR_MAX) {
+      joyParar(true);
+      msg(">> Joystick cortado: %s no sigue (más de %.0f° de error). Quedan sosteniendo donde están.", c.nombre,
+          MV_ERROR_MAX);
+      return;
+    }
+    if (wObj == 0.0f && w == 0.0f) {  // soltada y ya frenada: sostener donde quedó la referencia
+      art[i].sostener(joy.ref[i]);
+      joy.mueve[i] = false;
+      continue;
+    }
+    art[i].seguir(joy.ref[i], w);
+    alguna = true;
+  }
+  if (!alguna && !vivo) joy.activo = false;
+}
+
 void comandoFF(const char *args) {
   int n = 0;
   float v[4];
@@ -497,6 +610,12 @@ void ejecutar(char *l) {
   while (*l == ' ') l++;
   if (*l == '\0') return;
   const bool noCorta = strcmp(l, "c") == 0 || l[0] == 't';  // "c" y "t" no cortan nada
+  const bool esJoy = strncmp(l, "jv ", 3) == 0;
+  if (esJoy && !joy.activo) {  // el puente manda "jv 0 0 0" siempre: con el joystick en el centro no corta nada
+    float e[N];
+    if (joyEjes(l + 3, e) && e[I1] == 0.0f && e[I2] == 0.0f && e[I3] == 0.0f) return;
+  }
+  if (joy.activo && !noCorta && !esJoy) joyParar(false);  // otro comando: las del joystick se sostienen donde están
   if (hm.activo && !noCorta) {  // cualquier otro comando corta el homing
     homingCortar("comando");
     if (strcmp(l, "x") != 0) return;
@@ -552,6 +671,8 @@ void ejecutar(char *l) {
     msg(">> Freno dentro de la banda %s (las tres).", frenoBanda ? "PRENDIDO" : "APAGADO");
   } else if (l[0] == 'j' && l[1] == ' ') {
     comandoMover(l + 2);
+  } else if (esJoy) {
+    comandoJoy(l + 3);
   } else if (strncmp(l, "mv ", 3) == 0) {
     comandoMv(l + 3);
   } else if (strncmp(l, "ff ", 3) == 0) {
@@ -585,11 +706,12 @@ void control(void *) {
     }
     homingPaso();
     mvPaso();
+    joyPaso();
     static uint32_t kTele = 0;
     if (tele && ++kTele % TELE_DIV == 0) {
       Muestra m;
       m.ms = millis();
-      m.etapa = mv.activo ? (uint8_t)mv.etapa : (hm.activo ? 9 : 0);
+      m.etapa = mv.activo ? (uint8_t)mv.etapa : (hm.activo ? 9 : (joy.activo ? 8 : 0));
       for (int i = 0; i < N; i++) {
         m.q[i] = art[i].q();
         m.r[i] = refUsada[i];

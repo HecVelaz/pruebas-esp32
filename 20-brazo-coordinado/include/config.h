@@ -35,6 +35,14 @@ constexpr float VEL_APROX = 2.0f;          // °/s (pico del perfil del último 
 constexpr float MV_ERROR_MAX = 5.0f;       // ° entre la referencia y la medición: corta (no sigue la trayectoria)
 constexpr uint32_t MV_LLEGADA_MAX_MS = 20000;  // después de la trayectoria, tiempo para quedar las tres firmes
 
+// ---------- Joystick ("jv a1 a2 a3", 2026-11-03): cada eje (-1 a 1) es la velocidad de su articulación, en lazo
+// cerrado (la referencia avanza a esa velocidad y la cascada la sigue); al soltar, se sostiene donde quedó. Límites y
+// franja con MARGEN_LIMITE: frena antes del borde. Lo usa tools/joystick.py (de 17) con --placa 20.
+constexpr float JOY_FACTOR_VEL = 0.4f;      // fracción de vMax con el eje a fondo (J1 12 °/s, J2 y J3 8 °/s)
+constexpr float JOY_FACTOR_ACEL = 0.5f;     // fracción de aMax para acelerar y frenar la referencia
+constexpr float JOY_ZONA_MUERTA = 0.05f;    // |eje| menor que esto = 0
+constexpr uint32_t JOY_HOMBRE_MUERTO_MS = 300;  // sin "jv" en este tiempo: los ejes vuelven a 0 (frena y sostiene)
+
 // ---------- J1 (base): 36GP-555 160 rpm (50:1), correa 18 -> 84 (12-j1-base)
 constexpr ConfigArticulacion CFG_J1 = {
     "J1",
