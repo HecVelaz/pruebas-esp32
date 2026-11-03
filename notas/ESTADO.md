@@ -22,7 +22,8 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
   - Joystick `jv` (puente `17/tools/joystick.py --placa 20`) usado en placa, con los 3 arreglos de la revisión de
     Codex (frena un `j` en curso, probado; no se rearma tras un corte; fuera de la franja solo hacia adentro).
   - **J1 0–118° PROVISORIO** (libre hasta 115° recogido y medio estirado; falta con 74/70 y más allá de 118°). La caja
-    no está en el firmware: primeras anotaciones en `limites_20261103_145324`. `MV_FACTOR_VEL` 0,5 PROVISORIO.
+    no está en el firmware: primeras anotaciones en `limites_20261103_145324` y la geometría (a ojo) en la bitácora;
+    falta calibrar el cuatro barras con un video de perfil. `MV_FACTOR_VEL` 0,5 PROVISORIO.
 - **`19-j2-j3-conjunto`:** banco de pruebas de J2 y J3 (una activa, la otra sostenida). Fases 1–4 del plan probadas
   en placa (franja, sostener con banda 0,2° / compensación de fricción / freno en banda, mapa de gravedad, homing);
   20 kHz. La fase 5 siguió en `20`.

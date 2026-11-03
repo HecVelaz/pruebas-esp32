@@ -542,3 +542,10 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   gira hacia el mástil: por el frente (las anotaciones "limite" por la caja a J1 66° y 91° lo confirman) → a 90°
   apunta adelante, sobre la caja; el mástil queda a ~141°. Falta cómo cambian los ángulos del brazo y del antebrazo
   con q2 y q3 (el cuatro barras): calibrarlo con fotos de frente en varias poses con J1 en 3°.
+- **Calibración del cuatro barras con video, primer intento** (`trayectoria_20261103_162021` y `_162438`, la segunda
+  con `VID_20261103_162239.mp4`, fuera del repo): `h` y 6 poses con J1 en 3° (30/20, 50/45, 74/70, 74/55, 74/78,
+  90/85), 6 s quietas en cada una (`c --espera 6`). Las dos corridas llegan con ≤ 0,30° y repiten entre sí en ≤ 0,1°.
+  **El video no sirve para los ángulos:** la cámara quedó del lado de la rueda y con J1 en 3° el brazo apunta casi
+  hacia ella (se ve de punta). Sí se ve que en 74/70 la pinza baja más o menos hasta la altura de la tapa (por eso
+  choca con J1 sobre la caja). Repetir con la cámara donde se sacó `vista_frontal.jpeg` (lado de los ultrasonidos),
+  que ve el brazo de perfil con J1 en 0.
