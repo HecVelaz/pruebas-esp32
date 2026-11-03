@@ -71,9 +71,10 @@ constexpr ConfigArticulacion CFG_J1 = {
     PIN_J1_RPWM, PIN_J1_LPWM, PIN_BRAZO_EN, PIN_FC_J1, 0, 1, PIN_J1_ENC_A, PIN_J1_ENC_B, PCNT_UNIT_0, 20000, 10,
     16.0f * 4.0f * 50.0f * (84.0f / 18.0f) / 360.0f,  // 41,48 cuentas/°
     false, true,                                       // signos de 12 (2026-10-30, + hacia el mástil)
-    // Límites: 0-118° medidos con el brazo RECOGIDO; estirado choca antes con el soporte de la visión (sin medir):
-    // 90° PROVISORIO (decisión del usuario, 2026-10-31)
-    0.0f, 90.0f, 70.0f,
+    // Límites: 0-118° medidos con el brazo RECOGIDO; estirado choca antes con el soporte de la visión (sin medir).
+    // 2026-11-03: 90 -> 118° PROVISORIO, para medir con el joystick hasta dónde llega (el usuario espera 120-130°);
+    // ojo con el brazo estirado: ni "mv" ni el joystick esquivan el soporte. Con MARGEN_LIMITE, hasta 115°
+    0.0f, 118.0f, 70.0f,
     0.549f, 4.0f,                         // PI de velocidad de 12 (terminada)
     17.0f, 17.0f, 17.0f, 17.0f, 0.0f,     // feedforward de 12 (sin gravedad)
     2.0f, 30.0f, 60.0f, 3.0f, 0.3f, 0.6f, 200,
