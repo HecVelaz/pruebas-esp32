@@ -240,7 +240,8 @@ float duracion(const float d[N], float factorVel, float velFija) {
     const float D = fabsf(d[i]);
     if (D < 1e-3f) continue;
     const float v = velFija > 0.0f ? velFija : factorVel * art[i].cfg().vMax;
-    const float a = factorVel * art[i].cfg().aMax;
+    float a = factorVel * art[i].cfg().aMax;
+    if (velFija <= 0.0f && MV_ACEL_MAX[i] > 0.0f) a = fminf(a, MV_ACEL_MAX[i]);  // recorrido: tope propio
     T = fmaxf(T, fmaxf(1.875f * D / v, sqrtf(5.774f * D / a)));
   }
   return T;
