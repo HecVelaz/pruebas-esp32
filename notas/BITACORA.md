@@ -460,4 +460,12 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
 - **J1 con aproximación propia** (`trayectoria_20261103_110513`): llega en un solo empujón (se traba, despega y salta
   ~0,7° a 6 °/s), se pasa 0,1–0,2° (antes quedaba 0,38° corta), inversiones 0, cada `mv` 7,7 s (antes 9). Con el
   encoder en el motor y la fricción de la correa, ±0,2° en la base parece el límite sin cambiar la mecánica.
+- **Video fijo de la 1b** (`VID_20261103_113530.mp4`, 1080×1920 a 30 fps, fuera del repo; captura
+  `trayectoria_20261103_113641`, el video va ~1,2 s detrás de la captura). Limón seguido por color con OpenCV
+  (~1,1 mm por píxel, el limón mide ~52 px). **Llegando a 60° (J1 sigue en el mismo sentido): sin oscilación**, se
+  acomoda en ~1,2 s. **Llegando a 20° (J1 baja a 19,5° y SUBE el último tramo: invierte el sentido): oscila
+  ±12 px (~±1,4 cm) a ~1,5 Hz** (período ~0,67 s) y se apaga en ~1,5 s, **con los tres encoders quietos** (J1
+  frenada en 19,89°, J2 y J3 frenadas): es la correa y la estructura, el encoder de J1 (en el motor) no lo ve. La
+  primera subida (3 → 20 / 74 / 70) oscila igual a ~1,5 Hz (±45 px, amortiguamiento ~0,15–0,2). La vuelta a
+  `mv 3 3 3` cortó con "no bajó por debajo del objetivo" (quedó en 2,9 / 0,9 / 1,3, abajo).
 
