@@ -5,7 +5,8 @@ del brazo con **el mismo controlador** (`lib/Articulacion`, sin `Serial` ni pine
 bloqueante a 100 Hz**. `19` queda como banco de pruebas de una articulación por vez.
 
 - **Controlador** (de `12`/`19`, probado en placa): cascada P de posición → PI de velocidad con feedforward de
-  fricción; al llegar, sostener con banda del integrador (0,2°), compensación de fricción (J3 15 %) y **freno dentro
+  fricción (desde el 03/11, paso 2: **el signo sale de la velocidad de la trayectoria**, no de la pedida con la
+  corrección, y entra suave: ff · tanh(|w| / 0,5 °/s); el arranque sin salto usa el mismo ff); al llegar, sostener con banda del integrador (0,2°), compensación de fricción (J3 15 %) y **freno dentro
   de la banda** (firme → duty 0, sin ruido). Protecciones: sin cuentas, al revés, atasco, límites.
 - **Homing `h`:** con el brazo abajo (J2 sin cero o a ≤ 5°, `HOMING_Q2_JUNTAS`) **las tres juntas** (desde el 03/11:
   J2 y J3 bajan a la misma velocidad y quedan dentro de la franja); si no, J3 → J2 (con el codo abajo, bajar el hombro

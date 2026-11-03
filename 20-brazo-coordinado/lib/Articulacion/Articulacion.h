@@ -113,7 +113,8 @@ class Articulacion {
   int64_t cuentas() const;
   float grados(int64_t c) const { return (float)c / c_.cuentasPorGrado; }
   void aplicar(float pct);
-  float pasoPI(float wRef, float th);
+  // wFf: velocidad de la que sale el feedforward (la de la trayectoria, sin la corrección de posición)
+  float pasoPI(float wRef, float th, float wFf);
   void cortar(const char *causa);      // protección: deja de mover y sostiene donde está
   void protecciones(float wRefMov);
 

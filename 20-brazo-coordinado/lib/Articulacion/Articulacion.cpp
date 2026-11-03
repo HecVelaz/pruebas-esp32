@@ -11,6 +11,9 @@ constexpr float FR_RAMPA_GRADOS = 0.3f;   // compensación de fricción: llena d
 constexpr float TS_POS = 0.02f;           // s, el P de posición corre cada 2 periodos (50 Hz)
 constexpr float VEL_LLEGADA = 2.0f;       // °/s: "llegó" exige además ir más despacio que esto
 constexpr float REENTRADA_GRADOS = 1.5f;  // después de llegar, si se aleja más: vuelve a la cascada
+// Feedforward suave (2026-11-03, paso 2): ff · tanh(|wFf| / W_FF_SUAVE) en vez del escalón en wFf = 0. Con 2 °/s
+// (la aproximación) da el 96 %; en los extremos de cada tramo entra y sale sin salto
+constexpr float W_FF_SUAVE = 0.5f;        // °/s
 }  // namespace
 
 bool Articulacion::begin(const ConfigArticulacion &c) {
@@ -42,9 +45,12 @@ void Articulacion::aplicar(float pct) {
 uint32_t Articulacion::msFirme() const { return firme() ? millis() - tFirme_ : 0; }
 
 // Un paso del PI de velocidad (de 12-14/19): feedforward de fricción con rampa de despegue, anti-windup.
-float Articulacion::pasoPI(float wRef, float th) {
+// El feedforward (signo, rampa de despegue y tamaño) sale de wFf, la velocidad de la TRAYECTORIA, no de wRef (la
+// pedida, que lleva la corrección de posición): en la aproximación de J1 la corrección cambiaba de signo cerca de
+// velocidad 0 y el ff saltaba +17 -> -19 % unas 25 veces por aproximación (2026-11-03, 1b: ida y vuelta en la punta)
+float Articulacion::pasoPI(float wRef, float th, float wFf) {
   (void)th;
-  const int signo = wRef > 0 ? 1 : (wRef < 0 ? -1 : 0);
+  const int signo = wFf > 0 ? 1 : (wFf < 0 ? -1 : 0);
   static_assert(TS_MS == 10, "TS");
   if (signo != signoAnt_) {
     ffRampa_ = 0.0f;
@@ -70,7 +76,7 @@ float Articulacion::pasoPI(float wRef, float th) {
   const float marcha = fmaxf(signo > 0 ? c_.ffMarchaPos : c_.ffMarchaNeg, signo > 0 ? c_.ffMinPos : 0.0f);
   const float desp = fmaxf(signo > 0 ? c_.ffDespPos : c_.ffDespNeg, marcha);
   if (!despegada_) ffRampa_ = fminf(ffRampa_ + RAMPA_DESPEGUE * TS, desp - marcha);
-  const float ff = signo * (marcha + (despegada_ ? 0.0f : ffRampa_));
+  const float ff = signo * (marcha + (despegada_ ? 0.0f : ffRampa_)) * tanhf(fabsf(wFf) / W_FF_SUAVE);
   const float uLibre = ff + c_.kpVel * e + integral_;
   const float u = constrain(uLibre, -c_.dutyMax, c_.dutyMax);
   if (u == uLibre || (e > 0) != (uLibre > 0)) integral_ += c_.kiVel * TS * e;
@@ -80,9 +86,11 @@ float Articulacion::pasoPI(float wRef, float th) {
 // Arrancar el PI de velocidad sin salto desde el duty actual, en el sentido sg (primer periodo: wRef = sg·w0).
 // Nunca por debajo del feedforward en el sentido del movimiento: si venía frenada (duty 0), la integral negativa
 // anulaba el feedforward y arrancaba desde 0 (2026-10-31: el retroceso de J2 después del flanco tardaba > 15 s).
+// El feedforward del primer periodo, con el mismo tanh que pasoPI: al empezar un mv (w0 ~ 0) es casi 0 y la integral
+// se queda con el duty que traía (J2 subiendo sigue sosteniendo su peso, sin salto a +25 %).
 static float integralSinSalto(const ConfigArticulacion &c, float u, int sg, float w0) {
   const float marcha = sg > 0 ? fmaxf(c.ffMarchaPos, c.ffMinPos) : c.ffMarchaNeg;
-  const float i = u - sg * marcha - c.kpVel * sg * w0;
+  const float i = u - sg * marcha * tanhf(fabsf(w0) / W_FF_SUAVE) - c.kpVel * sg * w0;
   return sg * i > 0.0f ? i : 0.0f;
 }
 
@@ -286,7 +294,7 @@ void Articulacion::paso() {
       // toma siempre a homingVelBuscar)
       const float vBuscar = (hConCero_ && g > c_.homingZonaLenta) ? c_.homingVelRapida : c_.homingVelBuscar;
       const float wRef = hFase_ == 2 ? c_.homingVelAlejar : -vBuscar;
-      const float u = constrain(pasoPI(wRef, g), -c_.homingDutyMax, c_.homingDutyMax);
+      const float u = constrain(pasoPI(wRef, g, wRef), -c_.homingDutyMax, c_.homingDutyMax);
       aplicar(u);
       if (fabsf(g - hInicio_) > hRecorridoMax_) {
         cortar(hRecorridoMax_ < c_.homingRecorridoMax ? "sin cero y lejos del final de carrera (¿recogido?)"
@@ -307,7 +315,7 @@ void Articulacion::paso() {
       // Trayectoria del coordinador: velocidad pedida = la de la trayectoria + KPP·error, a la cascada
       const float e = ref_ - g;
       const float wPedida = constrain(wRefSeguir_ + c_.kpp * e, -1.5f * c_.vMax, 1.5f * c_.vMax);
-      aplicar(pasoPI(wPedida, g));
+      aplicar(pasoPI(wPedida, g, wRefSeguir_));
       if (g > c_.limPos + 0.5f || g < c_.limNeg - 0.5f) {
         cortar("límite propio");
         return;
@@ -339,7 +347,7 @@ void Articulacion::paso() {
           }
         }
         if (!llegado_) {
-          aplicar(pasoPI(wRefPos_, g));
+          aplicar(pasoPI(wRefPos_, g, wRefPos_));
           // Límite propio: fuera de él y yendo hacia afuera, corta (sobrepaso o caída)
           if ((g > c_.limPos + 0.5f && wRefPos_ > 0.0f) || (g < c_.limNeg - 0.5f && wRefPos_ < 0.0f)) {
             cortar("límite propio");
