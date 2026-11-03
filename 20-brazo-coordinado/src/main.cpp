@@ -285,8 +285,10 @@ void mvIniciar(const float obj[N]) {
     if (art[i].modo() != Articulacion::Modo::Sostener || !art[i].llego()) art[i].sostenerAqui();
     mv.obj[i] = obj[i];
     // Todas las que se mueven llegan con la aproximación (2026-10-31): subiendo directo, J2 llegaba adelantada al
-    // frenar y quedaba 0,25° arriba; con el último tramo lento desde abajo, 0,00°. Y llegan siempre igual (fase 6)
-    mv.aprox[i] = fabsf(obj[i] - art[i].q()) > 0.05f;
+    // frenar y quedaba 0,25° arriba; con el último tramo lento desde abajo, 0,00°. La que ya está dentro de su tolPos
+    // no se mueve (2026-11-03, antes 0,05°: en la 1b J2 a 0,137° hacía 2° abajo y vuelta en cada mv de J1, se trababa
+    // y se pasaba 0,72°; sostener() con el mismo objetivo no hace nada)
+    mv.aprox[i] = fabsf(obj[i] - art[i].q()) > art[i].cfg().tolPos;
   }
   mv.activo = true;
   bool algunaAprox = false;

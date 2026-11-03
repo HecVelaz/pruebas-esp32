@@ -110,7 +110,8 @@ Línea de telemetría: `T,ms,etapa,` y por cada una `q,ref,duty,w,estado` (etapa
 - [x] 5b (**probada en placa 2026-10-31**: terminan juntas, las que bajan se pasan y vuelven subiendo; errores ≤ 0,46°): `mv q1 q2 q3`: las tres siguen el mismo perfil quíntico
   (terminan juntas; recta en (q2, q3) dentro de la franja), a la mitad de su vMax/aMax (`MV_FACTOR_VEL`,
   PROVISORIO); todas las que se mueven (desde el 31/10 también las que suben) terminan 2° por debajo y suben el último
-  tramo a 2 °/s (llegada siempre con el ángulo creciendo); el sostener arranca del duty que sostiene el peso; a los 2 s firmes: `LLEGO,t,q1,q2,q3,e1,e2,e3`. Corta si alguna se aleja más de 5° de su referencia, con
+  tramo a 2 °/s (llegada siempre con el ángulo creciendo; desde el 03/11 la que ya está dentro de su `tolPos` no se
+  mueve); el sostener arranca del duty que sostiene el peso; a los 2 s firmes: `LLEGO,t,q1,q2,q3,e1,e2,e3`. Corta si alguna se aleja más de 5° de su referencia, con
   la franja o con cualquier comando. **No esquiva la caja.**
 - [x] 5c (**probada en placa 2026-10-31**, sin muestras perdidas): telemetría `t` y `tools/trayectoria.py`
 - [ ] Joystick `jv` (lazo cerrado, se sostiene al soltar) y `joystick.py --placa 20`: compila, sin probar en placa
