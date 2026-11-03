@@ -551,6 +551,7 @@ struct {
   float ref[N] = {};      // referencia de las que se mueven
   bool mueve[N] = {};     // siguiendo la referencia del joystick
   uint32_t tUltimo = 0;   // millis() del último "jv"
+  bool bloqueado = false; // cortado por una protección: no se reactiva hasta un "jv 0 0 0" (palanca soltada)
 } joy;
 
 // Las que se movían con el joystick: sostener donde están (otro comando) o frenadas (un corte)
@@ -561,6 +562,9 @@ void joyParar(bool frenar) {
     joy.a[i] = joy.w[i] = 0.0f;
   }
   joy.activo = false;
+  // Un corte (frenar) no se rearma con el siguiente "jv": con la palanca sostenida volvía a empujar contra el mismo
+  // obstáculo y reiniciarEstado() borraba el error (revisión de Codex, 2026-11-03). Hay que soltarla
+  if (frenar) joy.bloqueado = true;
 }
 
 // Lee los tres ejes de "jv" (con la zona muerta y entre -1 y 1); false si no son tres números
@@ -704,6 +708,20 @@ void ejecutar(char *l) {
   if (*l == '\0') return;
   const bool noCorta = strcmp(l, "c") == 0 || l[0] == 't';  // "c" y "t" no cortan nada
   const bool esJoy = strncmp(l, "jv ", 3) == 0;
+  if (esJoy && joy.bloqueado) {  // después de un corte del joystick: hasta soltar la palanca, nada
+    float e[N];
+    if (joyEjes(l + 3, e) && e[I1] == 0.0f && e[I2] == 0.0f && e[I3] == 0.0f) {
+      joy.bloqueado = false;
+      msg(">> Joystick listo otra vez.");
+      return;
+    }
+    static uint32_t tAviso = 0;
+    if (millis() - tAviso > 2000) {
+      msg("Joystick bloqueado por el corte: soltar la palanca (centro) para seguir.");
+      tAviso = millis();
+    }
+    return;
+  }
   if (esJoy && !joy.activo) {  // el puente manda "jv 0 0 0" siempre: con el joystick en el centro no corta nada
     float e[N];
     if (joyEjes(l + 3, e) && e[I1] == 0.0f && e[I2] == 0.0f && e[I3] == 0.0f) return;
