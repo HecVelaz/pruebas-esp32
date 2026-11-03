@@ -476,3 +476,12 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   perfil es lentísimo y se traba 1,6 s en 18,68° (15–17 %, w = 0); al empezar la aproximación sube a 28 %, se despega
   a 16 °/s, se pasa a 21,0° y vuelve con −18 % a 19,86°. En el video: ±35 px a ~1,6 Hz (incluye el ida y vuelta de
   J1), se apaga en ~1,5 s. Arreglo: J1 con su propia duración en el recorrido (`MV_DURACION_PROPIA`).
+- **J1 con su duración en el recorrido** (`cbbf8fb`; `trayectoria_20261103_134042` con video `VID_20261103_133916.mp4`,
+  de costado, fuera del repo; antes `trayectoria_20261103_133643`, la misma lista sin video). **La punta ya no se
+  hamaca en ninguna llegada**: desvío 0,8–1,5 px en el video (en la primera llegada a 20°, 1,5 px; antes 3,2 px con la
+  oscilación de ±35 px). J1 hace los 17° del primer `mv` en ~2 s, pero **se pasa**: con el perfil corto frena a
+  ~22 °/s² (los `mv` de 40° frenan a ~10 °/s² y no se pasan), va 0,6° adelante de la referencia, llega a 20,15° (más
+  allá del objetivo), el sostener la vuelve a 19,21° (−17 %: una inversión) y la aproximación la lleva a 20,11°. Igual
+  en las dos capturas. Con el brazo abajo no se ve en la punta; con el brazo estirado sí se vería. **J2**, una vez en
+  tres capturas (134042): llegó al final del recorrido 0,7° adelantada, se pasó a 74,53°, bajó despacio a 74,30° y
+  quedó firme con −0,30° al borde de su `tolPos` (llegada→firmes 13,8 s).
