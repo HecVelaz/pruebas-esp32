@@ -38,7 +38,13 @@ tools/monitor.sh                            # salir con Ctrl+]
 las tres a la vez (5b) · `t [1|0]` telemetría a 50 Hz (5c; no corta el `mv`) · `s` sostener las
 tres donde están · `z` cero acá (en los finales de carrera; mejor `h`) · `c` estado · `fb` freno en banda sí/no ·
 `ff <n> <desp+> <marcha+> <desp-> <marcha->` feedforward de una (en vivo) · `x` rueda libre de las tres · `?` ·
-`jv <a1> <a2> <a3>` joystick (abajo).
+`jv <a1> <a2> <a3>` joystick (abajo) · `zq <q1> <q2> <q3>` cero ESTIMADO: el brazo está en estos ángulos.
+
+**`zq`** (2026-11-03): sin cero el homing supone el brazo abajo y recogido. Si quedó arriba (abrir el puerto reinicia la
+WROOM y pierde el cero, pero el brazo no se mueve sin corriente), el homing lo traba contra la franja. Con `zq` y los
+ángulos donde está (de la última anotación o captura) se habilitan `j` y el joystick para bajarlo; fuera de la franja
+solo dejan volver hacia adentro (la protección de la franja no frena al joystick: él ya no deja alejarse). Después,
+abajo y recogido, `h` toma el cero de verdad.
 
 **Joystick `jv`** (2026-11-03, para medir la caja sin cambiar de firmware): cada eje, de −1 a 1, es la velocidad de su
 articulación **en lazo cerrado** (la referencia avanza a esa velocidad, a fondo `JOY_FACTOR_VEL` 0,4 de vMax: J1

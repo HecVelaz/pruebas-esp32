@@ -104,6 +104,9 @@ void homingCortar(const char *causa) {
   msg("HOMING_ERROR,%s", causa);
 }
 
+// La medición de J2/J3 salió de la franja (la tarea frena una vez por episodio; "zq" lo pone si ya empieza afuera)
+bool fueraFranja = false;
+
 bool fueraFranjaAhora() {
   const float d = dFranja();
   return cerosJ2J3() && (d < -Q2_MENOS_Q3_MAX - FRANJA_HOLGURA || d > Q3_MENOS_Q2_MAX + FRANJA_HOLGURA);
@@ -410,6 +413,7 @@ void ayuda() {
   msg("  c            estado de las tres");
   msg("  fb           freno dentro de la banda sí/no (al llegar, duty 0 hasta que se aleje)");
   msg("  ff <n> <desp+> <marcha+> <desp-> <marcha->  feedforward de una articulación (%%)");
+  msg("  zq <q1> <q2> <q3>  el brazo está en estos ángulos (cero estimado, para bajarlo sin cero; después \"h\")");
   msg("  x            rueda libre de las TRES (el brazo cae; mano debajo)");
   msg("  ?            esta ayuda");
 }
@@ -606,6 +610,33 @@ void comandoFF(const char *args) {
       art[n - 1].cfg().nombre, v[0], v[2], v[1], v[3]);
 }
 
+// "zq q1 q2 q3": el brazo está en estos ángulos (cero ESTIMADO). Para sacarlo con "j" o el joystick cuando quedó
+// lejos de los finales de carrera sin cero (al abrir el puerto la WROOM se reinicia y lo pierde; el brazo se queda
+// donde estaba). Después, abajo y recogido, "h" toma el cero de verdad en los flancos.
+void comandoZq(const char *args) {
+  float g[N];
+  if (sscanf(args, "%f %f %f", &g[I1], &g[I2], &g[I3]) != 3) {
+    msg("Uso: zq <q1> <q2> <q3>  (grados donde está el brazo ahora)");
+    return;
+  }
+  for (int i = 0; i < N; i++) {
+    const ConfigArticulacion &c = art[i].cfg();
+    if (!isfinite(g[i]) || g[i] < c.limNeg || g[i] > c.limPos) {
+      msg("zq: %s entre %+.0f° y %+.0f°.", c.nombre, c.limNeg, c.limPos);
+      return;
+    }
+  }
+  for (int i = 0; i < N; i++) {
+    art[i].fijarAngulo(g[i]);
+    cero[i] = true;
+  }
+  msg(">> Cero ESTIMADO: J1 %+.1f° J2 %+.1f° J3 %+.1f°. Bajar el brazo (j o joystick) y hacer \"h\".", g[I1], g[I2],
+      g[I3]);
+  fueraFranja = fueraFranjaAhora();  // ya avisado acá: que la tarea no frene el primer "j" que vuelve adentro
+  if (fueraFranja)
+    msg("   Fuera de la franja (q3 - q2 = %+.1f°): solo deja volver hacia adentro.", dFranja());
+}
+
 void ejecutar(char *l) {
   while (*l == ' ') l++;
   if (*l == '\0') return;
@@ -675,6 +706,8 @@ void ejecutar(char *l) {
     comandoJoy(l + 3);
   } else if (strncmp(l, "mv ", 3) == 0) {
     comandoMv(l + 3);
+  } else if (strncmp(l, "zq ", 3) == 0) {
+    comandoZq(l + 3);
   } else if (strncmp(l, "ff ", 3) == 0) {
     comandoFF(l + 3);
   } else {
@@ -723,21 +756,22 @@ void control(void *) {
     }
     // Franja del cuatro barras: si la medición sale (con holgura) con J2 o J3 controladas (moviéndose o sosteniendo:
     // sosteniendo también pueden corregir una caída), frenar las dos donde están. Una vez por episodio.
-    static bool fueraFranja = false;
     if (cerosJ2J3() && (art[I2].modo() != Articulacion::Modo::Suelta || art[I3].modo() != Articulacion::Modo::Suelta)) {
       const float d = dFranja();
       const bool fuera = d < -Q2_MENOS_Q3_MAX - FRANJA_HOLGURA || d > Q3_MENOS_Q2_MAX + FRANJA_HOLGURA;
       // Al salir, y mientras siga afuera, cualquier movimiento de J2/J3 que la aleje se frena (no solo la primera vez).
       // Un "j" que vuelve adentro sí se permite (su destino está adentro: lo valida rango()).
-      const bool alejando = fuera && (art[I2].modo() == Articulacion::Modo::Homing ||
-                                      art[I3].modo() == Articulacion::Modo::Homing ||
-                                      art[I2].modo() == Articulacion::Modo::Seguir ||
-                                      art[I3].modo() == Articulacion::Modo::Seguir);
+      // Las que mueve el joystick no: joyPaso() ya no las deja alejarse (solo volver hacia adentro, 2026-11-03)
+      const auto mueveSola = [](int i) {
+        return !joy.mueve[i] && (art[i].modo() == Articulacion::Modo::Homing ||
+                                 art[i].modo() == Articulacion::Modo::Seguir);
+      };
+      const bool alejando = fuera && (mueveSola(I2) || mueveSola(I3));
       if ((fuera && !fueraFranja) || alejando) {
         if (hm.activo) homingCortar("saldría de la franja del cuatro barras");
         if (mv.activo) mvCortar("saldría de la franja del cuatro barras");
-        art[I2].frenarAqui();
-        art[I3].frenarAqui();
+        if (!joy.mueve[I2]) art[I2].frenarAqui();
+        if (!joy.mueve[I3]) art[I3].frenarAqui();
         if (!fueraFranja)
           msg(">> FRANJA: q3 - q2 = %+.2f°, fuera de la franja. J2 y J3 frenadas donde están: volver con \"j\".", d);
       }

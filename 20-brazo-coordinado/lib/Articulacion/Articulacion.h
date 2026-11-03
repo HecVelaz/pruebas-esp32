@@ -79,6 +79,7 @@ class Articulacion {
   void homingCancelar();
   void ceroAqui();                     // el ángulo actual pasa a ser 0
   void ceroEnFlanco();                 // el flanco del último homing pasa a ser 0
+  void fijarAngulo(float g);           // el ángulo actual pasa a ser g (cero estimado, "zq")
   void frenoEnBanda(bool si) { frenoBanda_ = si; }
   void ajustarFeedforward(float despPos, float marchaPos, float despNeg, float marchaNeg) {
     c_.ffDespPos = despPos;

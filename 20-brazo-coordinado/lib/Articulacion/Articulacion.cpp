@@ -185,6 +185,13 @@ void Articulacion::ceroAqui() {
   ref_ -= grados(c);
 }
 
+void Articulacion::fijarAngulo(float g) {
+  const int64_t c = cuentas();
+  const int64_t d = c - (int64_t)llroundf(g * c_.cuentasPorGrado);
+  ceroOffset_ += d;
+  ref_ -= grados(d);
+}
+
 void Articulacion::ceroEnFlanco() {
   ceroOffset_ += flanco_;
   ref_ -= grados(flanco_);
