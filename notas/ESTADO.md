@@ -1,4 +1,4 @@
-# Estado de pruebas-esp32 (al 2026-11-02)
+# Estado de pruebas-esp32 (al 2026-11-03)
 
 Foto de hoy. La historia, las mediciones completas y los nombres de los CSV están en `BITACORA.md`; lo que sigue, en
 `PENDIENTES.md`; los pines de la S3, en `PINES_S3.md`.
@@ -15,7 +15,9 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
   `t` y `tools/trayectoria.py h "mv ..." ...` (CSV y PNG en `resultados/`). J1 0–90° PROVISORIO; feedforward de J3
   en cascada medido con la telemetría ≈ el de `config.h`; `MV_FACTOR_VEL` 0,5 PROVISORIO. No esquiva la caja.
   **Revisión de Codex (02/11):** arreglados `ff` con `nan` y la referencia de la telemetría (10 ms adelantada);
-  compilan, **sin flashear** (no estaba la placa). Se deja a propósito que una que ya está en su objetivo (a más de
+  flasheados el 03/11. **Sin el resorte de la pinza (03/11):** paso 0 (`trayectoria_20261103_092501`) J2/J3 llegan y
+  quedan firmes igual, el feedforward sirve; `trayectoria.py` imprime un resumen y `--comparar`. Sigue: homing más
+  rápido, diagnóstico de la oscilación de la punta con el brazo estirado (pasos 1–5 en `PENDIENTES.md`). Se deja a propósito que una que ya está en su objetivo (a más de
   0,05°) también haga la aproximación desde abajo.
 - **`19-j2-j3-conjunto`:** banco de pruebas de J2 y J3 (una activa, la otra sostenida). Fases 1–4 del plan probadas
   en placa (franja, sostener con banda 0,2° / compensación de fricción / freno en banda, mapa de gravedad, homing);

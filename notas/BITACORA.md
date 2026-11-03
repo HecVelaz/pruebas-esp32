@@ -384,3 +384,25 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
      **Arreglado:** se guarda la referencia antes de `paso()`. Los gráficos de antes (`trayectoria_20261031_*`)
      exageran el atraso en el recorrido; el error al quedar firme no cambia.
 - Compila; **sin flashear ni probar** (no estaba la placa): pendiente en `PENDIENTES.md`.
+
+## 2026-11-03 — 20: sin el resorte de la pinza; resumen de capturas; paso 0
+
+- **Mecánico:** el usuario sacó el resorte de la pinza (compensaba un juego para que no quedara inclinada hacia
+  abajo; ahora la gravedad carga ese juego). Problema a resolver: con el brazo estirado y el limón, la punta oscila al
+  llegar (video del 02/11, no versionado). Plan de la sesión (pasos 0–5): base sin resorte, diagnóstico de la
+  oscilación (J1 recogido / estirado, J2-J3 solas), feedforward suave (signo desde la velocidad de la trayectoria),
+  J1 más suave, `VEL_APROX` 3 °/s, deriva.
+- **`tools/trayectoria.py`** (`4fd8b78`): resumen por `mv` y articulación (inversiones del duty con cambio de signo y
+  salto > 15 % en el recorrido y en la aproximación, |error| máx de seguimiento, error del `LLEGO`, correcciones,
+  movimiento ya firme, tiempo de la llegada a firmes), totales, cola; `--comparar` y `--solo-resumen`. Sobre 180843
+  da J1 20 + 61 = 81, J2 7 + 8 = 15, J3 28 + 12 = 40: **las inversiones de J1 son sobre todo de la aproximación** a
+  2 °/s.
+- **Paso 0** (firmware 37d8827 flasheado, con los arreglos de Codex; lista fija, `--cola 5`):
+  `trayectoria_20261103_092501`. Inversiones J1 81 → 38, J2 15 → 13, J3 40 → 34; |e| máx en el recorrido 0,90 /
+  2,48 / 1,28° (J2 +0,57°: más carga sin el resorte); |e LLEGO| máx 0,105 / 0,084 / 0,062°; de la llegada a firmes
+  0,2–0,5 s; encoders quietos en la cola. **J2 y J3 no caen ni tardan:** no se cambia el feedforward (duty medido en
+  el recorrido J2 +34 / −24 %, J3 +19 / −41 %).
+- **Homing:** 16,6 s (J3 3,5 s, J2 6,3 s a 0,5 °/s, J1 2,3 s buscando, más ~4,5 s de retrocesos). Lento porque al
+  abrir el puerto la WROOM se reinicia y pierde el cero: busca todo a velocidad lenta. Propuesto (sin hacer): buscar
+  más rápido (J2 1 °/s, J3 y J1 1,5 °/s), J1 junto con J3, y que `trayectoria.py` termine siempre en `mv 3 3 3`.
+
