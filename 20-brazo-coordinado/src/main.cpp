@@ -590,9 +590,11 @@ void comandoJoy(const char *args) {
   }
   if (!joy.activo) {
     enAlto();
-    for (auto &a : art) {
-      a.reiniciarEstado();
-      if (a.modo() == Articulacion::Modo::Suelta) a.sostenerAqui();
+    for (int k = 0; k < N; k++) {
+      art[k].reiniciarEstado();
+      // También las que iban a otro lado (un "j" en curso): si no, la del eje centrado seguía sola hacia su destino
+      // aunque se soltara la palanca (revisión de Codex, 2026-11-03)
+      if (art[k].modo() == Articulacion::Modo::Suelta || enMovimiento(k)) art[k].sostenerAqui();
     }
     joy.activo = true;
   }
