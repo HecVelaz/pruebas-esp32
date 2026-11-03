@@ -491,3 +491,8 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   tarda ~19 s y parece que se corrige**: J2 y J3 bajan hasta 1° (el punto previo, 2° debajo de 3°, a 1° de su final de
   carrera y dentro del margen de 3°) y suben de nuevo; J2 tan abajo necesita 40 % y llega atrasada 1,2°, se pasa a
   3,15° y vuelve a 2,98°. J1 baja a 2,87° y vuelve a 3,04°.
+- **Aproximación dentro del margen** (`1c8a0ea`; `trayectoria_20261103_135232`): la vuelta a `mv 3 3 3` baja directo
+  (J2 y J3 sin bajar a 1°) y tarda 15,8 s (antes 19,0), llega con ≤ 0,11°. Inversiones del duty 0 en las tres,
+  llegada→firmes ≤ 0,4 s. J1 quedó una vez 0,41° corta (59,59°): la aproximación la frenó apenas dentro de su
+  `tolPos` (0,3°) y la correa la retrocedió 0,1°; como el freno no se suelta hasta `tolSalida` (0,6°), quedó así. El
+  resto de las llegadas de J1, ≤ 0,18°.
