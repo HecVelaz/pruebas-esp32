@@ -533,3 +533,12 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   115° con 74/70. Dos anotaciones "limite" **por la caja** con J2 85,2° / J3 86–87° (J1 66,6° y 91,6°) y dos en el tope
   de J2 (94,2°, el del firmware). `joystick.py` tenía el límite de J1 de 20 fijo en 90° (solo para mostrar y
   anotar): pasado a 118° (`2d784f0`). Falta saber si pasados los 115° hay lugar (el usuario esperaba 120–130°).
+- **Geometría del brazo y de la caja (a ojo, del usuario; fotos y dibujos en `~/Imágenes/brazo/`, fuera del repo):**
+  caja 40 × 40 cm y 23 cm de alto; eje de J1 en la tapa a 9 cm del borde derecho y 8,5 cm del de atrás (visto desde
+  adelante, el frente es el de los ultrasonidos); eje de J2 a 17,5 cm sobre la tapa; brazo J2 → J3 34,5 cm; antebrazo
+  J3 → punta de la pinza 33 cm; mástil (tubo de la visión, Ø 4,5–5 cm) sobre el borde izquierdo, a 30 cm a la
+  izquierda y 24 cm hacia adelante del eje de J1 (~38 cm). En el cero: J1 apunta a la derecha (vista desde adelante),
+  el brazo a 80° de la horizontal inclinado hacia atrás y el antebrazo 15° bajo la horizontal hacia afuera. J1 +
+  gira hacia el mástil: por el frente (las anotaciones "limite" por la caja a J1 66° y 91° lo confirman) → a 90°
+  apunta adelante, sobre la caja; el mástil queda a ~141°. Falta cómo cambian los ángulos del brazo y del antebrazo
+  con q2 y q3 (el cuatro barras): calibrarlo con fotos de frente en varias poses con J1 en 3°.
