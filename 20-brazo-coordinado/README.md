@@ -130,6 +130,10 @@ Línea de telemetría: `T,ms,etapa,` y por cada una `q,ref,duty,w,estado` (etapa
 - [x] 5c (**probada en placa 2026-10-31**, sin muestras perdidas): telemetría `t` y `tools/trayectoria.py`
 - [ ] Joystick `jv` (lazo cerrado, se sostiene al soltar) y `joystick.py --placa 20`: compila, sin probar en placa
 - [ ] Zona prohibida: que el brazo no choque con la caja (después; medirla con el joystick)
+- [ ] Fase 6, repetibilidad articular (ISO 9283 en los encoders): `tools/repetibilidad.py --ciclos 10` (homing,
+  1 ciclo de calentamiento, N ciclos por 5 poses probadas, vuelta a 3 3 3; por pose y articulación media, error,
+  desvío, rango y RP = l̄ + 3·S_l; CSV `resultados/repetibilidad_*.csv`, `--archivo` recalcula). Probado con una placa
+  simulada; sin probar en placa. La repetibilidad en la punta necesita video o comparador
 
 ## Resultados
 
