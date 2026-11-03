@@ -457,4 +457,7 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   ciclo límite ±0,3° alrededor de 3° (la cascada pide ≥ 3 °/s y J1 avanza a saltos de 0,3–0,6°; nunca queda quieta
   dentro de 0,15°) y el homing cortó a los 15 s. Revertido (vuelve a 0,3°). La aproximación propia de J1
   (`6ae1805`) queda, sin probar todavía.
+- **J1 con aproximación propia** (`trayectoria_20261103_110513`): llega en un solo empujón (se traba, despega y salta
+  ~0,7° a 6 °/s), se pasa 0,1–0,2° (antes quedaba 0,38° corta), inversiones 0, cada `mv` 7,7 s (antes 9). Con el
+  encoder en el motor y la fricción de la correa, ±0,2° en la base parece el límite sin cambiar la mecánica.
 
