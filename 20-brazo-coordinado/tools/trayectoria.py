@@ -122,7 +122,8 @@ def correr_en_placa(args):
                 continue
             if r is None or not (r.startswith("LLEGO,") or r.startswith("HOMING,")):
                 cortado = r or f'"{c}" no terminó a tiempo'
-                print(f"\nSe corta la serie: {cortado}")
+                print(f'\nSe corta la serie: {cortado}. "s" (las tres se sostienen donde están).')
+                s.write(b"s\n")  # si sigue en curso (venció la espera), que no siga solo
                 break
         cap.leer(args.cola)
         # Volver cerca del cero: el próximo homing (al abrir el puerto la WROOM se reinicia y pierde el cero) busca
@@ -135,7 +136,8 @@ def correr_en_placa(args):
             cap.s.write(f"{VOLVER}\n".encode())
             r = cap.leer(90.0, ("LLEGO,", "MV_ERROR,", "Uso:", "Fuera de", "J2 y J3 fuera", "sin cero"))
             if r is None or not r.startswith("LLEGO,"):
-                print(f"\nNo volvió cerca del cero: {r or 'no terminó a tiempo'}")
+                print(f'\nNo volvió cerca del cero: {r or "no terminó a tiempo"}. "s" (se sostienen donde están).')
+                s.write(b"s\n")
     except KeyboardInterrupt:
         cortado = "Ctrl+C"
         print('\nCtrl+C: "s" (las tres se sostienen donde están).')

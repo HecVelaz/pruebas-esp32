@@ -66,14 +66,16 @@ def correr(args):
         cap.mandar(VOLVER)
         r = cap.leer(90.0, FIN_MV)
         if r is None or not r.startswith("LLEGO,"):
-            print(f"\nNo volvió cerca del cero: {r or 'no terminó a tiempo'}")
+            print(f'\nNo volvió cerca del cero: {r or "no terminó a tiempo"}. "s" (se sostienen donde están).')
+            s.write(b"s\n")
     except KeyboardInterrupt:
         cortado = "Ctrl+C"
         print('\nCtrl+C: "s" (las tres se sostienen donde están).')
         s.write(b"s\n")
     except RuntimeError as ex:
         cortado = str(ex)
-        print(f"\nSe corta: {cortado}")
+        print(f'\nSe corta: {cortado}. "s" (las tres se sostienen donde están).')
+        s.write(b"s\n")  # si el mv sigue en curso (venció la espera), que no siga solo
     finally:
         s.close()
     DIR_RESULTADOS.mkdir(exist_ok=True)
