@@ -435,4 +435,11 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   trabar; al llegar y frenar retrocede 0,1° (elasticidad de la correa) y queda 0,38° corta en 60° (firme por
   `tolSalida` 0,6°). El encoder de J1 está en el motor: una oscilación de la base por la correa no se ve en él.
   **Hipótesis:** con el brazo estirado, esos saltos de J1 en la aproximación sacuden la punta.
+- **Homing de las tres juntas** (`42e5575`): 3,5 s (`trayectoria_20261103_104057`).
+- **Paso 1b** (`trayectoria_20261103_104300`, J1 20 ↔ 60° con el brazo estirado y el limón): J3 no se mueve (0,02°);
+  J1 llega bien, con saltos chicos (0,4°) en la aproximación. **J2 se mueve aunque solo se pida J1**: tras el primer
+  `mv` quedó a 0,137° (> 0,05°) y hace la aproximación (2° abajo y vuelta). En la aproximación se traba 1 s (1,5° de
+  atraso, duty 11 → 27 %), despega a 6,7 °/s, se pasa 0,72° y baja despacio 0,43° en 1,4 s: probablemente la
+  "corrección de la punta" del video. La vuelta a `mv 3 3 3` tardó 29 s: J2 quedó 0,313° abajo (> `tolPos`),
+  trabada; el integrador del sostener (khi 8) subió de 10 a 38 % en 11 s para moverla 0,016°.
 
