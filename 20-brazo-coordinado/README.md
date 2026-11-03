@@ -130,10 +130,11 @@ Línea de telemetría: `T,ms,etapa,` y por cada una `q,ref,duty,w,estado` (etapa
 - [x] 5c (**probada en placa 2026-10-31**, sin muestras perdidas): telemetría `t` y `tools/trayectoria.py`
 - [ ] Joystick `jv` (lazo cerrado, se sostiene al soltar) y `joystick.py --placa 20`: compila, sin probar en placa
 - [ ] Zona prohibida: que el brazo no choque con la caja (después; medirla con el joystick)
-- [ ] Fase 6, repetibilidad articular (ISO 9283 en los encoders): `tools/repetibilidad.py --ciclos 10` (homing,
+- [x] Fase 6, repetibilidad articular (ISO 9283 en los encoders): `tools/repetibilidad.py --ciclos 10` (homing,
   1 ciclo de calentamiento, N ciclos por 5 poses probadas, vuelta a 3 3 3; por pose y articulación media, error,
   desvío, rango y RP = l̄ + 3·S_l; CSV `resultados/repetibilidad_*.csv`, `--archivo` recalcula). Probado con una placa
-  simulada; sin probar en placa. La repetibilidad en la punta necesita video o comparador
+  simulada y en placa (2026-11-03, 10 ciclos: RP J1 0,33°, J2 0,32°, J3 0,17°). Falta: 30 ciclos y la repetibilidad
+  en la punta (video o comparador)
 
 ## Resultados
 
@@ -159,3 +160,10 @@ Línea de telemetría: `T,ms,etapa,` y por cada una `q,ref,duty,w,estado` (etapa
 | 2026-11-03 | 1b otra vez, la que ya está en `tolPos` no se mueve (`trayectoria_20261103_104918`, `a4d4a99`) | Contra 104300: **J2 quieta** (inversiones 92 → 14, correcciones 16 → 0, \|e LLEGO\| 0,29 → 0,10°), de la llegada a firmes peor 1,9 → **0,3 s**. Ahora en el video corrige **J1**: en la aproximación a 2 °/s se traba, salta a 5–7 °/s, **se pasa 0,3–0,6°** de la referencia y el feedforward **cambia de signo (+17 → −19 %)** para volver (−3,6 °/s): ida y vuelta al final. 25–27 inversiones por aproximación de J1 |
 | 2026-11-03 | Paso 2, feedforward suave (`trayectoria_20261103_105648`, `c61c108`) | Contra 104918: inversiones del duty J1 148 → **0**, J2 14 → 0, J3 26 → 0 (duty de J1 parejo, 14–18 %, sin el +17 → −19 %). Pero J1 sigue a saltos a 2 °/s (5–7 °/s) y el \|e LLEGO\| de J1 empeora 0,05 → **0,38°** (frena a 0,3° y la correa la retrocede 0,1°; en 104918 el ida y vuelta la dejaba cerca de 0 por casualidad); de la llegada a firmes peor 0,3 → 0,6 s. Siguiente: aproximación propia de J1 y `tolPos` 0,15° |
 | 2026-11-03 | J1 con aproximación propia 0,5° a 5 °/s (`trayectoria_20261103_110513`, `6ae1805`) | Contra 105648: J1 llega **en un solo empujón** (se traba al empezar el tramo, despega y salta ~0,7° a 6 °/s) en vez de ~2 s de saltos; \|e LLEGO\| J1 0,38 → **0,22°** (ahora se pasa 0,1–0,2° en vez de quedar corta); inversiones 0; cada `mv` 7,7 s (antes 9); de la llegada a firmes ≤ 0,6 s |
+| 2026-11-03 | Video fijo de la 1b (`trayectoria_20261103_113641`, video fuera del repo) | Llegando a 60° (J1 sigue en el mismo sentido) sin oscilación; llegando a 20° (J1 baja y SUBE el último tramo) la punta **oscila ±1,4 cm a ~1,5 Hz con los encoders quietos** (la correa: el encoder de J1 está en el motor) |
+| 2026-11-03 | J1 llega en el sentido en que viene (`trayectoria_20261103_120620` + video, `a71f355`) | Las llegadas de J1 sola ya no hamacan la punta (1,4–1,8 px en el video, ruido). Queda el primer `mv`: J1 con la duración de J2/J3 (12,9 s para 17°) se traba 1,6 s, despega a 16 °/s, se pasa a 21,0° y vuelve |
+| 2026-11-03 | J1 con su duración en el recorrido (`trayectoria_20261103_134042` + video, `cbbf8fb`) | **Sin balanceo en ninguna llegada** (0,8–1,5 px). J1 hace los 17° en 2,1 s pero frena a ~22 °/s², se pasa a 20,15° y vuelve. J2 una vez se pasó (74,53°) y tardó 13,8 s en quedar firme |
+| 2026-11-03 | J1 a 10 °/s² en el recorrido (`trayectoria_20261103_134817`, `a2df224`) | J1 frena en 19,38° sin pasarse y llega a 20,11° de un empujón; \|e LLEGO\| ≤ 0,19°, firmes en ≤ 0,5 s. La vuelta a 3 3 3 baja J2/J3 a 1° y sube de nuevo (19 s) |
+| 2026-11-03 | Aproximación dentro del margen de los límites (`trayectoria_20261103_135232` y `_135524`, `1c8a0ea`) | Vuelta a 3 3 3 directa, **15,8 s** (antes 19,0), ≤ 0,11°. Inversiones 0 en las tres. J1 una vez 0,41° corta (freno a 0,3° y la correa retrocede); en la segunda corrida ≤ 0,18° |
+| 2026-11-03 | Paso 5, deriva 30 s en 40/74/70 (`trayectoria_20261103_135824` con limón, `_140115` sin) | Las tres frenadas (duty 0) y **0,000° en los encoders** los 30 s, con y sin limón; llegan con ≤ 0,09° |
+| 2026-11-03 | Fase 6, repetibilidad articular, 10 ciclos × 5 poses (`repetibilidad_20261103_141454`, `918cfde`) | **RP J1 0,33°, J2 0,32°, J3 0,17°** (en los encoders). J1 cae en dos valores separados por un salto de stick-slip (19,94 / 20,23; 39,83 / 39,99). J2 con un sesgo fijo por pose (a 30°, +0,21 a +0,29°) y poco desvío |
