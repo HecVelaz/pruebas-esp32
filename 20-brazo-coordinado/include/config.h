@@ -20,8 +20,8 @@ constexpr float HOMING_Q2_MAX_ARRANQUE = 20.0f;  // con el cero conocido, J2 má
 // Sin cero el homing supone el brazo abajo y recogido: si una avanza más que esto sin su final de carrera, corta
 // (2026-11-03: arrancó con el brazo estirado, J3 subió 28° y se trabó contra la franja). Desde "mv 3 3 3", ~3°
 constexpr float HOMING_RECORRIDO_SIN_CERO = 15.0f;
-constexpr float HOMING_Q2_J1_JUNTO = 5.0f;  // J1 hace su homing junto con J3 si J2 está abajo (o sin cero: el brazo
-                                            // tiene que estar recogido); si no, al final como antes
+constexpr float HOMING_Q2_JUNTAS = 5.0f;  // las tres hacen el homing juntas si J2 está abajo (o sin cero: el brazo
+                                          // tiene que estar recogido); si no, J3 -> J2 -> J1
 constexpr uint32_t ASENTAMIENTO_MS = 2000;
 constexpr bool FRENO_EN_BANDA = true;      // 19, 2026-10-31: frenadas, quietas y sin ruido
 

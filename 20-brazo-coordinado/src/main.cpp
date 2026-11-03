@@ -80,9 +80,9 @@ uint8_t estadoTele(const Articulacion &a) {
   return a.llego() ? 2 : 1;
 }
 
-// ---------- Homing de las tres: J3 -> J2 (con el codo abajo, bajar el hombro no viola la franja). J1 no depende del
-// cuatro barras: va junto con J3 si el brazo ya está abajo (J2 sin cero o a HOMING_Q2_J1_JUNTO o menos); si no, al
-// final, con el brazo recogido (como antes del 2026-11-03) ----------
+// ---------- Homing de las tres. Con el brazo abajo (J2 sin cero o a HOMING_Q2_JUNTAS o menos) las tres juntas
+// (2026-11-03): J2 y J3 bajan a la misma velocidad, q3 - q2 casi no cambia y al terminar una la diferencia va hacia
+// 0, dentro de la franja. Si no, J3 -> J2 (con el codo abajo, bajar el hombro no viola la franja) -> J1 ----------
 struct {
   bool activo = false;
   int grupo = 0;                 // índice en grupos
@@ -130,21 +130,27 @@ void homingIniciar() {
     a.reiniciarEstado();
     a.sostenerAqui();
   }
-  // Orden: J3 (y J1 si el brazo ya está abajo), después J2, después J1 si no fue con J3
-  const bool j1Junto = !cero[I2] || art[I2].q() <= HOMING_Q2_J1_JUNTO;
+  // Orden: las tres juntas si el brazo ya está abajo; si no, J3, J2 y al final J1
+  const bool juntas = !cero[I2] || art[I2].q() <= HOMING_Q2_JUNTAS;
   for (auto &g : hm.grupos)
     for (auto &x : g) x = -1;
-  hm.grupos[0][0] = I3;
-  if (j1Junto) hm.grupos[0][1] = I1;
-  hm.grupos[1][0] = I2;
-  if (!j1Junto) hm.grupos[2][0] = I1;
-  hm.nGrupos = j1Junto ? 2 : 3;
+  if (juntas) {
+    hm.grupos[0][0] = I3;
+    hm.grupos[0][1] = I2;
+    hm.grupos[0][2] = I1;
+    hm.nGrupos = 1;
+  } else {
+    hm.grupos[0][0] = I3;
+    hm.grupos[1][0] = I2;
+    hm.grupos[2][0] = I1;
+    hm.nGrupos = 3;
+  }
   hm.activo = true;
   hm.grupo = 0;
   for (auto &e : hm.etapa) e = 0;
   for (auto &d : hm.delta) d = NAN;
   msg(">> Homing: %s (J3 %.1f, J2 %.1f, J1 %.1f °/s). Cualquier comando corta.",
-      j1Junto ? "J3 y J1 juntas, después J2" : "J3, J2 y al final J1 (J2 arriba)", CFG_J3.homingVelBuscar,
+      juntas ? "las tres juntas" : "J3, J2 y al final J1 (J2 arriba)", CFG_J3.homingVelBuscar,
       CFG_J2.homingVelBuscar, CFG_J1.homingVelBuscar);
 }
 
@@ -399,7 +405,7 @@ void comandoMv(const char *args) {
 
 void ayuda() {
   msg("Comandos (escribir y Enter):");
-  msg("  h            homing: J3 y J1 juntas, J2 a sus finales de carrera despacio, cero en el flanco, retroceden %.0f°",
+  msg("  h            homing: las tres (abajo, juntas) a sus finales de carrera despacio, cero en el flanco, retroceden %.0f°",
       HOMING_RETROCESO);
   msg("  j <n> <°>    mover una articulación (1, 2 o 3) a un ángulo, dentro de sus límites y de la franja");
   msg("  mv <q1> <q2> <q3>  las tres a la vez, terminan juntas (recta en q2-q3), llegan con el ángulo creciendo;");

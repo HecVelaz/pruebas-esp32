@@ -7,9 +7,9 @@ bloqueante a 100 Hz**. `19` queda como banco de pruebas de una articulación por
 - **Controlador** (de `12`/`19`, probado en placa): cascada P de posición → PI de velocidad con feedforward de
   fricción; al llegar, sostener con banda del integrador (0,2°), compensación de fricción (J3 15 %) y **freno dentro
   de la banda** (firme → duty 0, sin ruido). Protecciones: sin cuentas, al revés, atasco, límites.
-- **Homing `h`:** J3 → J2 (con el codo abajo, bajar el hombro no viola la franja); J1, que no depende del cuatro
-  barras, **junto con J3** si el brazo ya está abajo (J2 sin cero o a ≤ 5°, `HOMING_Q2_J1_JUNTO`; desde el 03/11); si
-  no, al final con el brazo recogido. **Sin cero corta si una avanza más de 15°** sin su final de carrera
+- **Homing `h`:** con el brazo abajo (J2 sin cero o a ≤ 5°, `HOMING_Q2_JUNTAS`) **las tres juntas** (desde el 03/11:
+  J2 y J3 bajan a la misma velocidad y quedan dentro de la franja); si no, J3 → J2 (con el codo abajo, bajar el hombro
+  no viola la franja) → J1 con el brazo recogido. **Sin cero corta si una avanza más de 15°** sin su final de carrera
   (`HOMING_RECORRIDO_SIN_CERO`, 2026-11-03: arrancó estirado, J3 subió 28° y se trabó contra la franja). Cada una llega a su final de carrera **despacio** (las tres a 1,5 °/s desde el 03/11; antes J2 0,5 y
   J3/J1 1 °/s: el golpe giraba los finales de carrera), cero en el flanco, retrocede 3° y queda sostenida. Informa cuánto se corrió cada flanco
   (`HOMING,t,d1,d2,d3,con_cero`).
