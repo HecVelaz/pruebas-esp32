@@ -8,8 +8,8 @@ bloqueante a 100 Hz**. `19` queda como banco de pruebas de una articulación por
   fricción; al llegar, sostener con banda del integrador (0,2°), compensación de fricción (J3 15 %) y **freno dentro
   de la banda** (firme → duty 0, sin ruido). Protecciones: sin cuentas, al revés, atasco, límites.
 - **Homing `h`:** J3 → J2 → J1 (con el codo abajo, bajar el hombro no viola la franja; J1 al final con el brazo
-  recogido). Cada una llega a su final de carrera **despacio** (J2 1 °/s, J3 y J1 1,5 °/s desde el 03/11; antes 0,5
-  y 1 °/s: el golpe giraba los finales de carrera), cero en el flanco, retrocede 3° y queda sostenida. Informa cuánto se corrió cada flanco
+  recogido). Cada una llega a su final de carrera **despacio** (las tres a 1,5 °/s desde el 03/11; antes J2 0,5 y
+  J3/J1 1 °/s: el golpe giraba los finales de carrera), cero en el flanco, retrocede 3° y queda sostenida. Informa cuánto se corrió cada flanco
   (`HOMING,t,d1,d2,d3,con_cero`).
 - **Franja del cuatro barras** `q2 − 25° ≤ q3 ≤ q2 + 7,5°`: los destinos se validan con 3° de margen y, si la
   medición sale de la franja (0,5° de holgura) mientras J2 o J3 se mueven, frena las dos.
