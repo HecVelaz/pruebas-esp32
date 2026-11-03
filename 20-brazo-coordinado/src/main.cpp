@@ -222,7 +222,9 @@ struct {
   int etapa = 0;
   float desde[N], hasta[N], obj[N];
   bool mueve[N];       // en la etapa: esta se mueve
-  bool aprox[N];       // llega desde abajo (todas las que se mueven)
+  bool aprox[N];       // hace la aproximación (todas las que se mueven fuera de su tolPos)
+  float antes[N];      // dónde termina su recorrido: APROX_GRADOS antes del objetivo, del lado del que llega
+  bool esperar[N];     // al final del recorrido, esperar a que esté de verdad de ese lado
   float T = 1.0f;      // s, duración de la etapa
   float Ti[N];         // s, en la aproximación: la de cada una (T = la más larga)
   uint32_t k = 0;      // periodos desde el comienzo de la etapa
@@ -251,7 +253,7 @@ void mvEtapa(int etapa) {
   for (int i = 0; i < N; i++) {
     mv.desde[i] = art[i].referencia();
     if (etapa == 1) {
-      mv.hasta[i] = mv.aprox[i] ? mv.obj[i] - APROX_GRADOS[i] : mv.obj[i];
+      mv.hasta[i] = mv.aprox[i] ? mv.antes[i] : mv.obj[i];
     } else {
       mv.hasta[i] = mv.obj[i];
     }
@@ -300,13 +302,21 @@ void mvIniciar(const float obj[N]) {
     // no se mueve (2026-11-03, antes 0,05°: en la 1b J2 a 0,137° hacía 2° abajo y vuelta en cada mv de J1, se trababa
     // y se pasaba 0,72°; sostener() con el mismo objetivo no hace nada)
     mv.aprox[i] = fabsf(obj[i] - art[i].q()) > art[i].cfg().tolPos;
+    // Del lado del que llega: desde abajo (+1) o, con APROX_MISMO_SENTIDO, del lado del que viene. Si en el mismo
+    // sentido está más cerca que el tramo, no retrocede: hace todo en la aproximación (si no, invertía el sentido)
+    const float lado = (APROX_MISMO_SENTIDO[i] && obj[i] < art[i].q()) ? -1.0f : 1.0f;
+    mv.antes[i] = obj[i] - lado * APROX_GRADOS[i];
+    // Las que llegan en el mismo sentido no esperan a estar "del lado": no importa de qué lado queden, solo no
+    // invertir (2026-11-03: la vuelta a mv 3 3 3 cortó porque J1 quedó 0,42° corta de su punto previo)
+    mv.esperar[i] = mv.aprox[i] && !APROX_MISMO_SENTIDO[i];
+    if (APROX_MISMO_SENTIDO[i] && fabsf(obj[i] - art[i].q()) <= APROX_GRADOS[i]) mv.antes[i] = art[i].referencia();
   }
   mv.activo = true;
   bool algunaAprox = false;
   for (bool b : mv.aprox) algunaAprox = algunaAprox || b;
   mvEtapa(1);
   msg(">> mv a (%+.2f, %+.2f, %+.2f) en %.1f s%s.", obj[I1], obj[I2], obj[I3], mv.T,
-      algunaAprox ? " + la aproximación desde abajo" : "");
+      algunaAprox ? " + la aproximación" : "");
 }
 
 void mvPaso() {
@@ -345,7 +355,9 @@ void mvPaso() {
         // Antes de subir el último tramo, todas las que se aproximan tienen que estar de verdad por debajo del objetivo (si no,
         // la llegada podía terminar siendo desde arriba): esperar en el punto previo, hasta 3 s
         for (int i = 0; i < N; i++) {
-          if (mv.aprox[i] && art[i].q() > mv.obj[i] - 0.5f * APROX_GRADOS[i]) {
+          // todavía no está del lado del que llega (a más de la mitad del tramo antes del objetivo)
+          const float lado = mv.antes[i] <= mv.obj[i] ? 1.0f : -1.0f;
+          if (mv.esperar[i] && lado * (mv.obj[i] - art[i].q()) < 0.5f * APROX_GRADOS[i]) {
             if (mv.k * Articulacion::TS > mv.T + 3.0f) {
               mvCortar("no bajó por debajo del objetivo para llegar desde abajo");
             }

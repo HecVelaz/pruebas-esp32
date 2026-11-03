@@ -38,6 +38,11 @@ constexpr float MV_T_MIN = 1.0f;           // s, duración mínima de un movimie
 // la aproximación cada una tiene su duración (J1 termina antes y frena; J2 y J3 siguen juntas)
 constexpr float APROX_GRADOS[3] = {0.5f, 2.0f, 2.0f};
 constexpr float VEL_APROX[3] = {5.0f, 2.0f, 2.0f};  // °/s (pico del perfil del último tramo)
+// Sentido de la aproximación: false = siempre desde abajo (J2 y J3: el juego queda del mismo lado contra el peso);
+// true = en el sentido en que viene (J1, 2026-11-03: llegando desde arriba bajaba y SUBÍA el último tramo; la correa
+// cambiaba de lado y la punta, con el brazo estirado, oscilaba ±1,4 cm a ~1,5 Hz con los encoders quietos. Llegando en
+// el mismo sentido, no). Para la repetibilidad alcanza: cada pose se repite siempre por el mismo camino
+constexpr bool APROX_MISMO_SENTIDO[3] = {true, false, false};
 constexpr float MV_ERROR_MAX = 5.0f;       // ° entre la referencia y la medición: corta (no sigue la trayectoria)
 constexpr uint32_t MV_LLEGADA_MAX_MS = 20000;  // después de la trayectoria, tiempo para quedar las tres firmes
 
