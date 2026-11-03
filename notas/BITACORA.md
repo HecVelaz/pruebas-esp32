@@ -496,3 +496,8 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   llegada→firmes ≤ 0,4 s. J1 quedó una vez 0,41° corta (59,59°): la aproximación la frenó apenas dentro de su
   `tolPos` (0,3°) y la correa la retrocedió 0,1°; como el freno no se suelta hasta `tolSalida` (0,6°), quedó así. El
   resto de las llegadas de J1, ≤ 0,18°.
+- **Paso 5, deriva** (`h "mv 40 74 70" --cola 30`): con el limón `trayectoria_20261103_135824`, sin el limón
+  `trayectoria_20261103_140115`. Llega con ≤ 0,03° (con) y ≤ 0,09° (sin), firmes en 0,2 s. **En los 30 s, las tres
+  frenadas (estado 4, duty 0) y el encoder no se mueve ni una cuenta** (0,000° pico a pico en las tres, con y sin
+  limón): ni el peso del brazo ni el del limón las hacen ceder. Los encoders están en los motores: el juego de los
+  engranajes y la correa no se ven (para eso, el video o la repetibilidad medida en la punta).
