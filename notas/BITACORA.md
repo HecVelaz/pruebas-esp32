@@ -409,4 +409,8 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   final de cada serie (`b2e428b`). `trayectoria_20261103_094631`: homing desde ~3° **16,6 → 12,1 s** (J2 buscando
   3,4 s; J1 no llega a 1,5 °/s, mediana 0,6). Los `mv` igual que en 092501. `ff 2 35 nan 22 8` → "Cada valor entre
   0 y 70 %" (arreglo de Codex verificado en placa). El usuario pide J2 todavía más rápido.
+- **J2 a 1,5 °/s** (`b5f1648`) y **J1 junto con J3** si el brazo está abajo (`bb9dfae`; J2 sin cero o ≤ 5°; si no,
+  J1 al final). `trayectoria_20261103_095335`: homing **7,7 s** (J3 y J1 2,1 s juntas, J2 2,3 s). Buscando hay
+  stick-slip: J1 toca el flanco a 4–5 °/s (ya pasaba a 1 °/s), J2 a 3 °/s (antes 0,8). Falta ver si el flanco repite
+  (un segundo `h` con cero da el corrimiento) y si el golpe mueve los finales de carrera. `mv` sin cambios.
 
