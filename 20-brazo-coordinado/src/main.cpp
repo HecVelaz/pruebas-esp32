@@ -79,17 +79,19 @@ uint8_t estadoTele(const Articulacion &a) {
   return a.llego() ? 2 : 1;
 }
 
-// ---------- Homing de las tres: J3 -> J2 -> J1 (con el codo abajo, bajar el hombro no viola la franja; J1 al final,
-// con el brazo recogido) ----------
+// ---------- Homing de las tres: J3 -> J2 (con el codo abajo, bajar el hombro no viola la franja). J1 no depende del
+// cuatro barras: va junto con J3 si el brazo ya está abajo (J2 sin cero o a HOMING_Q2_J1_JUNTO o menos); si no, al
+// final, con el brazo recogido (como antes del 2026-11-03) ----------
 struct {
   bool activo = false;
-  int paso = 0;          // índice en ORDEN
-  int etapa = 0;         // 0 arrancar, 1 buscando, 2 retrocediendo
-  uint32_t tEtapa = 0;   // millis() al empezar el retroceso
+  int grupo = 0;                 // índice en grupos
+  int nGrupos = 0;
+  int grupos[N][N];              // articulaciones de cada grupo (-1 = vacío); el grupo siguiente arranca al terminar
+  int etapa[N] = {};             // 0 arrancar, 1 buscando, 2 retrocediendo, 3 terminada
+  uint32_t tEtapa[N] = {};       // millis() al empezar el retroceso
   bool conCero[N] = {};
   float delta[N] = {NAN, NAN, NAN};
 } hm;
-constexpr int ORDEN[N] = {I3, I2, I1};
 
 void homingCortar(const char *causa) {
   for (auto &a : art) {
@@ -124,56 +126,78 @@ void homingIniciar() {
     a.reiniciarEstado();
     a.sostenerAqui();
   }
+  // Orden: J3 (y J1 si el brazo ya está abajo), después J2, después J1 si no fue con J3
+  const bool j1Junto = !cero[I2] || art[I2].q() <= HOMING_Q2_J1_JUNTO;
+  for (auto &g : hm.grupos)
+    for (auto &x : g) x = -1;
+  hm.grupos[0][0] = I3;
+  if (j1Junto) hm.grupos[0][1] = I1;
+  hm.grupos[1][0] = I2;
+  if (!j1Junto) hm.grupos[2][0] = I1;
+  hm.nGrupos = j1Junto ? 2 : 3;
   hm.activo = true;
-  hm.paso = hm.etapa = 0;
+  hm.grupo = 0;
+  for (auto &e : hm.etapa) e = 0;
   for (auto &d : hm.delta) d = NAN;
-  msg(">> Homing: J3 (%.1f °/s), J2 (%.1f °/s), J1 (%.1f °/s) hacia sus finales de carrera. Cualquier comando corta.",
-      CFG_J3.homingVelBuscar, CFG_J2.homingVelBuscar, CFG_J1.homingVelBuscar);
+  msg(">> Homing: %s (J3 %.1f, J2 %.1f, J1 %.1f °/s). Cualquier comando corta.",
+      j1Junto ? "J3 y J1 juntas, después J2" : "J3, J2 y al final J1 (J2 arriba)", CFG_J3.homingVelBuscar,
+      CFG_J2.homingVelBuscar, CFG_J1.homingVelBuscar);
 }
 
-void homingPaso() {
-  if (!hm.activo) return;
-  const int i = ORDEN[hm.paso];
+// Un paso del homing de una articulación: false si cortó (ya llamó a homingCortar)
+bool homingPasoArt(int i) {
   Articulacion &a = art[i];
-  if (hm.etapa == 0) {
+  if (hm.etapa[i] == 0) {
     a.homing(hm.conCero[i]);
-    hm.etapa = 1;
+    hm.etapa[i] = 1;
     msg("   %s buscando su final de carrera...", a.cfg().nombre);
-    return;
+    return true;
   }
-  if (hm.etapa == 1) {
-    if (a.estadoHoming() == Articulacion::Homing::EnCurso) return;
+  if (hm.etapa[i] == 1) {
+    if (a.estadoHoming() == Articulacion::Homing::EnCurso) return true;
     if (a.estadoHoming() != Articulacion::Homing::Listo) {
       homingCortar(a.error() ? a.error() : "error");
-      return;
+      return false;
     }
     hm.delta[i] = a.flancoGrados();
     a.ceroEnFlanco();
     cero[i] = true;
     a.sostener(HOMING_RETROCESO);
-    hm.etapa = 2;
-    hm.tEtapa = millis();
-    return;
+    hm.etapa[i] = 2;
+    hm.tEtapa[i] = millis();
+    return true;
   }
+  if (hm.etapa[i] == 3) return true;
   // etapa 2: retrocediendo
   if (a.error()) {
     homingCortar(a.error());
-    return;
+    return false;
   }
   if (!a.firme()) {
-    if (millis() - hm.tEtapa > 15000) {
+    if (millis() - hm.tEtapa[i] > 15000) {
       msg("   %s no queda firme: en %+.2f° (pedido %+.2f°), duty %+.1f %%, w %+.2f °/s, %s.", a.cfg().nombre, a.q(),
           a.referencia(), a.duty(), a.w(), a.llego() ? "llegó pero no quieta" : "no llegó");
       homingCortar("no termina de retroceder (15 s)");
+      return false;
     }
-    return;
+    return true;
   }
   msg("   %s: flanco %+.3f° del cero anterior%s; en %+.2f°.", a.cfg().nombre, hm.delta[i],
       hm.conCero[i] ? "" : " (no había cero)", a.q());
-  if (++hm.paso < N) {
-    hm.etapa = 0;
-    return;
+  hm.etapa[i] = 3;
+  return true;
+}
+
+void homingPaso() {
+  if (!hm.activo) return;
+  bool listas = true;
+  for (int i : hm.grupos[hm.grupo]) {
+    if (i < 0) continue;
+    if (!homingPasoArt(i)) return;
+    listas = listas && hm.etapa[i] == 3;
   }
+  if (!listas) return;
+  if (++hm.grupo < hm.nGrupos) return;
   hm.activo = false;
   msg(">> Homing listo: cero en los flancos, las tres en %+.1f°.", HOMING_RETROCESO);
   msg("HOMING,%lu,%.3f,%.3f,%.3f,%d%d%d", (unsigned long)millis(), hm.delta[I1], hm.delta[I2], hm.delta[I3],
@@ -371,7 +395,7 @@ void comandoMv(const char *args) {
 
 void ayuda() {
   msg("Comandos (escribir y Enter):");
-  msg("  h            homing: J3, J2 y J1 a sus finales de carrera despacio, cero en el flanco, retroceden %.0f°",
+  msg("  h            homing: J3 y J1 juntas, J2 a sus finales de carrera despacio, cero en el flanco, retroceden %.0f°",
       HOMING_RETROCESO);
   msg("  j <n> <°>    mover una articulación (1, 2 o 3) a un ángulo, dentro de sus límites y de la franja");
   msg("  mv <q1> <q2> <q3>  las tres a la vez, terminan juntas (recta en q2-q3), llegan con el ángulo creciendo;");
