@@ -5,8 +5,10 @@ Manda "t 1", cada comando de la lista esperando su final ("mv" hasta LLEGO o MV_
 HOMING_ERROR, los demás --espera s), sigue capturando --cola s (el sostener después de llegar) y manda "t 0".
 Guarda resultados/trayectoria_<fecha>_<hora>.csv y su .png: para cada articulación, referencia contra medido, el error
 (con la tolerancia y la banda del integrador; ahí se ve el tambaleo del final) y el duty; abajo, el camino (q2, q3)
-sobre la franja del cuatro barras. Imprime para cada mv cuánto tardó en quedar firme y cuántas correcciones hizo cada
-una al final.
+sobre la franja del cuatro barras. Imprime un resumen para comparar capturas: por mv y articulación, inversiones del
+duty (cambio de signo con salto > 15 %) en el recorrido y en la aproximación, |error| máximo de seguimiento en el
+recorrido, error del LLEGO, correcciones después de llegar, cuánto se mueve el encoder ya firmes, y el tiempo de la
+llegada hasta las tres firmes; al final los totales y, con --cola, cuánto se movió cada encoder después del último mv.
 
 Antes: cerrar el monitor (el puerto no se abre dos veces), brazo abajo y recogido, 12 V encendidos. Abrir el puerto
 puede reiniciar la WROOM (pierde el cero): si alguna está sin cero, el primer comando tiene que ser "h".
@@ -15,7 +17,10 @@ Uso:
     python3 tools/trayectoria.py h "mv 20 20 24" "mv 40 30 20" "mv 20 20 24" "mv 3 3 3"
     python3 tools/trayectoria.py "mv 20 20 24" --cola 5
     python3 tools/trayectoria.py --archivo resultados/trayectoria_....csv     # volver a graficar, sin la placa
-Opciones: --cola (s de captura después del último comando, def. 3), --espera (s para comandos sin final, def. 2),
+    python3 tools/trayectoria.py --archivo resultados/trayectoria_....csv --solo-resumen \
+        --comparar resultados/trayectoria_20261031_180843.csv                  # contra la base (con el resorte)
+Lista fija para comparar: h "mv 20 20 24" "mv 40 30 20" "mv 20 20 24" "mv 3 3 3".
+Opciones: --comparar CSV_BASE (totales lado a lado), --solo-resumen (con --archivo, sin gráfico), --cola (s de captura después del último comando, def. 3), --espera (s para comandos sin final, def. 2),
 --puerto, --sin-ventana, --todo (graficar también el homing; por defecto arranca en el primer mv).
 Ctrl+C manda "s" (las tres se sostienen donde están) y guarda lo capturado (archivo ..._cortado).
 """
@@ -176,55 +181,154 @@ def columnas(d, i):
     return d[:, b], d[:, b + 1], d[:, b + 2], d[:, b + 3], d[:, b + 4]
 
 
-def analizar_mv(d, eventos):
-    """Para cada mv que llegó: tiempo de la llegada (etapa 3) hasta firmes, y en la etapa 3+4 cuántas veces cada una
-    se movió (|w| > 1 °/s, ya cerca del objetivo: las correcciones) y el error máximo."""
-    import numpy as np
-    t = d[:, 0]
-    et = d[:, 1]
-    # Cada mv con la línea de final que le sigue EN ORDEN (el siguiente mv se manda en el mismo t que ese LLEGO)
+SALTO_INVERSION = 15.0  # % de duty: una inversión cuenta si cambia de signo con un salto mayor que esto
+
+
+def pares_mv(eventos):
+    """Cada mv con la línea de final que le sigue EN ORDEN (el siguiente mv se manda en el mismo t que ese LLEGO)."""
     pares = []
     for tt, tipo, c in eventos:
         if tipo == "cmd" and c.startswith("mv "):
             pares.append([tt, c, None])
         elif tipo == "msg" and c.startswith(("LLEGO,", "MV_ERROR,")) and pares and pares[-1][2] is None:
             pares[-1][2] = (tt, c)
-    print("\nmv                 recorrido  llegada→firmes | correcciones al final (J1 J2 J3) | |error| máx al final")
-    for t0, c, fin in pares:
+    return pares
+
+
+def inversiones(u, m):
+    """Muestras consecutivas dentro de la máscara m en las que el duty cambia de signo con un salto > 15 %."""
+    import numpy as np
+    mm = m[1:] & m[:-1]
+    return int(np.sum(mm & (u[1:] * u[:-1] < 0) & (np.abs(np.diff(u)) > SALTO_INVERSION)))
+
+
+def resumen(d, eventos):
+    """Métricas de cada mv para comparar capturas. Por articulación: inversiones de duty (> 15 %) en el recorrido
+    (etapa 1) y en la aproximación (2), |error| máximo de seguimiento en el recorrido, error del LLEGO, correcciones
+    después de llegar (|w| > 1 °/s, etapas 3 y 4) y cuánto se movió el encoder (pico a pico) ya firmes (etapa 4).
+    Por mv: duración hasta la llegada y tiempo de la llegada (etapa 3) hasta las tres firmes (etapa 4)."""
+    import numpy as np
+    t, et = d[:, 0], d[:, 1]
+    filas = []
+    for t0, c, fin in pares_mv(eventos):
         t1 = fin[0] if fin else t[-1]
         tramo = (t > t0) & (t <= t1)
         if not tramo.any():
             continue
+        f = {"mv": c, "final": fin[1] if fin else "sin final", "llego": bool(fin and fin[1].startswith("LLEGO,")),
+             "t_rec": float("nan"), "t_firme": float("nan"), "art": []}
+        e_llego = [float(x) for x in fin[1].split(",")[5:8]] if f["llego"] else [float("nan")] * 3
         llegada = tramo & (et >= 3)
-        if not llegada.any():
-            print(f"{c:18s} sin etapa de llegada ({fin[1] if fin else 'sin final'})")
-            continue
-        t_lleg = t[llegada][0]
         firmes = tramo & (et == 4)
-        t_firme = t[firmes][0] if firmes.any() else float("nan")
-        corr, emax = [], []
+        if llegada.any():
+            t_lleg = t[llegada][0]
+            f["t_rec"] = (t_lleg - t0) / 1000
+            if firmes.any():
+                # la última entrada a la etapa 4 (si pierde una la firmeza, vuelve a la 3)
+                entradas = np.flatnonzero(firmes & ~np.concatenate(([False], firmes[:-1])))
+                f["t_firme"] = (t[entradas[-1]] - t_lleg) / 1000
         for i in range(3):
             q, r, u, w, s = columnas(d, i)
+            rec = tramo & (et == 1)
             mov = np.abs(w[llegada]) > 1.0
-            corr.append(int(np.sum(mov[1:] & ~mov[:-1]) + (1 if mov[0] else 0)))
-            emax.append(float(np.max(np.abs(r[llegada] - q[llegada]))))
-        estado = "" if fin and fin[1].startswith("LLEGO") else f"  ({fin[1] if fin else 'sin final'})"
-        print(f"{c:18s} {(t_lleg - t0) / 1000:7.1f} s  {(t_firme - t_lleg) / 1000:9.1f} s     | "
-              f"{corr[0]:4d} {corr[1]:4d} {corr[2]:4d}                   | "
-              f"{emax[0]:.2f} {emax[1]:.2f} {emax[2]:.2f}°{estado}")
+            f["art"].append({
+                "inv_rec": inversiones(u, rec),
+                "inv_aprox": inversiones(u, tramo & (et == 2)),
+                "e_seg": float(np.max(np.abs(r[rec] - q[rec]))) if rec.any() else float("nan"),
+                "e_llego": e_llego[i],
+                "corr": int(np.sum(mov[1:] & ~mov[:-1]) + (1 if mov.size and mov[0] else 0)) if mov.size else 0,
+                "pp_firme": float(np.ptp(q[firmes])) if firmes.any() else float("nan"),
+            })
+        filas.append(f)
+    # Después del último final (la cola): cuánto se mueve cada encoder, para la deriva
+    cola = None
+    if filas and pares_mv(eventos)[-1][2]:
+        tc = pares_mv(eventos)[-1][2][0]
+        m = t > tc
+        if m.sum() > 1:
+            cola = {"s": (t[m][-1] - t[m][0]) / 1000, "pp": [float(np.ptp(columnas(d, i)[0][m])) for i in range(3)]}
+    return filas, cola
 
 
-def graficar(archivo, sin_ventana, todo=False):
+def totales(filas):
+    import numpy as np
+    tot = []
+    for i in range(3):
+        a = [f["art"][i] for f in filas]
+        tot.append({
+            "inv_rec": sum(x["inv_rec"] for x in a),
+            "inv_aprox": sum(x["inv_aprox"] for x in a),
+            "e_seg": float(np.nanmax([x["e_seg"] for x in a])) if a else float("nan"),
+            "e_llego": float(np.nanmax([abs(x["e_llego"]) for x in a])) if a else float("nan"),
+            "corr": sum(x["corr"] for x in a),
+            "pp_firme": float(np.nanmax([x["pp_firme"] for x in a])) if a else float("nan"),
+        })
+    t_firme = [f["t_firme"] for f in filas]
+    return tot, (float(np.nansum(t_firme)), float(np.nanmax(t_firme)) if filas else float("nan"))
+
+
+ENCABEZADO = "      inv>15% rec+aprox  |e| máx rec  e LLEGO  correcc.  p-p firme"
+
+
+def linea_art(nombre, x):
+    return (f"  {nombre}  {x['inv_rec']:4d} + {x['inv_aprox']:3d} = {x['inv_rec'] + x['inv_aprox']:4d}"
+            f"   {x['e_seg']:7.2f}°   {x['e_llego']:+6.3f}°  {x['corr']:5d}    {x['pp_firme']:6.3f}°")
+
+
+def imprimir_resumen(filas, cola, titulo=""):
+    print(f"\n=== Resumen{' de ' + titulo if titulo else ''} ===")
+    for f in filas:
+        estado = "" if f["llego"] else f"  ({f['final']})"
+        print(f"{f['mv']}: recorrido {f['t_rec']:.1f} s, llegada→firmes {f['t_firme']:.1f} s{estado}")
+        print(ENCABEZADO)
+        for i in range(3):
+            print(linea_art(NOMBRES[i], f["art"][i]))
+    tot, (tf_sum, tf_max) = totales(filas)
+    print(f"TOTAL ({len(filas)} mv): llegada→firmes suma {tf_sum:.1f} s, peor {tf_max:.1f} s "
+          "(e LLEGO y p-p: el peor en valor absoluto)")
+    print(ENCABEZADO)
+    for i in range(3):
+        print(linea_art(NOMBRES[i], tot[i]))
+    if cola:
+        print(f"Cola ({cola['s']:.1f} s después del último final), encoder pico a pico: "
+              + "  ".join(f"{NOMBRES[i]} {cola['pp'][i]:.3f}°" for i in range(3)))
+
+
+def comparar(archivo, base):
+    """Totales de la captura contra los de una base (por ejemplo la 180843), lado a lado."""
+    res = []
+    for a in (base, archivo):
+        d, eventos, _ = cargar(a)
+        filas, _ = resumen(d, eventos)
+        res.append((Path(a).name, [f["mv"] for f in filas], totales(filas)))
+    if res[0][1] != res[1][1]:
+        print(f"\nOJO: listas de mv distintas: {res[0][1]} contra {res[1][1]}")
+    print(f"\n=== Comparación: base {res[0][0]} → {res[1][0]} ===")
+    print("        inv rec+aprox     |e| máx rec       |e LLEGO| máx      correcc.     p-p firme")
+    for i in range(3):
+        b, n = res[0][2][0][i], res[1][2][0][i]
+        print(f"  {NOMBRES[i]}  {b['inv_rec'] + b['inv_aprox']:4d} → {n['inv_rec'] + n['inv_aprox']:4d}"
+              f"      {b['e_seg']:5.2f} → {n['e_seg']:5.2f}°    {b['e_llego']:5.3f} → {n['e_llego']:5.3f}°"
+              f"   {b['corr']:3d} → {n['corr']:3d}   {b['pp_firme']:5.3f} → {n['pp_firme']:5.3f}°")
+    (bs, bm), (ns, nm) = res[0][2][1], res[1][2][1]
+    print(f"  llegada→firmes: suma {bs:.1f} → {ns:.1f} s, peor {bm:.1f} → {nm:.1f} s")
+
+
+def graficar(archivo, sin_ventana, todo=False, base=None, solo_resumen=False):
+    d, eventos, cfg = cargar(archivo)
+    if d.size == 0:
+        print("CSV sin muestras.")
+        return
+    imprimir_resumen(*resumen(d, eventos), titulo=Path(archivo).name)
+    if base:
+        comparar(archivo, base)
+    if solo_resumen:
+        return
     import matplotlib
     if sin_ventana:
         matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     import numpy as np
-    d, eventos, cfg = cargar(archivo)
-    if d.size == 0:
-        print("CSV sin muestras.")
-        return
-    analizar_mv(d, eventos)
     # El homing es largo y tapa los mv: el gráfico arranca 1 s antes del primer mv (--todo: completo)
     t_mv = [tt for tt, tipo, c in eventos if tipo == "cmd" and c.startswith("mv ")]
     if t_mv and not todo:
@@ -326,15 +430,17 @@ def main():
     ap.add_argument("--archivo", help="volver a graficar un CSV guardado, sin tocar la placa")
     ap.add_argument("--sin-ventana", action="store_true", help="solo guarda el PNG")
     ap.add_argument("--todo", action="store_true", help="graficar también el homing (def.: desde el primer mv)")
+    ap.add_argument("--comparar", metavar="CSV_BASE", help="comparar los totales con otra captura (misma lista de mv)")
+    ap.add_argument("--solo-resumen", action="store_true", help="con --archivo: el resumen, sin graficar")
     args = ap.parse_args()
     if args.archivo:
-        graficar(args.archivo, args.sin_ventana, args.todo)
+        graficar(args.archivo, args.sin_ventana, args.todo, args.comparar, args.solo_resumen)
         return
     if not args.comandos:
         ap.error('falta la lista de comandos (por ejemplo: h "mv 20 20 24")')
     archivo = correr_en_placa(args)
     if archivo:
-        graficar(archivo, args.sin_ventana, args.todo)
+        graficar(archivo, args.sin_ventana, args.todo, args.comparar)
 
 
 if __name__ == "__main__":

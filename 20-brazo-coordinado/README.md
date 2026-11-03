@@ -60,13 +60,22 @@ que las que bajan **se pasen 2° y vuelvan subiendo despacio**, y anotar cada `L
 `tools/trayectoria.py` reemplaza al monitor (cerrarlo antes): manda `t 1`, los comandos de la lista esperando cada
 `LLEGO` (o `HOMING`), captura `--cola` s más y manda `t 0`. Guarda `resultados/trayectoria_<fecha>_<hora>.csv` y su
 `.png`: por articulación referencia contra medido, el error con `tolPos` y `bandaInt` (zoom ±1,5°: ahí se ve el
-tambaleo del final) y el duty, con lo firme y lo frenado sombreado; abajo, el camino (q2, q3) sobre la franja. Imprime
-para cada `mv` cuánto tardó en quedar firme y cuántas correcciones hizo cada una al final. Abrir el puerto puede
-reiniciar la WROOM: si queda sin cero, empezar la lista con `h`.
+tambaleo del final) y el duty, con lo firme y lo frenado sombreado; abajo, el camino (q2, q3) sobre la franja. Abrir
+el puerto puede reiniciar la WROOM: si queda sin cero, empezar la lista con `h`.
+
+Imprime un **resumen para comparar capturas** (siempre con la misma lista de `mv`): por `mv` y articulación, las
+inversiones del duty (cambio de signo con salto > 15 %) en el recorrido y en la aproximación, el |error| máximo de
+seguimiento en el recorrido, el error del `LLEGO`, las correcciones después de llegar y cuánto se mueve el encoder ya
+firme; por `mv`, el tiempo de la llegada hasta las tres firmes; al final, los totales y cuánto se movió cada encoder en
+la cola. `--comparar` pone los totales al lado de los de otra captura. Base con el resorte de la pinza
+(`trayectoria_20261031_180843`): inversiones J1 20 + 61 = 81, J2 7 + 8 = 15, J3 28 + 12 = 40; |e LLEGO| máx 0,06 /
+0,12 / 0,18°; de la llegada a firmes 0,2–0,5 s (suma 1,5 s).
 
 ```bash
 python3 tools/trayectoria.py h "mv 20 20 24" "mv 40 30 20" "mv 20 20 24" "mv 3 3 3"
 python3 tools/trayectoria.py --archivo resultados/trayectoria_....csv    # volver a graficar
+python3 tools/trayectoria.py --archivo resultados/trayectoria_....csv --solo-resumen \
+    --comparar resultados/trayectoria_20261031_180843.csv                 # contra la base
 ```
 
 Línea de telemetría: `T,ms,etapa,` y por cada una `q,ref,duty,w,estado` (etapa del `mv`: 1 recorrido,
