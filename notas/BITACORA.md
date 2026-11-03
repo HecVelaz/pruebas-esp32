@@ -413,4 +413,10 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   J1 al final). `trayectoria_20261103_095335`: homing **7,7 s** (J3 y J1 2,1 s juntas, J2 2,3 s). Buscando hay
   stick-slip: J1 toca el flanco a 4–5 °/s (ya pasaba a 1 °/s), J2 a 3 °/s (antes 0,8). Falta ver si el flanco repite
   (un segundo `h` con cero da el corrimiento) y si el golpe mueve los finales de carrera. `mv` sin cambios.
+  Intermedia: `trayectoria_20261103_094915`, J2 a 1,5 °/s con J1 todavía al final: 10,9 s.
+- **Joystick en `20`** (para medir la caja sin cambiar de firmware): `jv a1 a2 a3` (`14768d4`), velocidad de cada una en
+  lazo cerrado (a fondo J1 12 °/s, J2 y J3 8 °/s), al soltar se sostiene donde quedó, frena antes de los límites y la
+  franja (3° de margen), hombre muerto 300 ms; `jv 0 0 0` no corta el homing ni un `mv`. Puente:
+  `17-brazo-joystick/tools/joystick.py --placa 20` (`798f4b0`): botón Homing (`h`), estado por la telemetría y `c`,
+  "Anotar" en `20/resultados/limites_*.csv`. Probado con una placa simulada (pty); **sin probar en placa**.
 
