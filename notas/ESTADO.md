@@ -7,7 +7,7 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
 
 - **`20-brazo-coordinado` (lo actual):** J1, J2 y J3 con el mismo controlador (`lib/Articulacion`) en un lazo no
   bloqueante a 100 Hz, a 20 kHz; 5a, 5b, 5c y la primera parte de la fase 6 probadas en placa (03/11, **sin el
-  resorte de la pinza**). Firmware flasheado: `1c8a0ea` (lo posterior son scripts y notas).
+  resorte de la pinza**). Firmware flasheado: `8d26f99`.
   - `h`: las tres juntas si el brazo está abajo (3,5 s desde ~3°), cero en el flanco; sin cero corta si una avanza
     15° sin su final de carrera (el brazo tiene que estar recogido). `zq q1 q2 q3` para rescatarlo sin cero.
   - `mv`: perfil quíntico, J2 y J3 terminan juntas (recta en (q2, q3)); **J1 con su duración y a ≤ 10 °/s²**
@@ -19,9 +19,10 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
     ≤ 0,5 s; deriva 0,000° en 30 s con y sin limón (las tres frenadas).
   - **Repetibilidad articular** (`tools/repetibilidad.py`, 10 ciclos × 5 poses): RP J1 0,33°, J2 0,32°, J3 0,17°.
     J1 cae en dos valores (un salto de stick-slip de 0,2–0,3°); J2 con un sesgo fijo por pose.
-  - Joystick `jv` (puente `17/tools/joystick.py --placa 20`) usado en placa; **3 problemas de seguridad de la
-    revisión de Codex sin arreglar** (ver `PENDIENTES.md`): usarlo con cuidado.
-  - J1 0–90° PROVISORIO; `MV_FACTOR_VEL` 0,5 PROVISORIO (más velocidad: no por ahora, ver la bitácora).
+  - Joystick `jv` (puente `17/tools/joystick.py --placa 20`) usado en placa, con los 3 arreglos de la revisión de
+    Codex (frena un `j` en curso, probado; no se rearma tras un corte; fuera de la franja solo hacia adentro).
+  - **J1 0–118° PROVISORIO** (libre hasta 115° recogido y medio estirado; falta con 74/70 y más allá de 118°). La caja
+    no está en el firmware: primeras anotaciones en `limites_20261103_145324`. `MV_FACTOR_VEL` 0,5 PROVISORIO.
 - **`19-j2-j3-conjunto`:** banco de pruebas de J2 y J3 (una activa, la otra sostenida). Fases 1–4 del plan probadas
   en placa (franja, sostener con banda 0,2° / compensación de fricción / freno en banda, mapa de gravedad, homing);
   20 kHz. La fase 5 siguió en `20`.
