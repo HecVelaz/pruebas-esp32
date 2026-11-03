@@ -72,6 +72,10 @@ cd ../17-brazo-joystick && python3 tools/joystick.py --placa 20
 Abrir http://localhost:8000, brazo abajo y recogido, prender los 12 V y apretar **Homing (h)**. Para medir la caja:
 acercar el brazo despacio (escala baja) y "Anotar" con una nota ("caja J1=40").
 
+Si el brazo quedó arriba sin cero (por ejemplo trabado por un homing que arrancó estirado): `--zq "q1 q2 q3"` con los
+ángulos donde está manda el cero estimado al arrancar; bajarlo con el joystick (fuera de la franja solo deja volver
+hacia adentro) y después Homing.
+
 ## Medir los límites
 
 1. 12 V apagados; flashear; brazo en la pose de los finales de carrera; arrancar el puente.

@@ -14,7 +14,10 @@ telemetría ("t 1") y los finales de carrera y el cero, de "c" cada segundo. Lo 
 20-brazo-coordinado/resultados/limites_<fecha>_<hora>.csv (el cero es el de 20). No fija el cero al arrancar: abrir
 el puerto puede reiniciar la WROOM, así que primero "Homing" en la página, con el brazo abajo y recogido.
 
-Uso:  python3 tools/joystick.py [--placa 17|20] [-p /dev/ttyUSB0] [--puerto-web 8000] [--host 0.0.0.0]
+Con --zq "q1 q2 q3" (solo --placa 20) manda "zq" al arrancar: el brazo quedó lejos de los finales de carrera sin cero
+(abrir el puerto reinicia la WROOM; el brazo no se mueve sin corriente) y se lo baja con el joystick; después Homing.
+
+Uso:  python3 tools/joystick.py [--placa 17|20] [--zq "q1 q2 q3"] [-p /dev/ttyUSB0] [--puerto-web 8000] [--host 0.0.0.0]
 Con --host 0.0.0.0 la página se abre desde el celular (http://<IP de la notebook>:8000): cualquiera en esa red
 puede mover el brazo, así que solo en una red de confianza; por defecto escucha solo en la notebook.
 Cerrar el monitor serie antes: el puerto no se abre dos veces.
@@ -113,7 +116,17 @@ def main():
     ap.add_argument("--host", default="127.0.0.1", help="0.0.0.0 para abrir la página desde otro equipo (celular)")
     ap.add_argument("--placa", type=int, choices=(17, 20), default=17,
                     help="firmware en la WROOM: 17 (lazo abierto, def.) o 20 (jv en lazo cerrado, homing)")
+    ap.add_argument("--zq", metavar='"Q1 Q2 Q3"',
+                    help='con --placa 20: el brazo está en estos ángulos (cero estimado, "zq") para bajarlo con el '
+                         'joystick sin cero; después Homing')
     args = ap.parse_args()
+    if args.zq is not None:
+        try:
+            zq = [float(x) for x in args.zq.split()]
+        except ValueError:
+            zq = []
+        if args.placa != 20 or len(zq) != 3:
+            ap.error('--zq va con --placa 20 y tres ángulos: --zq "27.3 74.3 41.3"')
     p20 = args.placa == 20
     estado["placa"] = args.placa
     if p20:
@@ -170,6 +183,8 @@ def main():
         # Abrir el puerto puede reiniciar la WROOM: esperar el saludo, prender la telemetría y pedir "c" cada segundo
         time.sleep(2.0)
         enviar("t 1")
+        if args.zq is not None:
+            enviar("zq %.2f %.2f %.2f" % tuple(zq))
 
         def pedir_estado():
             while True:
