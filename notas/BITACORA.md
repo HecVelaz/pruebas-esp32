@@ -501,3 +501,12 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   frenadas (estado 4, duty 0) y el encoder no se mueve ni una cuenta** (0,000° pico a pico en las tres, con y sin
   limón): ni el peso del brazo ni el del limón las hacen ceder. Los encoders están en los motores: el juego de los
   engranajes y la correa no se ven (para eso, el video o la repetibilidad medida en la punta).
+- **Fase 6, primera repetibilidad articular** (`918cfde` `tools/repetibilidad.py --ciclos 10`;
+  `repetibilidad_20261103_141454`): 5 poses (20/20/24, 40/30/20, 40/74/70, 60/74/70, 20/74/70), 1 ciclo de
+  calentamiento + 10 medidos, sin chocar. **Peor RP (l̄ + 3·S_l, en el encoder): J1 0,33°, J2 0,32°, J3 0,17°.**
+  - J1 repite en **dos valores**, separados por un salto de stick-slip: a 20° queda en 19,94 o en 20,23, a 40° en 39,83
+    o en 39,99 (el último empujón entra o no). Rango 0,36–0,39°.
+  - J2 tiene un sesgo fijo por pose (a 30°, siempre +0,21 a +0,29° arriba; a 20°, 0,15–0,20° abajo), con poco desvío
+    (RP 0,07° a 30°); la peor RP es a 20° (0,32°) por una llegada a +0,16°. J3 ≤ 0,17°.
+  - La articulación que no se mueve entre dos poses repite el mismo valor (J1 en P2/P3 y P5/P1, J2 y J3 en P3/P4/P5):
+    las llegadas independientes son J1 en P2, P4 y P5 y J2/J3 en P1, P2 y P3.
