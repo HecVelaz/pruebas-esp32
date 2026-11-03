@@ -453,4 +453,8 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
 - **J1 (opción A):** último tramo propio de 0,5° a 5 °/s, cada una con su duración en la aproximación (`6ae1805`) y
   `tolPos` 0,15° (`be11c83`). Sin probar en placa. Después: medir la frecuencia de la oscilación de la punta (video o
   IMU en la pinza) para un input shaping (ZV) de J1; si no alcanza, menos aceleración de J1 (paso 3).
+- **J1 `tolPos` 0,15° no sirve** (`trayectoria_20261103_110204_cortado`): en el retroceso del homing J1 quedó en un
+  ciclo límite ±0,3° alrededor de 3° (la cascada pide ≥ 3 °/s y J1 avanza a saltos de 0,3–0,6°; nunca queda quieta
+  dentro de 0,15°) y el homing cortó a los 15 s. Revertido (vuelve a 0,3°). La aproximación propia de J1
+  (`6ae1805`) queda, sin probar todavía.
 
