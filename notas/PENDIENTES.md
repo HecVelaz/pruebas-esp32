@@ -10,7 +10,9 @@
   falta, `MV_FACTOR_VEL` 0,5 → 0,3 (frenado más suave); (2) **fase 6**: proponer el test de repetibilidad (5 poses,
   30 ciclos, mismo camino, RP = l̄ + 3σ, articular contra en el espacio; `trayectoria.py` ya sirve para capturarlo) y
   pedir los datos que faltan (largos de los eslabones del cuatro barras y hasta la pinza, ángulos del cero contra la
-  horizontal, cómo medir afuera); (3) **zona prohibida**: medir con el joystick dónde choca el brazo con la caja y
+  horizontal, cómo medir afuera; de J3 ya se sabe: manivela 80 mm en el engranaje 75, pivote a 40 mm del eje del
+  antebrazo; faltan el largo de la biela entre los dos y la distancia entre el eje del engranaje y el del antebrazo:
+  q3 es el ángulo del engranaje y el antebrazo gira ~2 veces eso); (3) **zona prohibida**: medir con el joystick dónde choca el brazo con la caja y
   agregarla a `mv`/`j`; (4) límite de J1 con el brazo estirado (hoy 90° PROVISORIO). **Antes de (1), sesión del 03/11 (sin el resorte de la pinza; paso 0 hecho, `trayectoria_20261103_092501`):**
   homing más rápido (propuesto: J2 1 °/s, J3/J1 1,5 °/s, J1 junto con J3, `trayectoria.py` termina en `mv 3 3 3`);
   paso 1, diagnóstico de la oscilación de la punta (1a J1 sola recogido, 1b J1 sola estirado + limón, 1c J2/J3

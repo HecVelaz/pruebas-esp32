@@ -16,6 +16,13 @@ bloqueante a 100 Hz**. `19` queda como banco de pruebas de una articulación por
 - **Franja del cuatro barras** `q2 − 25° ≤ q3 ≤ q2 + 7,5°`: los destinos se validan con 3° de margen y, si la
   medición sale de la franja (0,5° de holgura) mientras J2 o J3 se mueven, frena las dos.
 - **J1:** 0–90° PROVISORIO (118° medido con el brazo recogido; estirado choca antes con el soporte de la visión).
+- **Transmisión de J3** (dato del usuario, 2026-11-03): motor 139:1 → engranajes 75:15 (5:1) → manivela de 80 mm en
+  el engranaje grande → pivote a 40 mm del eje del antebrazo (cuatro barras: la pinza queda paralela). **q3 es el
+  ángulo del engranaje grande** (123,6 cuentas/°): la manivela y la palanca quedan fuera del lazo. La palanca divide el
+  par por 2 y **multiplica el ángulo por ~2** (exacto solo con las barras perpendiculares; cambia con el ángulo):
+  `tolPos` 0,15° de J3 ≈ 0,3° del antebrazo, el juego de los engranajes también ×2, ~62 cuentas por grado de
+  antebrazo. Par motor → antebrazo ≈ 139 × 5 / 2 ≈ 347. Las ganancias y la franja se midieron así (en ángulo del
+  engranaje), por eso valen; si J3 se portara distinto en los extremos, pensar en ganancias según la posición.
 - **20 kHz** las tres (sin pitido). EN común: alto mientras alguna se sostiene; solo `x` lo baja.
 - **Abrir el puerto serie reinicia la WROOM** (el cero se pierde y las tres quedan sueltas): después de abrir el
   monitor, `h`.
