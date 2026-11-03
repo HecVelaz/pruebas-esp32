@@ -55,6 +55,23 @@ al soltarla. Espacio = frenar. Duty mínimo/máximo, límites iniciales, signos 
 (J1 20 kHz, J2/J3 1 kHz, como `12`–`14`). Desde el celular: `python3 tools/joystick.py --host 0.0.0.0` y
 `http://<IP de la notebook>:8000` (cualquiera en esa red puede mover el brazo).
 
+## Con el firmware de `20` (`--placa 20`, 2026-11-03)
+
+El mismo puente y la misma página manejan `20-brazo-coordinado`: el joystick pasa a ser **velocidad en lazo
+cerrado** (comando `jv`; a fondo J1 12 °/s, J2 y J3 8 °/s), al soltar **se sostiene donde quedó** (J2 y J3 no bajan),
+"Cero aquí" pasa a **Homing** (`h` de `20`: J3 y J1 juntas, después J2) y frenar sostiene las tres (`s`). Respeta los
+límites y la franja de `20` con 3° de margen. "Anotar" guarda en `20-brazo-coordinado/resultados/limites_*.csv` (el
+cero es el de `20`, el mismo de los `mv`); si falta el homing, la nota empieza con "SIN CERO".
+
+```bash
+cd ~/Documentos/pruebas-esp32/20-brazo-coordinado
+~/.platformio/penv/bin/pio run -t upload                     # 12 V APAGADOS, monitor cerrado
+cd ../17-brazo-joystick && python3 tools/joystick.py --placa 20
+```
+
+Abrir http://localhost:8000, brazo abajo y recogido, prender los 12 V y apretar **Homing (h)**. Para medir la caja:
+acercar el brazo despacio (escala baja) y "Anotar" con una nota ("caja J1=40").
+
 ## Medir los límites
 
 1. 12 V apagados; flashear; brazo en la pose de los finales de carrera; arrancar el puente.

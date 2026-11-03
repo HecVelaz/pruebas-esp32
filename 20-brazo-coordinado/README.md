@@ -47,7 +47,9 @@ sostiene donde quedó** (J2 y J3 no caen). No pasa los límites ni la franja con
 quedar en el borde. Hombre muerto: sin `jv` en 300 ms, frena las tres. Necesita el cero (`h`). `jv 0 0 0` con el
 joystick quieto no corta el homing ni un `mv`; cualquier otro comando corta el joystick (se sostienen). Corta y frena si
 una se aleja más de 5° de su referencia o la franja la frena. Telemetría: etapa 8. Desde el monitor un `jv` mueve unos
-300 ms y frena (sirve para probar); para manejarlo, `tools/joystick.py --placa 20` (de `17`).
+300 ms y frena (sirve para probar); para manejarlo, `python3 ../17-brazo-joystick/tools/joystick.py --placa 20`
+(página en http://localhost:8000: barras de velocidad, botón Homing, "Anotar" guarda en `resultados/limites_*.csv`;
+ver el README de `17`).
 
 ## Prueba 5a
 

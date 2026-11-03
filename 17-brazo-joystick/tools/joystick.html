@@ -75,7 +75,7 @@
 <body>
 <main>
   <h1>Joystick del brazo</h1>
-  <p class="sub">Lazo abierto: cada barra da el duty de su articulación. Soltarla frena esa articulación.
+  <p class="sub" id="sub">Lazo abierto: cada barra da el duty de su articulación. Soltarla frena esa articulación.
     Cero = la pose con los tres finales de carrera apretados: cada articulación lo fija sola al tocar el suyo
     (también al arrancar el puente o con “Cero aquí”). Alejarse del final de carrera = +.</p>
 
@@ -104,8 +104,9 @@
   </div>
 
   <div class="art" id="arts"></div>
+  <p class="ayuda" id="msgs"></p>
 
-  <p class="ayuda">Barras: J1 derecha = +, J2 arriba = +, J3 arriba = el codo sube (−); se pueden mover varias a la vez con varios dedos.
+  <p class="ayuda" id="ayuda">Barras: J1 derecha = +, J2 arriba = +, J3 arriba = el codo sube (−); se pueden mover varias a la vez con varios dedos.
     Teclado: <kbd>A</kbd>/<kbd>D</kbd> J1 · <kbd>W</kbd>/<kbd>S</kbd> J2 · <kbd>I</kbd>/<kbd>K</kbd> J3 ·
     <kbd>espacio</kbd> frenar. Gamepad: stick izquierdo J1/J2, stick derecho vertical J3.
     Estados: <b>LIM</b> en el límite (solo deja volver), <b>FC</b> el final de carrera está apretado (solo deja
@@ -122,6 +123,22 @@ let LIMITES = [[-5, 118], [-5, 97], [-5, 113]];
 const SIGNO_EJE = [1, 1, -1];  // los manda la placa; estos son los de config.h
 const ejes = { pantalla: [0, 0, 0], teclado: [0, 0, 0] };
 let frenado = false;
+// Firmware de 20 (joystick.py --placa 20): velocidad en lazo cerrado, homing, sus estados
+let placa = null;
+const CLASE_20 = { FIRME: "OK", MOV: "OK", FRENADA: "OK", "LLEGÓ": "OK", YENDO: "OK", HOMING: "FC", SUELTA: "LIM" };
+function modo20() {
+  document.getElementById("sub").textContent = "Firmware de 20, lazo cerrado: cada barra es la VELOCIDAD de su " +
+    "articulación (a fondo J1 12 °/s, J2 y J3 8 °/s); al soltarla frena y se sostiene donde quedó. Primero " +
+    "“Homing” con el brazo abajo y recogido. No pasa los límites ni la franja (3° de margen). Alejarse del final " +
+    "de carrera = +.";
+  document.getElementById("cero").textContent = "Homing (h)";
+  document.querySelectorAll(".ctl").forEach(c => c.style.display = "none");
+  document.getElementById("ayuda").innerHTML = "Barras: J1 derecha = +, J2 arriba = +, J3 arriba = el codo sube " +
+    "(−). Teclado: <kbd>A</kbd>/<kbd>D</kbd> J1 · <kbd>W</kbd>/<kbd>S</kbd> J2 · <kbd>I</kbd>/<kbd>K</kbd> J3 · " +
+    "<kbd>espacio</kbd> frenar (sostiene las tres). Estados: <b>FIRME</b>/<b>FRENADA</b> sostenida y quieta, " +
+    "<b>MOV</b> siguiendo el joystick, <b>HOMING</b>, <b>SUELTA</b> sin control (falta el homing). “Anotar” guarda " +
+    "q1 q2 q3 en 20-brazo-coordinado/resultados.";
+}
 
 const arts = document.getElementById("arts");
 NOMBRES.forEach((n, i) => {
@@ -212,6 +229,8 @@ document.getElementById("borrarB").onclick = () => {
 };
 
 function mostrar(s) {
+  if (placa === null && s.placa) { placa = s.placa; if (placa === 20) modo20(); }
+  if (placa === 20) document.getElementById("msgs").textContent = (s.msg || []).slice(-3).join(" · ");
   const con = document.getElementById("con");
   const viva = s.edad < 0.5;
   con.textContent = viva ? "conectada" : "sin datos";
@@ -220,7 +239,8 @@ function mostrar(s) {
     document.getElementById(`q${i}`).textContent = `${q >= 0 ? "+" : ""}${q.toFixed(1)}°`;
     document.getElementById(`d${i}`).textContent = s.d[i].toFixed(0);
     const e = document.getElementById(`e${i}`);
-    e.textContent = s.e[i]; e.className = `est ${s.e[i] === "4B" ? "B4" : s.e[i]}`;  // clase CSS sin dígito inicial
+    e.textContent = s.e[i] + (placa === 20 && s.cero && !s.cero[i] ? " · SIN CERO" : "");
+    e.className = `est ${placa === 20 ? (CLASE_20[s.e[i]] || "") : (s.e[i] === "4B" ? "B4" : s.e[i])}`;  // sin dígito inicial
     const f = document.getElementById(`f${i}`);
     f.textContent = s.fc[i] ? "FC APRETADO" : "FC suelto"; f.className = s.fc[i] ? "fc si" : "fc";
     if (s.lim) LIMITES[i] = s.lim[i];

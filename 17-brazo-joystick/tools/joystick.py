@@ -8,7 +8,13 @@ Al arrancar fija el cero ("Z") donde está el brazo. Abre el puerto sin tocar DT
 resultados/limites_<fecha>_<hora>.csv (un archivo por cada vez que se arranca el puente); "Borrar la última"
 saca la última fila.
 
-Uso:  python3 tools/joystick.py [-p /dev/ttyUSB0] [--puerto-web 8000] [--host 0.0.0.0]
+Con --placa 20 maneja el firmware de 20-brazo-coordinado (2026-11-03): manda "jv a1 a2 a3" (velocidad de cada una en
+lazo cerrado; al soltar se sostienen), el botón del cero hace el homing ("h") y frenar es "s". Los ángulos salen de la
+telemetría ("t 1") y los finales de carrera y el cero, de "c" cada segundo. Lo anotado va a
+20-brazo-coordinado/resultados/limites_<fecha>_<hora>.csv (el cero es el de 20). No fija el cero al arrancar: abrir
+el puerto puede reiniciar la WROOM, así que primero "Homing" en la página, con el brazo abajo y recogido.
+
+Uso:  python3 tools/joystick.py [--placa 17|20] [-p /dev/ttyUSB0] [--puerto-web 8000] [--host 0.0.0.0]
 Con --host 0.0.0.0 la página se abre desde el celular (http://<IP de la notebook>:8000): cualquiera en esa red
 puede mover el brazo, así que solo en una red de confianza; por defecto escucha solo en la notebook.
 Cerrar el monitor serie antes: el puerto no se abre dos veces.
@@ -17,6 +23,7 @@ Cerrar el monitor serie antes: el puerto no se abre dos veces.
 import argparse
 import csv
 import json
+import re
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -26,11 +33,43 @@ import serial
 
 PAGINA = Path(__file__).absolute().parent / "joystick.html"
 RESULTADOS = Path(__file__).absolute().parent.parent / "resultados"
+RESULTADOS_20 = Path(__file__).absolute().parent.parent.parent / "20-brazo-coordinado" / "resultados"
+# 20: estado de la telemetría (columna "estado" de cada una) y límites de su config.h (con 3° de margen en jv)
+ESTADOS_20 = {0: "SUELTA", 1: "YENDO", 2: "LLEGÓ", 3: "FIRME", 4: "FRENADA", 5: "MOV", 6: "HOMING"}
+LIMITES_20 = [[0.0, 90.0], [0.0, 97.0], [0.0, 113.0]]
+RE_C_20 = re.compile(r"^(J[123])\s.*\| final de carrera (apretado|suelto) \| (con cero|SIN CERO)")
 PUERTO_DEF = "/dev/serial/by-id/usb-1a86_USB_Serial-if00-port0"
 
 estado = {"q": [0.0, 0.0, 0.0], "d": [0.0, 0.0, 0.0], "e": ["?", "?", "?"], "fc": [0, 0, 0],
-          "lim": [[0.0, 0.0]] * 3, "inv": [0, 0, 0], "t": 0.0, "msg": [], "anotadas": 0}
+          "lim": [[0.0, 0.0]] * 3, "inv": [0, 0, 0], "t": 0.0, "msg": [], "anotadas": 0, "placa": 17,
+          "cero": [0, 0, 0]}
 candado = threading.Lock()
+
+
+def leer_20(l):
+    """Una línea del firmware de 20: telemetría T (q, duty, estado) o el estado de "c" (final de carrera, cero).
+    Devuelve False si es para mostrar como mensaje."""
+    if l.startswith("T,"):
+        p = l.split(",")
+        if len(p) != 18:
+            return True
+        try:
+            q = [float(p[3 + 5 * i]) for i in range(3)]
+            d = [float(p[5 + 5 * i]) for i in range(3)]
+            e = [ESTADOS_20.get(int(p[7 + 5 * i]), "?") for i in range(3)]
+        except ValueError:
+            return True
+        with candado:
+            estado.update(q=q, d=d, e=e, t=time.time())
+        return True
+    m = RE_C_20.match(l)
+    if m:
+        i = int(m.group(1)[1]) - 1
+        with candado:
+            estado["fc"][i] = 1 if m.group(2) == "apretado" else 0
+            estado["cero"][i] = 1 if m.group(3) == "con cero" else 0
+        return True
+    return l.startswith(("franja:", "TELE_CFG", ">> Telemetría"))  # (leer() ya sacó los espacios)
 
 
 def leer(s):
@@ -41,6 +80,13 @@ def leer(s):
             print("Se perdió el puerto:", ex)
             return
         if not l:
+            continue
+        if estado["placa"] == 20:
+            if leer_20(l):
+                continue
+            print("placa:", l)
+            with candado:
+                estado["msg"] = (estado["msg"] + [l])[-5:]
             continue
         p = l.split()
         if p[0] == "Q" and len(p) == 22:
@@ -65,7 +111,14 @@ def main():
     ap.add_argument("-p", "--puerto", default=PUERTO_DEF)
     ap.add_argument("--puerto-web", type=int, default=8000)
     ap.add_argument("--host", default="127.0.0.1", help="0.0.0.0 para abrir la página desde otro equipo (celular)")
+    ap.add_argument("--placa", type=int, choices=(17, 20), default=17,
+                    help="firmware en la WROOM: 17 (lazo abierto, def.) o 20 (jv en lazo cerrado, homing)")
     args = ap.parse_args()
+    p20 = args.placa == 20
+    estado["placa"] = args.placa
+    if p20:
+        estado["lim"] = LIMITES_20
+        estado["fc"] = [0, 0, 0]
 
     s = serial.Serial()
     s.port, s.baudrate, s.timeout = args.puerto, 115200, 0.2
@@ -77,13 +130,16 @@ def main():
         with escribir:
             s.write((linea + "\n").encode())
 
-    archivo_csv = RESULTADOS / time.strftime("limites_%Y%m%d_%H%M%S.csv")
+    dir_res = RESULTADOS_20 if p20 else RESULTADOS
+    archivo_csv = dir_res / time.strftime("limites_%Y%m%d_%H%M%S.csv")
 
     def anotar(nota):
         with candado:
             e = dict(estado)
+        if p20 and not all(e["cero"]):
+            nota = "SIN CERO (hacer el homing) " + nota
         nuevo = not archivo_csv.exists()
-        RESULTADOS.mkdir(exist_ok=True)
+        dir_res.mkdir(exist_ok=True)
         with archivo_csv.open("a", newline="") as f:
             w = csv.writer(f)
             if nuevo:
@@ -109,8 +165,21 @@ def main():
 
     threading.Thread(target=leer, args=(s,), daemon=True).start()
     time.sleep(0.3)
-    enviar("S")
-    enviar("Z")
+    ultimo_jv = {"t": 0.0, "linea": ""}
+    if p20:
+        # Abrir el puerto puede reiniciar la WROOM: esperar el saludo, prender la telemetría y pedir "c" cada segundo
+        time.sleep(2.0)
+        enviar("t 1")
+
+        def pedir_estado():
+            while True:
+                enviar("c")
+                time.sleep(1.0)
+
+        threading.Thread(target=pedir_estado, daemon=True).start()
+    else:
+        enviar("S")
+        enviar("Z")
 
     class Manejador(BaseHTTPRequestHandler):
         def log_message(self, *a):
@@ -141,11 +210,22 @@ def main():
                 if len(ejes) != 3:
                     self.send_error(400)
                     return
-                enviar("J %.3f %.3f %.3f" % tuple(ejes))
+                if p20:
+                    # "jv" a 10 Hz como mucho (o si cambió): alcanza para el hombre muerto de 300 ms
+                    linea = "jv %.2f %.2f %.2f" % tuple(ejes)
+                    ahora = time.time()
+                    if linea != ultimo_jv["linea"] or ahora - ultimo_jv["t"] >= 0.1:
+                        enviar(linea)
+                        ultimo_jv.update(t=ahora, linea=linea)
+                else:
+                    enviar("J %.3f %.3f %.3f" % tuple(ejes))
             elif self.path == "/cero":
-                enviar("Z")
+                enviar("h" if p20 else "Z")
             elif self.path == "/freno":
-                enviar("S")
+                enviar("s" if p20 else "S")
+            elif p20 and self.path in ("/lim", "/inv"):
+                self.send_error(400)
+                return
             elif self.path == "/lim":
                 try:
                     n, mn, mx = json.loads(cuerpo)
@@ -187,7 +267,11 @@ def main():
     except KeyboardInterrupt:
         pass
     finally:
-        enviar("S")
+        if p20:
+            enviar("s")
+            enviar("t 0")
+        else:
+            enviar("S")
         s.close()
 
 
