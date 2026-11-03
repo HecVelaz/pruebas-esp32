@@ -215,7 +215,7 @@ void homingPaso() {
 }
 
 // ---------- Fase 5b: movimiento coordinado ("mv") ----------
-// Etapas: 1 recorrido (hasta APROX_GRADOS[i] por debajo del objetivo), 2 aproximación (el último tramo despacio,
+// Etapas: 1 recorrido (hasta APROX_GRADOS[i] antes del objetivo; J2 y J3 terminan juntas, J1 con su duración), 2 aproximación (el último tramo despacio,
 // subiendo; cada una con su duración, J1 más corta), 3 llegada (las tres sostienen el objetivo hasta quedar firmes), 4 asentamiento.
 struct {
   bool activo = false;
@@ -226,7 +226,8 @@ struct {
   float antes[N];      // dónde termina su recorrido: APROX_GRADOS antes del objetivo, del lado del que llega
   bool esperar[N];     // al final del recorrido, esperar a que esté de verdad de ese lado
   float T = 1.0f;      // s, duración de la etapa
-  float Ti[N];         // s, en la aproximación: la de cada una (T = la más larga)
+  float Ti[N];         // s, la de cada una (T = la más larga): en la aproximación todas; en el recorrido, las de
+                       // MV_DURACION_PROPIA (las demás, T)
   uint32_t k = 0;      // periodos desde el comienzo de la etapa
   uint32_t tEtapa = 0, tFirme = 0;
 } mv;
@@ -261,8 +262,21 @@ void mvEtapa(int etapa) {
     mv.mueve[i] = (etapa == 1 || etapa == 2) && fabsf(d[i]) >= 0.01f;
     if (!mv.mueve[i]) d[i] = 0.0f;
   }
-  if (etapa == 1) mv.T = fmaxf(duracion(d, MV_FACTOR_VEL, 0.0f), MV_T_MIN);
-  if (etapa == 2) {
+  if (etapa == 1) {
+    // Las de duración propia, cada una con la suya; las demás juntas (la más lenta manda)
+    float dj[N];
+    for (int i = 0; i < N; i++) dj[i] = MV_DURACION_PROPIA[i] ? 0.0f : d[i];
+    const float Tj = fmaxf(duracion(dj, MV_FACTOR_VEL, 0.0f), MV_T_MIN);
+    mv.T = Tj;
+    for (int i = 0; i < N; i++) {
+      mv.Ti[i] = Tj;
+      if (!MV_DURACION_PROPIA[i] || !mv.mueve[i]) continue;
+      float di[N] = {0.0f, 0.0f, 0.0f};
+      di[i] = d[i];
+      mv.Ti[i] = fmaxf(duracion(di, MV_FACTOR_VEL, 0.0f), MV_T_MIN);
+      mv.T = fmaxf(mv.T, mv.Ti[i]);
+    }
+  } else if (etapa == 2) {
     mv.T = 0.0f;
     for (int i = 0; i < N; i++) {
       float di[N] = {0.0f, 0.0f, 0.0f};
@@ -337,10 +351,10 @@ void mvPaso() {
         return;
       }
       if (!mv.mueve[i]) continue;
-      // Perfil quíntico con la duración de esta (en el recorrido, la misma para todas: terminan juntas)
+      // Perfil quíntico con la duración de esta (en el recorrido, J2 y J3 la misma: terminan juntas)
       const float Ti = fmaxf(mv.Ti[i], 1e-3f);
       const float ti = fminf(mv.k * Articulacion::TS / Ti, 1.0f);
-      if (ti >= 1.0f && mv.etapa == 2) {  // terminó su aproximación antes que las otras: a sostener (J1 frena)
+      if (ti >= 1.0f && Ti < mv.T) {  // terminó su parte antes que las otras: a sostener (J1 frena)
         if (art[i].modo() == Articulacion::Modo::Seguir) art[i].sostener(mv.hasta[i]);
         continue;
       }

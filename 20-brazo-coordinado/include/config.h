@@ -43,6 +43,12 @@ constexpr float VEL_APROX[3] = {5.0f, 2.0f, 2.0f};  // °/s (pico del perfil del
 // cambiaba de lado y la punta, con el brazo estirado, oscilaba ±1,4 cm a ~1,5 Hz con los encoders quietos. Llegando en
 // el mismo sentido, no). Para la repetibilidad alcanza: cada pose se repite siempre por el mismo camino
 constexpr bool APROX_MISMO_SENTIDO[3] = {true, false, false};
+// Duración propia en el recorrido: true = no espera a las otras (su perfil a su vMax/aMax con MV_FACTOR_VEL; termina
+// antes y sostiene en su punto previo hasta la aproximación). J1 (2026-11-03): con la duración de J2/J3 (12,9 s para
+// 17°) el final de su perfil iba tan lento que se trabó 1,6 s en 18,7°, se despegó con 28 % a 16 °/s, se pasó a 21,0°
+// y volvió: la punta se hamacó ±35 px a ~1,6 Hz. J1 no tiene franja: no necesita terminar con las otras. J2 y J3 sí
+// (la recta en q2-q3)
+constexpr bool MV_DURACION_PROPIA[3] = {true, false, false};
 constexpr float MV_ERROR_MAX = 5.0f;       // ° entre la referencia y la medición: corta (no sigue la trayectoria)
 constexpr uint32_t MV_LLEGADA_MAX_MS = 20000;  // después de la trayectoria, tiempo para quedar las tres firmes
 

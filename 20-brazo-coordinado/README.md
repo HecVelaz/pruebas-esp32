@@ -121,7 +121,9 @@ Línea de telemetría: `T,ms,etapa,` y por cada una `q,ref,duty,w,estado` (etapa
   tramo a 2 °/s (llegada siempre con el ángulo creciendo; desde el 03/11 la que ya está dentro de su `tolPos` no se
   mueve, y **J1 hace un último tramo propio de 0,5° a 5 °/s, en el sentido en que viene** (`APROX_MISMO_SENTIDO`: desde
   arriba bajaba y subía el último tramo, la correa cambiaba de lado y la punta oscilaba ±1,4 cm a 1,5 Hz): a 2 °/s avanzaba a saltos por la correa; cada una con
-  su duración en la aproximación, J1 termina antes y frena); el sostener arranca del duty que sostiene el peso; a los 2 s firmes: `LLEGO,t,q1,q2,q3,e1,e2,e3`. Corta si alguna se aleja más de 5° de su referencia, con
+  su duración en la aproximación, J1 termina antes y frena; **desde el 03/11 J1 también tiene su duración en el recorrido**
+  (`MV_DURACION_PROPIA`: con la de J2/J3 iba tan lenta que se trababa, se despegaba de golpe y se pasaba 1°; J2 y J3
+  siguen terminando juntas)); el sostener arranca del duty que sostiene el peso; a los 2 s firmes: `LLEGO,t,q1,q2,q3,e1,e2,e3`. Corta si alguna se aleja más de 5° de su referencia, con
   la franja o con cualquier comando. **No esquiva la caja.**
 - [x] 5c (**probada en placa 2026-10-31**, sin muestras perdidas): telemetría `t` y `tools/trayectoria.py`
 - [ ] Joystick `jv` (lazo cerrado, se sostiene al soltar) y `joystick.py --placa 20`: compila, sin probar en placa
