@@ -58,7 +58,8 @@ que las que bajan **se pasen 2° y vuelvan subiendo despacio**, y anotar cada `L
 ## Prueba 5c (telemetría)
 
 `tools/trayectoria.py` reemplaza al monitor (cerrarlo antes): manda `t 1`, los comandos de la lista esperando cada
-`LLEGO` (o `HOMING`), captura `--cola` s más y manda `t 0`. Guarda `resultados/trayectoria_<fecha>_<hora>.csv` y su
+`LLEGO` (o `HOMING`), captura `--cola` s más, **vuelve a `mv 3 3 3`** si la lista no terminaba ahí (cerca del cero:
+el próximo homing tarda poco; no entra en el resumen; `--sin-volver` para no hacerlo) y manda `t 0`. Guarda `resultados/trayectoria_<fecha>_<hora>.csv` y su
 `.png`: por articulación referencia contra medido, el error con `tolPos` y `bandaInt` (zoom ±1,5°: ahí se ve el
 tambaleo del final) y el duty, con lo firme y lo frenado sombreado; abajo, el camino (q2, q3) sobre la franja. Abrir
 el puerto puede reiniciar la WROOM: si queda sin cero, empezar la lista con `h`.
