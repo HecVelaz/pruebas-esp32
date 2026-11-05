@@ -64,3 +64,14 @@
 - La escala de J2 (1,170° reales por grado del encoder: reductora ~120:1, no 139:1) **no se cambió en el firmware**:
   las ganancias, la franja y los límites están afinados en grados de encoder; la conversión va en la cinemática
   hasta decidir lo contrario.
+
+## 2026-11-05 (noche) — Dos bordes de abajo de la franja; la punta en mm desde Python
+
+- **Destinos con q3 − q2 ≥ −25°, camino y freno con −49°.** −49° es el límite mecánico (el hombro no sube más con el
+  codo atrás); −25° es de firmeza (más abajo J3 no queda quieta). Por eso `Q2_MENOS_Q3_DESTINO` (25) vale solo donde
+  J2/J3 quedan sostenidas (`mv`, `j`, joystick) y `Q2_MENOS_Q3_MAX` (49) sigue para el camino del `mv`, su intermedio,
+  el homing y el freno de seguridad: pasar por ahí moviéndose no es problema y achicar todo daba cortes nuevos.
+- **`mx x y z` en Python (`tools/punta.py`), no en el firmware.** El firmware no conoce la caja ni el modelo de la
+  punta; el script revisa los choques en todo el camino (para cualquier J1 entre la de partida y la de llegada) y
+  manda `mv`. Sin flashear, la repetibilidad medida sigue valiendo, y es lo que va a usar el puente de la Pi con las
+  cámaras. Pasarlo al firmware solo si hace falta la punta en recta. Con `mv` a mano no hay protección contra la caja.

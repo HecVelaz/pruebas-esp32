@@ -1,4 +1,4 @@
-# Estado de pruebas-esp32 (al 2026-11-05)
+# Estado de pruebas-esp32 (al 2026-11-05, noche)
 
 Foto de hoy. La historia, las mediciones completas y los nombres de los CSV están en `BITACORA.md`; lo que sigue, en
 `PENDIENTES.md`; los pines de la S3, en `PINES_S3.md`.
@@ -6,21 +6,22 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
 ## Brazo: lo próximo
 
 - **`20-brazo-coordinado` (lo actual):** J1, J2 y J3 con el mismo controlador (`lib/Articulacion`), lazo no
-  bloqueante a 100 Hz, 20 kHz, sin el resorte de la pinza. Firmware flasheado: el del cierre del 05/11
-  (`APROX_ABAJO_MIN`, `tolPos` J3 0,20) + el borde de los destinos a −25° (0b) + el freno anticipado de J3 (0,045 s), 05/11 noche.
+  bloqueante a 100 Hz, 20 kHz, sin el resorte de la pinza. Firmware flasheado: el del 05/11 noche (`073b4bd`:
+  destinos con q3 − q2 ≥ −25°, freno anticipado de J3).
   - **Mecánica:** J3 con manivela de 95 mm; J2 y J3 con helicoidales impresos 15 → 75, en seco. **J3 tiene ~25–30° de
     juego en el antebrazo** (un diente entre el piñón y el engranaje de 75) y J2 algunos grados; sin corriente el brazo
     se queda donde está. **No se puede cambiar la mecánica** (decisión del usuario): todo por software.
   - **Franja:** `q2 − 49° ≤ q3 ≤ tabla(q2)` (0 → 3,2 · 15 → 10,8 · 30 → 27,9 · 45 → 54,2 · 60 → 72,2 · 75 → 82,7 ·
-    90 → 91,9 · 105 → 101,6), margen 1° al destino y **1° a todo el camino** (`MARGEN_CAMINO`), 3° a los límites. **Destinos** (`mv`, `j`, joystick) además con
-    q3 − q2 ≥ −24° (`Q2_MENOS_Q3_DESTINO` 25 + 1°, 05/11; el camino y el freno siguen con −49°). J2
-    0–83° (destinos hasta 80°), J3 0–101,5°. **Usar q3 − q2 ≥ −25°**: más abajo J3 no queda firme (punto muerto).
+    90 → 91,9 · 105 → 101,6) para el camino y el freno; **destinos** (`mv`, `j`, joystick) además q3 − q2 ≥ −24°
+    (`Q2_MENOS_Q3_DESTINO` 25 + 1°: más abajo J3 no queda firme). Margen 1° al destino y a todo el camino, 3° a los
+    límites. J2 0–83° (destinos hasta 80°), J3 0–101,5°.
   - `h` (sin cero baja las tres juntas desde donde estén; arrancar con J3 ≤ J2); `zq` para bajar rápido sin cero.
     `mv`: quíntico, J2/J3 terminan juntas, J1 con su duración; si la recta sale de la franja, por un intermedio (desde
     el reposo, (15, 5)). Llegada desde abajo (J2/J3 al menos 0,3° bajo el objetivo antes del último tramo); J1 en el
     sentido en que viene. `tolLlegada` 0,15° y freno anticipado (J1 0,03 s, J2 0,055 s, J3 0,045 s). Reposo `mv 3 10 5`.
-  - **Repetibilidad** (`repetibilidad_20261105_115640`): RP **J1 0,17°, J2 0,05°, J3 0,18°**, las tres dentro de ±0,2°
-    el 98 %. El juego no la afecta: el peso lo apoya siempre del mismo lado en las poses quietas.
+  - **Repetibilidad** (`repetibilidad_20261105_201209`, 30 ciclos, firmware final): RP **J1 0,18°, J2 0,05°, J3
+    0,12°**, las tres dentro de ±0,2° el 97 % y de ±0,3° el 100 %. El juego no la afecta: el peso lo apoya siempre del
+    mismo lado en las poses quietas. Error fijo ~0,14° (J1 en 40/60°, J2 en 20/30°), < 1 mm en la punta.
   - **Cinemática (calibración con video, `trayectoria_20261105_164644`):** **J2 gira 1,170° reales por grado del
     encoder** (reductora ~120:1; confirmado con inclinómetro; el firmware sigue en grados de encoder). Brazo =
     113,0 − 1,087·q2 − 0,094·q3; manivela = 171,3 − 0,851·q3 − 0,133·q2 (lineal); antebrazo 335 mm; pinza horizontal
@@ -69,10 +70,9 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
 - **06 / 07 (36GP-555 + IBT-2, S3): OK.** K ≈ 1,6 rpm/%, zona muerta ~8–11 %, τ ≈ 60–74 ms.
 - **08 (5840-31ZY + L298N, WROOM): OK.** Modo `Freno` casi lineal entre 40 y 100 %.
 
-## Brazo en `10-control-lazo-cerrado` (historia, antes de 12–14)
+## Brazo en `10-control-lazo-cerrado` (historia)
 
-- J1 terminada ahí (cascada P → PI, Kpp 2, Kp 0,549, Ki 4); J2/J3 con el 5840 (sin fin) descartadas; simulaciones e
-  informe en `simulaciones/`. `tools/` de `10` lo comparten `12`–`14` y `19` (scripts, `mapa_gravedad.py`).
+- J1 terminada ahí (cascada P → PI); `tools/` de `10` lo comparten `12`–`14` y `19`.
 
 ## Firmware del robot
 

@@ -801,3 +801,11 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   −0,15°. **`tAnticipo` J3 0 → 0,045 s** (`_194139`, misma lista): (30, 20) **20,023 · 19,975 · 20,015 · 20,015**;
   (20, 14) 14,058 · 14,018 · 13,978 · 14,018; (74, 70) −0,05 · −0,10 · −0,05. |e LLEGO| máx J3 0,145 → **0,096°**, J1
   0,199 → 0,175, J2 0,155 → 0,183 (sin cambios en J2); llegada → firmes igual (9,1 s en 17 `mv`, peor 1,1 s).
+- **Paso 2, repetibilidad de 30 ciclos con el firmware final** (`repetibilidad_20261105_201209`, 3 de calentamiento +
+  30, 150 llegadas, sin cortes, ~25 min): peor RP **J1 0,183° · J2 0,048° · J3 0,120°** (mediodía, 10 ciclos: 0,168 ·
+  0,052 · 0,177); las tres dentro de ±0,15° el 49 %, **±0,2° el 97 %**, ±0,3° el 100 %; |e| máx 0,214 · 0,192 ·
+  0,136°. J3 en (30, 20) media **20,001** (antes 20,13). No se degrada en 25 min. Queda error fijo (exactitud, no
+  repetibilidad): J1 −0,13/−0,14° (corta) en 40 y 60°, J2 −0,14/−0,16° en 20 y 30° (< 1 mm en la punta).
+- **Commits de la noche:** `7b6639f` (cinemática), `1d0961a` (`punta.py`, hombro 175), `295ec87` (destinos −25°),
+  `073b4bd` (freno de J3) y el del cierre (repetibilidad de 30 ciclos, notas). Comandos útiles: `python3 tools/punta.py`
+  (`p 0 500 300`, `ver x y z`, `donde`); `python3 tools/punta.py --simular --desde 3 10 5 0 520 80`.

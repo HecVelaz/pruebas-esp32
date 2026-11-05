@@ -23,7 +23,8 @@
   1. ~~J3 en las poses bajas~~ (05/11, hecho: cruzaba a ~3 °/s y seguía 0,13°; `tAnticipo` J3 0,045 s, (30, 20)
      en 20,13 → 20,00 ± 0,03). Sin lubricante (en seco): si algún día se lubrica, repetir la repetibilidad y revisar
      `tAnticipo` (J1 0,03 s, J2 0,055 s, J3 0,045 s).
-  2. **Repetibilidad de 30 ciclos** (`--ciclos 30 --calentar 3`, ~45 min) con el firmware final.
+  2. ~~Repetibilidad de 30 ciclos~~ (05/11, hecho: `repetibilidad_20261105_201209`, RP 0,18 · 0,05 · 0,12°, ±0,2° el
+     97 %). Opcional: el error fijo de J1 en 40/60° y de J2 en 20/30° (~0,14°, cortas).
   3. **J2 más allá de 80°** (límite 83°), solo si hace falta alcance: cerca de 90° se pasa ~0,7° y no puede volver.
      Opción: aceptar sobrepasos < 1° de J2 ahí. J3 cerca de la traba (en (100, 97) quedó 0,18° corta): dejar aire.
   4. **Borde de la franja entre 30 y 45° de J2:** sin punto medido (recta supuesta); medir uno en ~37° con
