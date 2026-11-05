@@ -5,42 +5,33 @@
 
 ## Brazo (20, lo próximo)
 
-- **Manivela de J3 de 95 mm (04/11), lo primero:**
-  1. **J2 más allá de 80°** (límite 83° desde el 04/11): cerca de 90° se pasa ~0,7° en la aproximación y no puede
-     volver (corte "sin cuentas"). Si hace falta más alcance: aceptar sobrepasos < 1° de J2 ahí o subirle el umbral
-     de "sin cuentas" (opción B). J3 cerca de la traba (en (100, 97) quedó 0,18° corta): dejar unos grados de aire.
-     J3 oscila en (3, 3) sin aproximación: el reposo es `mv 3 10 5`.
-  2. **Borde de la franja entre 30 y 45° de J2:** sin punto medido (recta supuesta); medir uno en ~37° con
-     `17 -e explorar` si se traba ahí.
-  3. ~~Repetibilidad de nuevo~~ hecha (`repetibilidad_20261104_232131`: J2 0,09°, J3 0,22°, J1 0,48°). Falta la de
-     30 ciclos (`--ciclos 30 --calentar 3`, ~45 min) para confirmar. J1 ya no cae en dos valores (RP 0,16°,
-     `repetibilidad_20261104_235252`), pero **bajando a 20° queda siempre 0,32° corta**: probar `tolPos` de J1 0,15°
-     (ahora frena al cruzar) con `trayectoria.py` entre 60 y 20 con el brazo estirado, o compensarlo. El usuario va a
-     pasar un video.
-  4. La franja vieja sigue en el modo normal de `17` (lazo abierto) y en `19`: pasarles la tabla si se usan.
-  5. `17 -e explorar` (entorno para medir sin franja) queda en el repo: usarlo si cambia otra vez la mecánica.
 - **`20-brazo-coordinado`, en orden:**
-  1. **Joystick:** los tres arreglos de la revisión de Codex hechos (`b0ab0ec`, `3901d8c`, `ee245d5`), compilan,
-     el 1 (`b0ab0ec`) **probado en placa** (`trayectoria_20261103_145122`: un `j 1 60` cortado por `jv` a 1 s quedó en
-     24,66°); falta el uso normal con `joystick.py --placa 20`. El 2 y el 3 no se fuerzan a propósito (sería provocar un
-     atasco o salir de la franja).
-  2. **Precisión de J1:** cae en dos valores (salto de stick-slip de 0,2–0,3°; RP 0,33°) y a veces queda 0,41° corta
-     (frena a 0,3° y la correa retrocede). Probar: un empujón más si después de frenar queda a > 0,2° (ojo con el
-     ciclo límite de `tolPos` 0,15) o apuntar la aproximación un poco más corto. Medir con
-     `tools/repetibilidad.py --ciclos 10` contra `repetibilidad_20261103_141454`.
-  3. **Lista fija con el firmware final** (`h "mv 20 20 24" "mv 40 30 20" "mv 20 20 24" "mv 3 3 3"`, `--comparar`
-     contra 092501 y 180843) para cerrar la tabla de la sesión del 03/11.
-  4. **Fase 6 completa:** 30 ciclos (`--ciclos 30 --calentar 3`) y la repetibilidad **en la punta** (video con el
+  1. **Sesgo de J1 bajando a 20°:** 20,322 las 10 veces (−0,32°, `repetibilidad_20261104_235252`); por eso las tres
+     dentro de ±0,3° dan 60 %. El usuario pasa un video (base y punta, J1 de 60 a 20 con el brazo estirado). Opción A:
+     `tolPos` de J1 0,15° (ahora frena al cruzar; el 03/11 con 0,15° cortó el homing, antes de ese arreglo). Opción
+     B: compensar el sesgo. Probar con `trayectoria.py` entre 60 y 20 con J2/J3 en 74/70, y después `repetibilidad.py`.
+  2. **Repetibilidad de 30 ciclos** (`--ciclos 30 --calentar 3`, ~45 min) con el firmware final.
+  3. **J2 más allá de 80°** (límite 83°), solo si hace falta alcance: cerca de 90° se pasa ~0,7° y no puede volver.
+     Opción: aceptar sobrepasos < 1° de J2 ahí. J3 cerca de la traba (en (100, 97) quedó 0,18° corta): dejar aire.
+  4. **Borde de la franja entre 30 y 45° de J2:** sin punto medido (recta supuesta); medir uno en ~37° con
+     `17 -e explorar` si se traba ahí.
+  5. La franja vieja sigue en el modo normal de `17` (lazo abierto) y en `19`: pasarles la tabla si se usan.
+  6. **Joystick:** los tres arreglos de la revisión de Codex hechos; falta el uso normal con `joystick.py --placa 20`
+     (con los límites nuevos).
+  7. **Lista fija con el firmware final** (`h "mv 20 20 14" "mv 40 30 20" "mv 20 20 14" "mv 3 10 5"`; la del 03/11
+     usaba `20 20 24`, hoy fuera de la franja).
+  8. **Fase 6, en la punta:** la repetibilidad **en la punta** (video con el
      celular fijo y una marca en la pinza, o un comparador); para pasar de grados a mm con los encoders faltan los
      largos de los eslabones del cuatro barras y hasta la pinza, los ángulos del cero contra la horizontal, y de J3 el
-     largo de la biela y la distancia entre el eje del engranaje y el del antebrazo (manivela 80 mm, pivote a 40 mm).
-  5. Opcional, si J2/J3 vuelven a pasarse (una vez en cinco capturas, J2 0,5° y 13,8 s hasta firme): `VEL_APROX` de
+     largo de la biela y la distancia entre el eje del engranaje y el del antebrazo (manivela **95 mm** desde el 04/11,
+     pivote a 40 mm).
+  9. Opcional, si J2/J3 vuelven a pasarse (una vez en cinco capturas, J2 0,5° y 13,8 s hasta firme): `VEL_APROX` de
      J2/J3 2 → 3 °/s o dither. Más velocidad (`MV_FACTOR_VEL`): solo al final, con video.
-  6. **Zona prohibida (caja y mástil):** geometría medida a ojo (bitácora del 03/11: caja 40 × 40 × 23 cm, J1 a 9 cm
+  10. **Zona prohibida (caja y mástil):** geometría medida a ojo (bitácora del 03/11: caja 40 × 40 × 23 cm, J1 a 9 cm
      del borde derecho y 8,5 del de atrás, J2 a 17,5 cm sobre la tapa, brazo 34,5 cm, antebrazo 33 cm, mástil Ø 5 cm
      a ~38 cm de J1, a ~141° de J1). **Falta calibrar el cuatro barras** (la del 03/11 fue con la manivela de 80 mm) (ángulo del brazo y del antebrazo contra q2
      y q3): repetir `trayectoria.py h "mv 3 30 20" c "mv 3 50 45" c "mv 3 74 70" c "mv 3 74 55" c "mv 3 74 78" c
-     "mv 3 90 85" c --espera 6` grabando **desde el lado de los ultrasonidos** (como `vista_frontal.jpeg`, el brazo de
+     "mv 3 80 75" c --espera 6` (J2 hasta 80° desde el 04/11; revisar las poses contra la franja nueva) grabando **desde el lado de los ultrasonidos** (como `vista_frontal.jpeg`, el brazo de
      perfil); antes, una foto de prueba. Después: modelo de la punta, dibujo de la zona para que el usuario lo
      confirme y recién ahí el firmware (`mv` rechaza destinos/caminos dentro, el joystick frena antes). Con el mismo
      modelo, la repetibilidad en mm. **Límite de J1:** 118° PROVISORIO, libre hasta 115°; falta ver si hay lugar más

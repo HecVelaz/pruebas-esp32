@@ -606,7 +606,8 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   a (74, 70)). `trayectoria_20261104_234152` (4 × (30, 20) ↔ (74, 70), sin cortes): pegada, J2 despega con **44–48 %**
   y J3 con hasta 37 %, justo en el umbral de 45 %. **`arranquePct` de J2 y J3 45 → 60 %** (como el atasco; duty máx
   70 %).
-- **Homing sin límite de búsqueda** (pedido del usuario): `HOMING_RECORRIDO_SIN_CERO` 15 → 0 (= el recorrido máximo
+- **Homing sin límite de búsqueda** (pedido del usuario, después de `trayectoria_20261104_233642_cortado`: tras el
+  corte de la repetibilidad el brazo quedó arriba y el `h` sin cero cortó J3 a los 15°): `HOMING_RECORRIDO_SIN_CERO` 15 → 0 (= el recorrido máximo
   de cada una, 120–130°). Sin cero, las tres bajan juntas a 1,5 °/s desde donde estén; siguen el corte por trabada y
   el recorrido máximo. Probado: desde ~(29, 62, 55) en 42 s (`_234152`). Arrancar con el codo no más estirado que el
   hombro (J3 ≤ J2).
@@ -619,4 +620,10 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   entre 30 y 45° de J2 (sin punto: recta supuesta); repetir la repetibilidad con la franja nueva; la franja vieja
   sigue en el modo normal de `17` (lazo abierto) y en `19`; la calibración del cuatro barras del 03/11 (80 mm) ya no
   vale.
+- **Commits del día:** `d6597a0` (franja con tabla, `mv` en dos tramos, "al revés" contra la trayectoria, `17 -e
+  explorar`), `c6f45a5` (J2 hasta 80°, reposo `mv 3 10 5`), `dfe5dca` (repetibilidad con 95 mm), `a320e39` (J1 frena
+  al cruzar, "sin cuentas" 60 %, homing sin límite) y el del cierre.
+- **Comandos útiles:** `python3 tools/trayectoria.py h "mv 3 80 75" "mv 3 10 5"` (ida y vuelta sin cortes);
+  `python3 tools/repetibilidad.py --ciclos 10`; `pio run -e explorar -t upload` en `17` + `joystick.py` para medir la
+  franja sin límites (anotar con la causa: A arrastra, T traba).
 
