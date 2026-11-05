@@ -416,6 +416,12 @@ void mvPaso() {
         if (art[i].modo() == Articulacion::Modo::Seguir) art[i].sostener(mv.hasta[i]);
         continue;
       }
+      // Aproximación: si se despega y llega (o cruza) antes que la referencia, sostiene el objetivo (freno anticipado,
+      // tAnticipo; J2 desde el 2026-11-05). J1 (autobloqueo) no: lo hace en su llegada. Ya sostenida: no seguir más
+      if (mv.etapa == 2 && !art[i].cfg().autobloqueo) {
+        if (art[i].modo() == Articulacion::Modo::Sostener) continue;
+        if (art[i].anticipar(mv.obj[i], mv.antes[i] <= mv.obj[i] ? 1 : -1)) continue;
+      }
       const float t2 = ti * ti, t3 = t2 * ti;
       const float sp = t3 * (10.0f - 15.0f * ti + 6.0f * t2);           // posición normalizada
       const float vp = 30.0f * t2 * (1.0f - 2.0f * ti + t2) / Ti;       // su derivada (1/s)

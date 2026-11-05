@@ -191,3 +191,6 @@ Línea de telemetría: `T,ms,etapa,` y por cada una `q,ref,duty,w,estado` (etapa
 | 2026-11-05 | Repetibilidad con `tolLlegada` sola (`repetibilidad_20261105_110318`) | J1 en 20° de 19,70 a 20,15: RP J1 0,449° (peor que el 04/11) |
 | 2026-11-05 | Freno anticipado de J1 (`trayectoria_20261105_110816`) | Llegadas a 10/20/30 dentro de ±0,13° (sin contar el primer `mv`, 19,79) |
 | 2026-11-05 | Repetibilidad con el freno anticipado (`repetibilidad_20261105_111907`) | Peor RP **J1 0,131° · J2 0,429° · J3 0,082°**; las tres dentro de ±0,3° el 100 %. J2 en 74° se pasó dos veces (74,27 / 74,29) |
+| 2026-11-05 | J2 5 × (30, 20) ↔ (74, 70), base (`trayectoria_20261105_113041`) | J2 en 74°: 73,72 · 74,22 · 74,22 · 74,20 · 74,22 (se traba, despega a 3–5 °/s y se pasa) |
+| 2026-11-05 | J2 con freno anticipado 0,055 s y `tolLlegada` 0,15 (`trayectoria_20261105_114619`) | J2 en 74°: 73,93 · 73,97 · 73,93 · 73,93 · 73,92 (rango 0,05°) |
+| 2026-11-05 | Repetibilidad con J1 y J2 arregladas (`repetibilidad_20261105_115640`) | Peor RP **J1 0,168° · J2 0,052° · J3 0,177°**; las tres dentro de ±0,2° el **98 %** |

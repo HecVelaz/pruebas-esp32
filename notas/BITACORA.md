@@ -663,6 +663,25 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   con RP 0,06 / 0,04°.
 - Videos fuera del repo (`~/Vídeos/brazo/`). Análisis en scripts sueltos (no versionados): seguir la cinta por HSV,
   sincronizar por correlación con q1 y medir la punta en la ventana de 3 s antes del siguiente `mv`.
-- **Pendiente:** lubricar los engranajes helicoidales de J2/J3 (impresos: grasa con PTFE o de silicona, no WD-40 ni
-  aceite) y repetir `repetibilidad.py --ciclos 10` y la lista de 10/20/30 para ver el efecto antes de tocar el control
-  de J2; después, si J2 sigue pasándose en 74°, el punto 9 (aproximación a 3 °/s o algo como el freno anticipado).
+- **Sin lubricante** (el usuario no tiene; se trabaja en seco). Comparación de todas las repetibilidades (mismas 5
+  poses, 10 ciclos), peor RP J1 · J2 · J3: 03/11 80 mm 0,33 · 0,32 · 0,17; 04/11 95 mm 0,48 · 0,09 · 0,22; 04/11 noche
+  0,16 · 0,21 · 0,10; hoy 0,13 · 0,43 · 0,08. J2 empeoró de corrida en corrida sin cambios de configuración.
+- **J2 en 74°** (`trayectoria_20261105_113041`, 5 × (40, 30, 20) ↔ (40, 74, 70), base): 73,72 · 74,22 · 74,22 · 74,20 ·
+  74,22. En la aproximación se traba (72,0 y 73,4), el duty sube a ~27 %, despega a 3,5–5 °/s, se adelanta 0,3–0,4° a
+  la referencia y, con el feedforward en el sentido de la trayectoria (11–14 %), sigue hasta 74,2; la 73,72 quedó
+  trabada y la aceptó `tolLlegada` 0,3.
+- **Freno anticipado para J2:** `tAnticipo` pasa a ser un campo de `ConfigArticulacion` (J1 0,03 s, J2, J3 0 = no);
+  `Articulacion::anticipar(objetivo, lado)` en la aproximación del `mv` (etapa 2, las que no se autobloquean): si llega
+  o cruza antes que la referencia, deja la trayectoria y sostiene el objetivo como llegada. J2 `tolLlegada` 0,3 → 0,15.
+  - Con 0,03 s y el sostener desde el duty del peso (`_113650`): 74,19 · 74,10 ×4 (frenaba en ~73,9 y con +8 % seguía).
+  - Sostener desde **duty 0** al anticipar (`_114200`): 74,21 · 74,10 · 74,10 · 73,99 · 74,15. Frenada, J2 sigue
+    subiendo **velocidad × 0,052–0,058 s** (5,1 °/s: 73,92 → 74,21; 3,2: 73,93 → 74,10; 3,8: 73,95 → 74,15).
+  - **`tAnticipo` J2 0,055 s** (`_114619`): 73,93 · 73,97 · 73,93 · 73,93 · 73,92 (rango 0,05°, antes 0,50); en 30°,
+    29,86 · 29,92 ×4. |e LLEGO| máx de J2 0,276 → 0,143°, llegada→firmes ≤ 0,5 s.
+- **Repetibilidad con J1 y J2 arregladas** (`repetibilidad_20261105_115640`, 10 ciclos, sin cortes): peor RP **J1
+  0,168° · J2 0,052° · J3 0,177°**; las tres dentro de ±0,15° el 54 %, **±0,2° el 98 %** (mañana 56 %, 03/11 44 %),
+  ±0,3° el 100 %. J2 en 74° entre 73,91 y 73,96 las 10 veces. J1 en 20° en 19,96 o 20,13. **J3 sin tocar** empeoró en
+  las poses bajas: (20, 14) en ~14,10 y (30, 20) en ~20,14 con una llegada distinta en cada una (13,94 / 19,94); todas
+  dentro de ±0,15°. ¿Variación o efecto del cuatro barras con J2 frenando en otro lugar? Sin mirar todavía.
+- **Pendiente:** J3 en las poses bajas (corrida corta con telemetría); repetibilidad de 30 ciclos; calibrar el cuatro
+  barras con la manivela de 95 mm (punto 10) para pasar la repetibilidad a mm en la punta.

@@ -10,9 +10,6 @@ constexpr float VEL_QUIETA = 1.0f;        // °/s
 constexpr float FR_RAMPA_GRADOS = 0.3f;   // compensación de fricción: llena desde este error
 constexpr float TS_POS = 0.02f;           // s, el P de posición corre cada 2 periodos (50 Hz)
 constexpr float VEL_LLEGADA = 2.0f;       // °/s: "llegó" exige además ir más despacio que esto
-// Autobloqueo (J1): frena si lo que falta es menos que velocidad × esto. Medido el 2026-11-05
-// (trayectoria_20261105_103049): frenando a ~5,4 °/s desliza 0,15-0,17° (~0,03 s)
-constexpr float T_ANTICIPO_FRENO = 0.03f;  // s
 constexpr float REENTRADA_GRADOS = 1.5f;  // después de llegar, si se aleja más: vuelve a la cascada
 // Feedforward suave (2026-11-03, paso 2): ff · tanh(|wFf| / W_FF_SUAVE) en vez del escalón en wFf = 0. Con 2 °/s
 // (la aproximación) da el 96 %; en los extremos de cada tramo entra y sale sin salto
@@ -143,6 +140,28 @@ void Articulacion::sostenerAqui() {
   integral_ = 0.0f;
   wRefPos_ = 0.0f;
   atascoTicks_ = sinCuentasTicks_ = contrarioTicks_ = 0;
+}
+
+bool Articulacion::anticipar(float objetivo, int lado) {
+  if (modo_ != Modo::Seguir || c_.tAnticipo <= 0.0f) return false;
+  const float hacia = w_ * lado;               // > 0: va hacia el objetivo
+  const float falta = (objetivo - q()) * lado;  // <= 0: ya lo cruzó
+  if (falta > 0.0f && !(hacia > VEL_LLEGADA && falta < hacia * c_.tAnticipo)) return false;
+  // 2026-11-05 (trayectoria_20261105_113041): J2 se trababa en la aproximación, despegaba con ~27 % a 3-5 °/s, se
+  // adelantaba 0,3-0,4° a la referencia y, con el feedforward en el sentido de la trayectoria, seguía empujando hasta
+  // 74,2°. Sostiene el objetivo desde duty 0 (frenada), no desde el del peso: con +8 % seguía subiendo 0,18° después
+  // de anticipar (trayectoria_20261105_113650, 74,10). Frenada no cede (deriva del 03/11, con y sin limón)
+  ref_ = objetivo;
+  modo_ = Modo::Sostener;
+  llegado_ = true;
+  firme_ = frenada_ = false;
+  quietoTicks_ = 0;
+  uHold_ = 0.0f;
+  integral_ = 0.0f;
+  wRefPos_ = 0.0f;
+  signoIda_ = lado;
+  atascoTicks_ = sinCuentasTicks_ = contrarioTicks_ = 0;
+  return true;
 }
 
 void Articulacion::frenarAqui() {
@@ -334,15 +353,16 @@ void Articulacion::paso() {
     case Modo::Sostener: {
       const float e = ref_ - g;
       if (!llegado_) {
-        // Con autobloqueo (J1), frenar ANTES de cruzar si a esta velocidad desliza hasta el destino: en el último
+        // Con tAnticipo (J1, J2), frenar ANTES de cruzar si a esta velocidad desliza hasta el destino: J1 en el último
         // empujón se despega a ~5 °/s y, frenando al cruzar, deslizaba 0,15-0,25° más (2026-11-05,
         // repetibilidad_20261105_110318: en 20° quedaba en 19,70 / 19,82 / 20,15, RP 0,45°). Cada periodo (100 Hz).
-        if (c_.autobloqueo) {
+        if (c_.tAnticipo > 0.0f) {
           const float hacia = w_ * signoIda_;  // > 0: va hacia el destino
           const float falta = e * signoIda_;   // > 0: todavía no lo cruzó
-          if (hacia > VEL_LLEGADA && falta > 0.0f && falta < hacia * T_ANTICIPO_FRENO) {
+          if (hacia > VEL_LLEGADA && falta > 0.0f && falta < hacia * c_.tAnticipo) {
             llegado_ = true;
-            uHold_ = 0.5f * (c_.ffMarchaPos - c_.ffMarchaNeg);
+            // Desde duty 0 (frenada): J2 con el del peso (+8 %) seguía subiendo hasta 74,19 (trayectoria_20261105_113650)
+            uHold_ = 0.0f;
             integral_ = 0.0f;
           }
         }

@@ -61,6 +61,10 @@ struct ConfigArticulacion {
   // bajaba a saltos y frenaba en el primer instante dentro de 0,3°: bajando a 20° quedaba siempre en 20,30 (video
   // VID_20261105_100819 + trayectoria_20261105_101033: la punta sigue al encoder, no es la correa).
   float tolLlegada;
+  // Freno anticipado (s; 0 = no): si va hacia el destino a más de 2 °/s y lo que falta es menos que velocidad × esto,
+  // llegó (frena / sostiene) antes de cruzarlo. Medido en J1 el 2026-11-05: a 5,4 °/s desliza 0,15-0,17° (~0,03 s).
+  // En "Sostener" y, con anticipar(), en la aproximación del mv (J2: se despega a 3-5 °/s y se pasaba a 74,2°).
+  float tAnticipo;
 };
 
 class Articulacion {
@@ -78,6 +82,9 @@ class Articulacion {
   void rueda();                        // rueda libre: baja el EN (común: suelta las tres; solo para "x")
   void sostener(float q);              // ir a q con la cascada y quedarse; sin salto desde el duty actual
   void sostenerAqui();                 // sostener donde está
+  // En la aproximación (Seguir): si con tAnticipo llega o ya cruzó objetivo (yendo hacia el lado "lado", ±1), deja la
+  // trayectoria y sostiene objetivo como llegada (true). Si no, false y sigue.
+  bool anticipar(float objetivo, int lado);
   void frenarAqui();                   // duty 0 y sostener donde está desde ahí (sin el duty con que se movía)
   void seguir(float qRef, float wRef); // un periodo de trayectoria (el coordinador lo llama en cada paso)
   // conCero: rápido hasta homingZonaLenta sobre el cero anterior, después lento. recorridoMax > 0: corta si avanza más
