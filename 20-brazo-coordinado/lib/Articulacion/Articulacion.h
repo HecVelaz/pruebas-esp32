@@ -56,6 +56,11 @@ struct ConfigArticulacion {
   // Se autobloquea (J1: correa + 50:1, sin peso): al llegar frena (duty 0) en vez del PI de posición, y "firme" con
   // tolSalida. Con el PI, el integrador empujaba contra el juego de la correa y J1 iba y venía alrededor del destino.
   bool autobloqueo;
+  // "Llegó" (fin del recorrido de la cascada) si |error| < tolLlegada y casi quieta, o (autobloqueo) si cruzó el destino.
+  // Aparte de tolPos, que además decide si hace la aproximación y cuándo está firme. J1 0,15 (2026-11-05): con 0,3 J1
+  // bajaba a saltos y frenaba en el primer instante dentro de 0,3°: bajando a 20° quedaba siempre en 20,30 (video
+  // VID_20261105_100819 + trayectoria_20261105_101033: la punta sigue al encoder, no es la correa).
+  float tolLlegada;
 };
 
 class Articulacion {

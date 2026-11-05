@@ -10,6 +10,9 @@ constexpr float VEL_QUIETA = 1.0f;        // °/s
 constexpr float FR_RAMPA_GRADOS = 0.3f;   // compensación de fricción: llena desde este error
 constexpr float TS_POS = 0.02f;           // s, el P de posición corre cada 2 periodos (50 Hz)
 constexpr float VEL_LLEGADA = 2.0f;       // °/s: "llegó" exige además ir más despacio que esto
+// Autobloqueo (J1): frena si lo que falta es menos que velocidad × esto. Medido el 2026-11-05
+// (trayectoria_20261105_103049): frenando a ~5,4 °/s desliza 0,15-0,17° (~0,03 s)
+constexpr float T_ANTICIPO_FRENO = 0.03f;  // s
 constexpr float REENTRADA_GRADOS = 1.5f;  // después de llegar, si se aleja más: vuelve a la cascada
 // Feedforward suave (2026-11-03, paso 2): ff · tanh(|wFf| / W_FF_SUAVE) en vez del escalón en wFf = 0. Con 2 °/s
 // (la aproximación) da el 96 %; en los extremos de cada tramo entra y sale sin salto
@@ -331,6 +334,20 @@ void Articulacion::paso() {
     case Modo::Sostener: {
       const float e = ref_ - g;
       if (!llegado_) {
+        // Con autobloqueo (J1), frenar ANTES de cruzar si a esta velocidad desliza hasta el destino: en el último
+        // empujón se despega a ~5 °/s y, frenando al cruzar, deslizaba 0,15-0,25° más (2026-11-05,
+        // repetibilidad_20261105_110318: en 20° quedaba en 19,70 / 19,82 / 20,15, RP 0,45°). Cada periodo (100 Hz).
+        if (c_.autobloqueo) {
+          const float hacia = w_ * signoIda_;  // > 0: va hacia el destino
+          const float falta = e * signoIda_;   // > 0: todavía no lo cruzó
+          if (hacia > VEL_LLEGADA && falta > 0.0f && falta < hacia * T_ANTICIPO_FRENO) {
+            llegado_ = true;
+            uHold_ = 0.5f * (c_.ffMarchaPos - c_.ffMarchaNeg);
+            integral_ = 0.0f;
+          }
+        }
+      }
+      if (!llegado_) {
         // Ir con la cascada (P de posición a 50 Hz con v mínima y aceleración limitada)
         if (k_ % 2 == 0) {
           // Llegó: dentro de la tolerancia Y casi quieta (como 19). Si la daba por llegada pasando rápido por el
@@ -341,7 +358,8 @@ void Articulacion::paso() {
           // despegaba a 7 °/s y se pasaba 0,2-0,3°; si invertía para volver quedaba en 39,75-39,87 y si no, en 40,11-40,16
           // (las dos llegadas de la repetibilidad, RP 0,48°). Invertir además hamaca la punta (correa).
           const bool cruzo = c_.autobloqueo && e * signoIda_ < 0.0f && fabsf(e) < c_.tolSalida;
-          if ((fabsf(e) < c_.tolPos && fabsf(w_) < VEL_LLEGADA) || cruzo) {
+          // tolLlegada (J1 0,15; 2026-11-05): con tolPos 0,3 bajando a 20° frenaba siempre en 20,30
+          if ((fabsf(e) < c_.tolLlegada && fabsf(w_) < VEL_LLEGADA) || cruzo) {
             llegado_ = true;
             // Arranca del duty que sostiene el peso, estimado del feedforward: el medio entre la marcha subiendo y
             // bajando (J2 +8,5 %, J3 -10 %, J1 0). Antes arrancaba del duty con que venía: al final de un recorrido

@@ -1,4 +1,4 @@
-# Estado de pruebas-esp32 (al 2026-11-04)
+# Estado de pruebas-esp32 (al 2026-11-05)
 
 Foto de hoy. La historia, las mediciones completas y los nombres de los CSV están en `BITACORA.md`; lo que sigue, en
 `PENDIENTES.md`; los pines de la S3, en `PINES_S3.md`.
@@ -6,7 +6,7 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
 ## Brazo: lo próximo
 
 - **`20-brazo-coordinado` (lo actual):** J1, J2 y J3 con el mismo controlador (`lib/Articulacion`), lazo no
-  bloqueante a 100 Hz, 20 kHz, sin el resorte de la pinza. Firmware flasheado: `a320e39`.
+  bloqueante a 100 Hz, 20 kHz, sin el resorte de la pinza. Firmware flasheado: el del commit del 05/11 (freno anticipado de J1).
   - **Mecánica (04/11):** J3 con **manivela de 95 mm** (antes 80); J2 y J3 con engranajes 15 → 75 (las correas GT2 se
     probaron y se sacaron). La calibración del cuatro barras del 03/11 (80 mm) ya no vale.
   - **Franja:** `q2 − 49° ≤ q3 ≤ tabla(q2)` (J2 → J3 máx: 0 → 3,2 · 15 → 10,8 · 30 → 27,9 · 45 → 54,2 · 60 → 72,2 ·
@@ -15,11 +15,13 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
   - `h`: con cero, despacio a los flancos; **sin cero baja las tres juntas desde donde estén** (sin límite de
     búsqueda; arrancar con J3 ≤ J2). `zq q1 q2 q3` para rescatarlo. `mv`: perfil quíntico, J2/J3 terminan juntas;
     **si la recta sale de la franja va en dos tramos** (por (10, 5) desde el reposo). **Reposo `mv 3 10 5`** (vuelta
-    de los scripts). J2/J3 llegan desde abajo; **J1 en el sentido en que viene y frena al cruzar el destino** (no
-    invierte). "Sin cuentas" de J2/J3 a 60 %. No esquiva la caja.
-  - **Repetibilidad** (`repetibilidad_20261104_235252`, 10 ciclos × 5 poses, sin cortes): RP **J1 0,16°, J2 0,21°,
-    J3 0,10°** (03/11 con 80 mm: 0,33 / 0,32 / 0,17). Las tres dentro de ±0,2° en el 60 % de las llegadas (03/11:
-    44 %). **Queda un sesgo fijo de J1 bajando a 20°: 20,322 las 10 veces** (el usuario va a pasar un video).
+    de los scripts). J2/J3 llegan desde abajo; **J1 en el sentido en que viene y frena antes de cruzar el destino**
+    (no invierte; llegada con 0,15° o anticipando el deslizamiento). "Sin cuentas" de J2/J3 a 60 %. No esquiva la caja.
+  - **Repetibilidad** (`repetibilidad_20261105_111907`, 10 ciclos × 5 poses, sin cortes): RP **J1 0,13°, J2 0,43°,
+    J3 0,08°** (04/11: 0,16 / 0,21 / 0,10). Las tres dentro de ±0,3° el 100 % (04/11: 60 %). **J1 resuelta** (05/11:
+    `tolLlegada` 0,15° y freno anticipado; videos de la punta: la punta sigue al encoder, juego de la correa 0,04°).
+    **Lo que queda es J2 en 74°:** se pasó dos veces en 10 (74,27 / 74,29); en 20° y 30°, error fijo ±0,2°.
+    Siguiente: lubricar los engranajes de J2/J3 y repetir la repetibilidad antes de tocar el control de J2.
   - Joystick `jv` (puente `17/tools/joystick.py --placa 20`). `17 -e explorar`: sin franja, para medir límites.
   - **J1 0–118° PROVISORIO** (libre hasta 115° recogido; falta estirado y más allá). La caja no está en el firmware
     (geometría a ojo en la bitácora del 03/11). `MV_FACTOR_VEL` 0,5 PROVISORIO.

@@ -1,4 +1,4 @@
-# Pendientes de pruebas-esp32 (al 2026-11-04)
+# Pendientes de pruebas-esp32 (al 2026-11-05)
 
 <!-- Movido desde CLAUDE.md (2026-10-22). Los bloques "Pendiente GPS", "Pendiente" de 08 y "Falta" se movieron
      tal cual; el resto se copió de los "Pendiente:" que siguen dentro de cada entrada de BITACORA.md. -->
@@ -6,10 +6,10 @@
 ## Brazo (20, lo próximo)
 
 - **`20-brazo-coordinado`, en orden:**
-  1. **Sesgo de J1 bajando a 20°:** 20,322 las 10 veces (−0,32°, `repetibilidad_20261104_235252`); por eso las tres
-     dentro de ±0,3° dan 60 %. El usuario pasa un video (base y punta, J1 de 60 a 20 con el brazo estirado). Opción A:
-     `tolPos` de J1 0,15° (ahora frena al cruzar; el 03/11 con 0,15° cortó el homing, antes de ese arreglo). Opción
-     B: compensar el sesgo. Probar con `trayectoria.py` entre 60 y 20 con J2/J3 en 74/70, y después `repetibilidad.py`.
+  1. **Lubricar los engranajes helicoidales de J2/J3** (impresos: grasa con PTFE o de silicona; no WD-40 ni aceite)
+     y repetir `repetibilidad.py --ciclos 10` y la lista de 10/20/30 (bitácora del 05/11) para comparar con
+     `repetibilidad_20261105_111907` (RP J1 0,13 · J2 0,43 · J3 0,08°). Si J2 sigue pasándose en 74° (74,27 / 74,29),
+     el punto 9. Si se lubrica J1, revisar `T_ANTICIPO_FRENO` (0,03 s). (El sesgo de J1 en 20° quedó resuelto el 05/11.)
   2. **Repetibilidad de 30 ciclos** (`--ciclos 30 --calentar 3`, ~45 min) con el firmware final.
   3. **J2 más allá de 80°** (límite 83°), solo si hace falta alcance: cerca de 90° se pasa ~0,7° y no puede volver.
      Opción: aceptar sobrepasos < 1° de J2 ahí. J3 cerca de la traba (en (100, 97) quedó 0,18° corta): dejar aire.

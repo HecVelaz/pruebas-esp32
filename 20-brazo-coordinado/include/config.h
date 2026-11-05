@@ -103,7 +103,10 @@ constexpr ConfigArticulacion CFG_J1 = {
     3.0f, 8.0f, 0.0f, 0.2f,               // sostener (J1 se autobloquea por la correa: frena enseguida)
     1.5f, 2.0f, 2.0f, 50.0f, 130.0f, 1500, 3.0f, 1.5f,  // homing a 1,5 °/s (2026-11-03, antes 1; rápido a 3 °/s)
     2.0f, 35.0f, 300, 25.0f, 150, 5.0f, 100, 30.0f,
-    true};  // se autobloquea: al llegar, freno (como 12; con el PI de posición iba y venía por el juego de la correa)
+    true,   // se autobloquea: al llegar, freno (como 12; con el PI de posición iba y venía por el juego de la correa)
+    // tolLlegada 0,15 (2026-11-05): con 0,3 bajando a 20° frenaba siempre en 20,30 (el primer instante dentro de 0,3°).
+    // El 03/11 tolPos 0,15 hacía un ciclo límite en el homing; ahora "cruzó" también es llegar y frena ahí
+    0.15f};
 
 // ---------- J2 (hombro): 36-555 58 rpm (139:1), engranajes 15 -> 75 (19, a 20 kHz)
 constexpr ConfigArticulacion CFG_J2 = {
@@ -126,7 +129,8 @@ constexpr ConfigArticulacion CFG_J2 = {
     // arranquePct ("sin cuentas") 45 -> 60 % (2026-11-04, trayectoria_20261104_234152: pegada, J2 despega con 44-48 % y
     // J3 con hasta 37 %; con 45 % se cortaba a veces, en la repetibilidad _233423_cortado). Igual que el atasco (60 %)
     2.0f, 60.0f, 300, 60.0f, 150, 5.0f, 100, 30.0f,
-    false};
+    false,
+    0.3f};  // tolLlegada = tolPos
 
 // ---------- J3 (codo): 36-555 58 rpm (139:1), engranajes 15 -> 75 (19, a 20 kHz)
 // El feedforward de J3 en cascada no se midió a 20 kHz (en 19 se sostenía con su lazo simple). + = el codo baja, a
@@ -146,4 +150,5 @@ constexpr ConfigArticulacion CFG_J3 = {
     // arranquePct ("sin cuentas") 45 -> 60 % (2026-11-04, trayectoria_20261104_234152: pegada, J2 despega con 44-48 % y
     // J3 con hasta 37 %; con 45 % se cortaba a veces, en la repetibilidad _233423_cortado). Igual que el atasco (60 %)
     2.0f, 60.0f, 300, 60.0f, 150, 5.0f, 100, 30.0f,
-    false};
+    false,
+    0.15f};  // tolLlegada = tolPos

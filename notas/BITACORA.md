@@ -627,3 +627,42 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   `python3 tools/repetibilidad.py --ciclos 10`; `pio run -e explorar -t upload` en `17` + `joystick.py` para medir la
   franja sin límites (anotar con la causa: A arrastra, T traba).
 
+
+## 2026-11-05 — 20: el sesgo de J1 bajando a 20° (videos de la punta), `tolLlegada` y freno anticipado de J1
+
+- **Video frontal** (`VID_20261105_100819.mp4`, 1920×1080 a 60 fps, fuera del repo; captura
+  `trayectoria_20261105_101033`, la lista `h "mv 20 74 70" c "mv 60 74 70" c ...` ×3 con `--espera 5`; la
+  `_100802` es la misma lista sin video). Cinta verde en la pinza seguida con OpenCV (HSV 55–78, S ≥ 140; no la
+  confunden la bolsa ni el limón), video 3,4 s antes que la captura (correlación con q1 0,985). **La punta sigue al
+  encoder y no se hamaca en ninguna llegada.** A 60° la punta se pasa ~0,3–0,4° (~3–4 mm) en el último salto de
+  stick-slip y se acomoda en ~0,5 s. De frente, a 20° el brazo apunta a la cámara (0,7 px/°): no sirve para décimas.
+- **Causa del sesgo (telemetría):** bajando, J1 se traba en 20,42 al final del recorrido, la aproximación la empuja a
+  saltos y la llegada era el primer instante dentro de `tolPos` 0,3°: 20,298 las tres veces (en `_100802`, 20,129).
+- **`tolLlegada`** (campo nuevo de `ConfigArticulacion`, "llegó" con `|e| < tolLlegada` y casi quieta, o cruzó):
+  J1 0,15; J2 0,3 y J3 0,15 (= su `tolPos`). `tolPos` sigue decidiendo la aproximación y "firme". Video **lateral**
+  (`VID_20261105_102842.mp4`, ~14,7 px/° en 20°, ruido 0,015°; a 60° la cinta no se ve) con
+  `trayectoria_20261105_103049`: sin ciclo límite, pero J1 bajando ahora cruza a ~5 °/s, frena al cruzar y **desliza
+  0,15–0,25°** (19,744 / 19,816).
+- **Juego de la correa de J1: no hay** (≤ 0,05°). Primero pareció de ~0,3° (en `_103049`, punta − encoder +0,26 a
+  +0,37° bajando contra una sola llegada desde abajo), pero esa referencia fue antes de tres viajes a 60° y la cinta se
+  fue corriendo (920 → 915 px) y cambió de tamaño: se movió otra cosa (J2/J3, torsión o el robot sobre la mesa). Con
+  `trayectoria_20261105_104436` (`VID_20261105_104224.mp4`; J1 10 ↔ 20 ↔ 30 con J2/J3 en 74/70, llegadas a 20 desde
+  arriba y desde abajo): ajustando las 9 llegadas, juego **0,04°**, punta − encoder ±0,06°; las 6 llegadas a 20° en la
+  punta entre 19,75 y 19,87°.
+- **Repetibilidad con `tolLlegada` sola** (`repetibilidad_20261105_110318`): J1 en 20° en 19,696 / 19,72 / 19,816 /
+  20,154 (cruzar y deslizar, o frenar antes): **RP J1 0,449°** (04/11: 0,157), error medio +0,10 a +0,15°.
+- **Freno anticipado de J1** (`Articulacion.cpp`, solo autobloqueo, cada periodo a 100 Hz): si va hacia el destino a
+  más de 2 °/s y lo que falta es menos que velocidad × `T_ANTICIPO_FRENO` (0,03 s, medido: a 5,4 °/s desliza
+  0,15–0,17°), frena antes de cruzar. `trayectoria_20261105_110816` (la lista de 10/20/30): llegadas a 20 en 20,105 /
+  20,009 (bajando) y 19,985 ×2 (subiendo), a 30 en 29,989 ×2, a 10 en 10,125 / 10,101; el primer `mv` desde abajo
+  19,792. Sin idas y vueltas.
+- **Repetibilidad con el freno anticipado** (`repetibilidad_20261105_111907`, 10 ciclos, sin cortes): **RP J1 0,131°**
+  (la mejor; en 20° entre 20,009 y 20,154, en 40° RP 0,045, en 60° 0,000), **J2 0,429°**, **J3 0,082°**. Las tres
+  dentro de ±0,3° el **100 %** (04/11: 60 %), dentro de ±0,2° 56 % (por J2). **J2 en 74°: dos sobrepasos (74,27 y
+  74,29) y una corta (73,76)** en 10 llegadas (el punto 9 de los pendientes); en 20° y 30°, error fijo +0,21 / −0,22°
+  con RP 0,06 / 0,04°.
+- Videos fuera del repo (`~/Vídeos/brazo/`). Análisis en scripts sueltos (no versionados): seguir la cinta por HSV,
+  sincronizar por correlación con q1 y medir la punta en la ventana de 3 s antes del siguiente `mv`.
+- **Pendiente:** lubricar los engranajes helicoidales de J2/J3 (impresos: grasa con PTFE o de silicona, no WD-40 ni
+  aceite) y repetir `repetibilidad.py --ciclos 10` y la lista de 10/20/30 para ver el efecto antes de tocar el control
+  de J2; después, si J2 sigue pasándose en 74°, el punto 9 (aproximación a 3 °/s o algo como el freno anticipado).

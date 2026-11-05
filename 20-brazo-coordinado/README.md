@@ -185,3 +185,9 @@ Línea de telemetría: `T,ms,etapa,` y por cada una `q,ref,duty,w,estado` (etapa
 | 2026-11-04 | J1 20 ↔ 40 antes y después de "frenar al cruzar" (`trayectoria_20261104_232850`, `_233146`) | Antes: subidas 40,16 · 39,87 · 39,75 · 40,11 · 40,11 (invertía después de pasarse). Después: 39,994 ×4 · 40,114 (rango 0,12°), sin inversión |
 | 2026-11-04 | Homing sin límite y 4 × (30, 20) ↔ (74, 70) (`trayectoria_20261104_234152`) | Homing desde arriba en 42 s; sin cortes; J2 despega con 44–48 % (umbral "sin cuentas" 45 → 60 %) |
 | 2026-11-04 | Repetibilidad con los arreglos (`repetibilidad_20261104_235252`) | Peor RP **J1 0,16° · J2 0,21° · J3 0,10°**, sin cortes. J1 bajando a 20°: 20,322 fijo (sesgo −0,32°) |
+| 2026-11-05 | Video frontal de J1 20 ↔ 60 con J2/J3 en 74/70 (`trayectoria_20261105_101033`) | La punta sigue al encoder, sin hamacarse; bajando a 20° llega en 20,298 ×3: la llegada era el primer instante dentro de `tolPos` 0,3° |
+| 2026-11-05 | `tolLlegada` de J1 0,15° + video lateral (`trayectoria_20261105_103049`) | Sin ciclo límite, pero bajando cruza a ~5 °/s y desliza 0,15–0,25° (19,744 / 19,816) |
+| 2026-11-05 | J1 10 ↔ 20 ↔ 30 con video lateral (`trayectoria_20261105_104436`) | Juego de la correa de J1 **0,04°** (la punta sigue al encoder ±0,06°) |
+| 2026-11-05 | Repetibilidad con `tolLlegada` sola (`repetibilidad_20261105_110318`) | J1 en 20° de 19,70 a 20,15: RP J1 0,449° (peor que el 04/11) |
+| 2026-11-05 | Freno anticipado de J1 (`trayectoria_20261105_110816`) | Llegadas a 10/20/30 dentro de ±0,13° (sin contar el primer `mv`, 19,79) |
+| 2026-11-05 | Repetibilidad con el freno anticipado (`repetibilidad_20261105_111907`) | Peor RP **J1 0,131° · J2 0,429° · J3 0,082°**; las tres dentro de ±0,3° el 100 %. J2 en 74° se pasó dos veces (74,27 / 74,29) |
