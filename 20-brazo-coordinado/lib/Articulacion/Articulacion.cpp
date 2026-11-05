@@ -320,7 +320,11 @@ void Articulacion::paso() {
         cortar("límite propio");
         return;
       }
-      protecciones(wPedida);
+      // "Al revés" contra el sentido de la TRAYECTORIA, no contra wPedida: al arrancar un mv la referencia sale de donde
+      // quedó el destino anterior y, si la articulación quedó unas décimas adelante (J2 en 74,15 con ref 74,00),
+      // wPedida empieza negativa; J2 despegaba de la fricción a +5,7 °/s en el sentido del mv y se cortaba por "al
+      // revés" (2026-11-04, trayectoria_20261104_223055_cortado). Con la trayectoria quieta (velocidad 0), wPedida.
+      protecciones(wRefSeguir_ != 0.0f ? wRefSeguir_ : wPedida);
       return;
     }
 

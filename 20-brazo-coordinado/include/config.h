@@ -7,11 +7,29 @@
 // Valores de 12-j1-base (J1) y 19-j2-j3-conjunto (J2, J3), todos a 20 kHz. Lo marcado PROVISORIO no está medido en
 // esta configuración. Cero: el flanco de cada final de carrera ("h"); + = alejarse del final de carrera.
 
-// ---------- Cuatro barras (17-brazo-joystick, 2026-10-30; con el cero del 30/10 = la pose de la foto ceros_bumpers)
-//   q2 - Q2_MENOS_Q3_MAX <= q3 <= q2 + Q3_MENOS_Q2_MAX
-constexpr float Q3_MENOS_Q2_MAX = 7.5f;
-constexpr float Q2_MENOS_Q3_MAX = 25.0f;
+// ---------- Cuatro barras con la manivela de J3 de 95 mm (2026-11-04; antes 80 mm y una franja de ancho fijo)
+// Medido con 17 (entorno explorar) desde el cero de los finales de carrera: 17-brazo-joystick/resultados/
+// limites_20261104_213919.csv. La franja es
+//   q2 - Q2_MENOS_Q3_MAX <= q3 <= q3MaxFranja(q2)
+// Borde de abajo (el hombro sube con el codo atrás): q2 - q3 llegó a 51,0° (J2 no subía más con J3 en 5°; 53,8 y 54,1
+// en 70 y 113°) -> 49 con 2° de margen.
+constexpr float Q2_MENOS_Q3_MAX = 49.0f;
+// Borde de arriba (el codo estira): no es una recta, una tabla (q2, q3 máximo) interpolada; fuera de la tabla, el
+// valor del extremo. Con J2 en 0-30° J3 empezaba a ARRASTRAR a J2 (A: no es una traba, J2 se sostiene con su lazo):
+// medidos, sin margen (si no, la pose de reposo (3, 3) quedaba afuera). Desde 45° J3 se TRABA (T): medido - 2°.
+// Medidos: 0 -> 3,2 (A) · 15 -> 10,8 (A) · 30 -> 27,9 (A) · 45 -> 56,2 · 60 -> 74,2 · 75 -> 84,7 · 90 -> 93,9 ·
+// 105 -> 103,6 (T). Entre 30 y 45° no hay punto medido (el borde pasa de arrastre a traba).
+struct PuntoFranja {
+  float q2, q3Max;
+};
+constexpr PuntoFranja FRANJA_ARRIBA[] = {
+    {0.0f, 3.2f},   {15.0f, 10.8f}, {30.0f, 27.9f}, {45.0f, 54.2f},
+    {60.0f, 72.2f}, {75.0f, 82.7f}, {90.0f, 91.9f}, {105.0f, 101.6f},
+};
 constexpr float FRANJA_HOLGURA = 0.5f;  // el control frena todo si la medición sale de la franja más que esto
+// Margen a la franja para los destinos de "j", "mv" y el joystick (el de los límites propios es MARGEN_LIMITE). Con
+// 3° como los límites, "mv 3 3 3" y el reposo del homing quedaban afuera (en q2 = 3 el codo llega a 4,7°)
+constexpr float MARGEN_FRANJA = 1.0f;
 
 // ---------- Movimientos de una articulación ("j") y homing ("h")
 constexpr float MARGEN_LIMITE = 3.0f;      // ° de margen a los límites (propios y de la franja) para los destinos
@@ -27,7 +45,8 @@ constexpr bool FRENO_EN_BANDA = true;      // 19, 2026-10-31: frenadas, quietas 
 
 // ---------- Fase 5b: movimientos coordinados ("mv") ----------
 // Las tres siguen el MISMO perfil normalizado (quíntico: velocidad y aceleración 0 en los extremos) y terminan juntas;
-// J2 y J3 avanzan al mismo ritmo, así que el camino en (q2, q3) es una recta y la franja (convexa) se cumple.
+// J2 y J3 avanzan al mismo ritmo, así que el camino en (q2, q3) es una recta. La franja ya no es convexa (tabla del
+// borde de arriba, 2026-11-04): "mv" revisa el camino entero, con la aproximación, antes de arrancar.
 constexpr float MV_FACTOR_VEL = 0.5f;      // fracción de vMax/aMax de cada una para "mv" (PROVISORIO: empezar despacio)
 constexpr float MV_T_MIN = 1.0f;           // s, duración mínima de un movimiento
 // Llegada siempre con el ángulo creciendo (el juego de los engranajes queda del mismo lado): todas las que se mueven
@@ -89,7 +108,8 @@ constexpr ConfigArticulacion CFG_J2 = {
     PIN_J2_RPWM, PIN_J2_LPWM, PIN_BRAZO_EN, PIN_FC_J2, 2, 3, PIN_J2_ENC_A, PIN_J2_ENC_B, PCNT_UNIT_1, 20000, 10,
     16.0f * 4.0f * 139.0f * (75.0f / 15.0f) / 360.0f,  // 123,6 cuentas/°
     false, false,
-    0.0f, 97.0f, 70.0f,
+    // 2026-11-04 (manivela de J3 de 95 mm): 97 -> 105°, el último punto medido del borde de la franja (llegó a 113°)
+    0.0f, 105.0f, 70.0f,
     0.549f, 4.0f,
     35.0f, 25.0f, 22.0f, 8.0f, 8.0f,      // despegue 35 % (medido a 20 kHz), resto PROVISORIO (19)
     2.0f, 20.0f, 60.0f, 3.0f, 0.3f, 0.6f, 200,  // 2026-10-31: con tolPos 0,15 y bandaInt 0,1 J2 repetía peor (0,29°; una vez "no quedan firmes")
@@ -108,7 +128,8 @@ constexpr ConfigArticulacion CFG_J3 = {
     PIN_J3_RPWM, PIN_J3_LPWM, PIN_BRAZO_EN, PIN_FC_J3, 4, 5, PIN_J3_ENC_A, PIN_J3_ENC_B, PCNT_UNIT_2, 20000, 10,
     16.0f * 4.0f * 139.0f * (75.0f / 15.0f) / 360.0f,
     false, true,                          // 19: motor y encoder invertidos juntos
-    0.0f, 113.0f, 70.0f,
+    // 2026-11-04 (manivela de 95 mm): 113 -> 101,5°, el borde de la franja en q2 = 105 (traba en 103,6° - 2°)
+    0.0f, 101.5f, 70.0f,
     0.549f, 4.0f,
     20.0f, 10.0f, 40.0f, 30.0f, 0.0f,     // PROVISORIO (sin medir)
     2.0f, 20.0f, 60.0f, 3.0f, 0.15f, 0.6f, 200,  // tolPos 0,3 -> 0,15 (2026-10-31: repite en 0,03° en vez de 0,30°)

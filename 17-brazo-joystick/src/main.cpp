@@ -283,8 +283,14 @@ void setup() {
   delay(200);
   for (int i = 0; i < N_ART; i++) {
     pinMode(PIN_FC[i], INPUT_PULLUP);
+#ifdef EXPLORAR
+    // J1 con sus límites de siempre; J2 y J3 libres para buscar su final de carrera
+    art[i].limNeg = (i == 0) ? CFG[i].limiteNeg : -EXPLORAR_LIM;
+    art[i].limPos = (i == 0) ? CFG[i].limitePos : EXPLORAR_LIM;
+#else
     art[i].limNeg = CFG[i].limiteNeg;
     art[i].limPos = CFG[i].limitePos;
+#endif
     const bool okM = art[i].motor.begin(PIN_RPWM[i], PIN_LPWM[i], PIN_BRAZO_EN, PIN_BRAZO_EN, 2 * i, 2 * i + 1,
                                         CFG[i].pwmHz, PWM_BITS);
     const bool okE = art[i].enc.begin(PIN_ENC_A[i], PIN_ENC_B[i], UNIDAD[i]);

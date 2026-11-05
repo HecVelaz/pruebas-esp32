@@ -1,10 +1,19 @@
-# Pendientes de pruebas-esp32 (al 2026-11-03)
+# Pendientes de pruebas-esp32 (al 2026-11-04)
 
 <!-- Movido desde CLAUDE.md (2026-10-22). Los bloques "Pendiente GPS", "Pendiente" de 08 y "Falta" se movieron
      tal cual; el resto se copió de los "Pendiente:" que siguen dentro de cada entrada de BITACORA.md. -->
 
 ## Brazo (20, lo próximo)
 
+- **Manivela de J3 de 95 mm (04/11), lo primero:**
+  1. **J3 en las poses muy estiradas:** `mv 3 100 97` quedó trabada 0,18° corta (`no quedan firmes`). Usar poses
+     con más aire (`mv 3 95 90`) o ajustar el sostener de J3 cerca de la traba.
+  2. **Borde de la franja entre 30 y 45° de J2:** sin punto medido (recta supuesta); medir uno en ~37° con
+     `17 -e explorar` si se traba ahí.
+  3. **Repetibilidad de nuevo** (`tools/repetibilidad.py --ciclos 10`, poses nuevas con `20 20 14`): la del 03/11
+     es con la manivela de 80 mm.
+  4. La franja vieja sigue en el modo normal de `17` (lazo abierto) y en `19`: pasarles la tabla si se usan.
+  5. `17 -e explorar` (entorno para medir sin franja) queda en el repo: usarlo si cambia otra vez la mecánica.
 - **`20-brazo-coordinado`, en orden:**
   1. **Joystick:** los tres arreglos de la revisión de Codex hechos (`b0ab0ec`, `3901d8c`, `ee245d5`), compilan,
      el 1 (`b0ab0ec`) **probado en placa** (`trayectoria_20261103_145122`: un `j 1 60` cortado por `jv` a 1 s quedó en
@@ -24,7 +33,7 @@
      J2/J3 2 → 3 °/s o dither. Más velocidad (`MV_FACTOR_VEL`): solo al final, con video.
   6. **Zona prohibida (caja y mástil):** geometría medida a ojo (bitácora del 03/11: caja 40 × 40 × 23 cm, J1 a 9 cm
      del borde derecho y 8,5 del de atrás, J2 a 17,5 cm sobre la tapa, brazo 34,5 cm, antebrazo 33 cm, mástil Ø 5 cm
-     a ~38 cm de J1, a ~141° de J1). **Falta calibrar el cuatro barras** (ángulo del brazo y del antebrazo contra q2
+     a ~38 cm de J1, a ~141° de J1). **Falta calibrar el cuatro barras** (la del 03/11 fue con la manivela de 80 mm) (ángulo del brazo y del antebrazo contra q2
      y q3): repetir `trayectoria.py h "mv 3 30 20" c "mv 3 50 45" c "mv 3 74 70" c "mv 3 74 55" c "mv 3 74 78" c
      "mv 3 90 85" c --espera 6` grabando **desde el lado de los ultrasonidos** (como `vista_frontal.jpeg`, el brazo de
      perfil); antes, una foto de prueba. Después: modelo de la punta, dibujo de la zona para que el usuario lo

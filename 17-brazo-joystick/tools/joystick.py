@@ -39,7 +39,7 @@ RESULTADOS = Path(__file__).absolute().parent.parent / "resultados"
 RESULTADOS_20 = Path(__file__).absolute().parent.parent.parent / "20-brazo-coordinado" / "resultados"
 # 20: estado de la telemetría (columna "estado" de cada una) y límites de su config.h (con 3° de margen en jv)
 ESTADOS_20 = {0: "SUELTA", 1: "YENDO", 2: "LLEGÓ", 3: "FIRME", 4: "FRENADA", 5: "MOV", 6: "HOMING"}
-LIMITES_20 = [[0.0, 118.0], [0.0, 97.0], [0.0, 113.0]]
+LIMITES_20 = [[0.0, 118.0], [0.0, 105.0], [0.0, 101.5]]  # 2026-11-04: J2/J3 con la manivela de 95 mm
 RE_C_20 = re.compile(r"^(J[123])\s.*\| final de carrera (apretado|suelto) \| (con cero|SIN CERO)")
 PUERTO_DEF = "/dev/serial/by-id/usb-1a86_USB_Serial-if00-port0"
 

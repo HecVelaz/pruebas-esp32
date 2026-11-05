@@ -549,3 +549,34 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   hacia ella (se ve de punta). Sí se ve que en 74/70 la pinza baja más o menos hasta la altura de la tapa (por eso
   choca con J1 sobre la caja). Repetir con la cámara donde se sacó `vista_frontal.jpeg` (lado de los ultrasonidos),
   que ve el brazo de perfil con J1 en 0.
+
+## 2026-11-04 — Manivela de J3 de 95 mm: franja nueva (tabla) en 20; correas de J2/J3 probadas y sacadas
+
+- **Mecánico:** el usuario probó correas GT2 en J2 y J3 (piñón 20, polea 100, correa de 240 mm, 54 mm entre
+  centros: 5:1, la misma relación que los engranajes 15 → 75). Con la correa el brazo recogido ya no llegaba a los
+  finales de carrera de J2/J3; se volvió a los **engranajes helicoidales 15 → 75 en J2 y J3**. Lo único que quedó
+  cambiado: la **manivela de J3, de 80 a 95 mm** (pivote a 40 mm del eje del antebrazo, como antes). Signos, relación
+  y finales de carrera, los de siempre. Nota: la correa no invierte el giro y los engranajes sí (si se vuelve a la
+  correa, invertir los dos signos de esa articulación).
+- **`17 -e explorar`** (entorno nuevo): sin la franja y J2/J3 con ±150° desde el cero, para medir. Puntos en
+  `17-brazo-joystick/resultados/limites_20261104_213919.csv`, con la causa del tope (A = J3 arrastra a J2, T = se
+  traba). J3 máx según J2: 0 → 3,2 (A) · 15 → 10,8 (A) · 30 → 27,9 (A) · 45 → 56,2 (T) · 60 → 74,2 (T) · 75 → 84,7
+  (T) · 90 → 93,9 (T) · 105 → 103,6 (T). Hombro arriba: q2 − q3 hasta 51,0° (54° en 70 y 113°). Los primeros puntos de
+  la sesión (antes de anotar la causa) dieron J3 más bajo en 30° y 90° porque J2, frenada en lazo abierto, se dejaba
+  arrastrar.
+- **`20`:** la franja de ancho fijo no sirve (el borde de arriba va de −4° a +14° de q2). **Tabla interpolada** para
+  el borde de arriba (A sin margen, T − 2°; con margen en las A el reposo (3, 3) quedaba afuera) y `q3 ≥ q2 − 49`;
+  `MARGEN_FRANJA` 1° (con 3° `mv 3 3 3` no entraba); J2 0–105°, J3 0–101,5°. Con J2 bajo la franja es un cuello
+  (J2 3° → J3 ≤ 4,7°): `mv` revisa el camino entero y, si la recta sale, va por un punto intermedio (grilla de 5°,
+  ≤ 2500 evaluaciones, < 1 ms). `jv` y `j` con la tabla. `trayectoria.py` dibuja la tabla; `repetibilidad.py` y la
+  lista fija usan `20 20 14` (`20 20 24` quedó afuera); `joystick.py` con los límites nuevos.
+- **En placa:** `trayectoria_20261104_222836`: `h`, `mv 3 30 20`, `mv 3 74 70`, `mv 3 3 3` (por (10, 5)), sin cortes,
+  `LLEGO` ≤ 0,25°. Brazo estirado: `_223055_cortado`, J2 cortada por **"al revés de lo pedido"** al arrancar (había
+  quedado 0,15° adelante de la referencia; wPedida empezaba negativa y despegó a +5,7 °/s hacia el lado correcto) →
+  en `Seguir` el sentido se compara con la trayectoria. `_223620_cortado`: llega a **(100,22; 96,82)**, pero J3 queda
+  trabada 0,18° corta (duty 0 → +27 % en 20 s sin moverse, a ~3,5° de la traba): `no quedan firmes`.
+- **Pendiente:** J3 cerca del borde de la traba (poses tan estiradas: usar `mv 3 95 90` o menos); medir el borde
+  entre 30 y 45° de J2 (sin punto: recta supuesta); repetir la repetibilidad con la franja nueva; la franja vieja
+  sigue en el modo normal de `17` (lazo abierto) y en `19`; la calibración del cuatro barras del 03/11 (80 mm) ya no
+  vale.
+

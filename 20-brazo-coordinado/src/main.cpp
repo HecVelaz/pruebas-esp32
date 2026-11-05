@@ -61,7 +61,51 @@ void msg(const char *fmt, ...) {
 void enAlto() { digitalWrite(PIN_BRAZO_EN, HIGH); }
 
 bool cerosJ2J3() { return cero[I2] && cero[I3]; }
-float dFranja() { return art[I3].q() - art[I2].q(); }  // q3 - q2, entre -Q2_MENOS_Q3_MAX y +Q3_MENOS_Q2_MAX
+
+// ---------- Franja del cuatro barras (config.h, 2026-11-04): q2 - Q2_MENOS_Q3_MAX <= q3 <= q3MaxFranja(q2) ----------
+constexpr int N_FRANJA = sizeof(FRANJA_ARRIBA) / sizeof(FRANJA_ARRIBA[0]);
+
+// Borde de arriba: q3 máximo con J2 en q2 (tabla interpolada; fuera de la tabla, el valor del extremo)
+float q3MaxFranja(float q2) {
+  if (q2 <= FRANJA_ARRIBA[0].q2) return FRANJA_ARRIBA[0].q3Max;
+  for (int k = 1; k < N_FRANJA; k++) {
+    const PuntoFranja &a = FRANJA_ARRIBA[k - 1], &b = FRANJA_ARRIBA[k];
+    if (q2 <= b.q2) return a.q3Max + (b.q3Max - a.q3Max) * (q2 - a.q2) / (b.q2 - a.q2);
+  }
+  return FRANJA_ARRIBA[N_FRANJA - 1].q3Max;
+}
+
+// Al revés: el q2 mínimo para que q3 quede debajo del borde de arriba (la tabla crece). -inf si cualquier q2 sirve,
+// +inf si ninguno (q3 más alto que el último punto)
+float q2MinFranja(float q3) {
+  if (q3 <= FRANJA_ARRIBA[0].q3Max) return -INFINITY;
+  for (int k = 1; k < N_FRANJA; k++) {
+    const PuntoFranja &a = FRANJA_ARRIBA[k - 1], &b = FRANJA_ARRIBA[k];
+    if (q3 <= b.q3Max) return a.q2 + (b.q2 - a.q2) * (q3 - a.q3Max) / (b.q3Max - a.q3Max);
+  }
+  return INFINITY;
+}
+
+// Cuánto sale (q3, en °) de la franja: <= 0 adentro. lado: +1 el codo demasiado estirado (q3 sobre el borde de
+// arriba), -1 el hombro demasiado arriba (q3 bajo q2 - Q2_MENOS_Q3_MAX)
+float excesoFranja(float q2, float q3, int *lado = nullptr) {
+  const float arriba = q3 - q3MaxFranja(q2);
+  const float abajo = (q2 - Q2_MENOS_Q3_MAX) - q3;
+  if (lado) *lado = arriba >= abajo ? 1 : -1;
+  return fmaxf(arriba, abajo);
+}
+float excesoFranjaAhora(int *lado = nullptr) { return excesoFranja(art[I2].q(), art[I3].q(), lado); }
+
+// El exceso más grande sobre la recta de (a2, a3) a (b2, b3), mirando cada "paso" grados
+float excesoTramo(float a2, float a3, float b2, float b3, float paso = 0.25f) {
+  const int pasos = 1 + (int)(fmaxf(fabsf(b2 - a2), fabsf(b3 - a3)) / paso);
+  float peor = -INFINITY;
+  for (int k = 0; k <= pasos; k++) {
+    const float t = (float)k / pasos;
+    peor = fmaxf(peor, excesoFranja(a2 + t * (b2 - a2), a3 + t * (b3 - a3)));
+  }
+  return peor;
+}
 bool enMovimiento(int i) {
   const auto m = art[i].modo();
   return m == Articulacion::Modo::Seguir || m == Articulacion::Modo::Homing ||
@@ -108,13 +152,12 @@ void homingCortar(const char *causa) {
 bool fueraFranja = false;
 
 bool fueraFranjaAhora() {
-  const float d = dFranja();
-  return cerosJ2J3() && (d < -Q2_MENOS_Q3_MAX - FRANJA_HOLGURA || d > Q3_MENOS_Q2_MAX + FRANJA_HOLGURA);
+  return cerosJ2J3() && excesoFranjaAhora() > FRANJA_HOLGURA;
 }
 
 void homingIniciar() {
   if (fueraFranjaAhora()) {
-    msg("Homing: J2 y J3 fuera de la franja (q3 - q2 = %+.2f°): volver adentro con \"j\" antes.", dFranja());
+    msg("Homing: J2 y J3 fuera de la franja (%.2f° afuera): volver adentro con \"j\" antes.", excesoFranjaAhora());
     return;
   }
   for (int i = 0; i < N; i++) hm.conCero[i] = cero[i];
@@ -230,6 +273,10 @@ struct {
                        // MV_DURACION_PROPIA (las demás, T)
   uint32_t k = 0;      // periodos desde el comienzo de la etapa
   uint32_t tEtapa = 0, tFirme = 0;
+  // Camino en dos tramos (2026-11-04, franja con tabla): este mv va a un punto intermedio, sin aproximación ni
+  // asentamiento, y al llegar la referencia arranca solo el mv a "final" (el único que da LLEGO)
+  bool intermedio = false;
+  float final[N];
 } mv;
 
 // Duración del perfil quíntico para que ninguna pase su velocidad ni su aceleración (con el factor de "mv"):
@@ -306,8 +353,11 @@ void mvCortar(const char *causa) {
   msg("MV_ERROR,%s", causa);
 }
 
-void mvIniciar(const float obj[N]) {
+void mvIniciar(const float obj[N], bool intermedio = false, const float *final = nullptr) {
   enAlto();
+  mv.intermedio = intermedio;
+  if (intermedio)
+    for (int i = 0; i < N; i++) mv.final[i] = final[i];
   for (int i = 0; i < N; i++) {
     art[i].reiniciarEstado();
     if (art[i].modo() != Articulacion::Modo::Sostener || !art[i].llego()) art[i].sostenerAqui();
@@ -316,7 +366,7 @@ void mvIniciar(const float obj[N]) {
     // frenar y quedaba 0,25° arriba; con el último tramo lento desde abajo, 0,00°. La que ya está dentro de su tolPos
     // no se mueve (2026-11-03, antes 0,05°: en la 1b J2 a 0,137° hacía 2° abajo y vuelta en cada mv de J1, se trababa
     // y se pasaba 0,72°; sostener() con el mismo objetivo no hace nada)
-    mv.aprox[i] = fabsf(obj[i] - art[i].q()) > art[i].cfg().tolPos;
+    mv.aprox[i] = !intermedio && fabsf(obj[i] - art[i].q()) > art[i].cfg().tolPos;
     // Del lado del que llega: desde abajo (+1) o, con APROX_MISMO_SENTIDO, del lado del que viene. Si en el mismo
     // sentido está más cerca que el tramo, no retrocede: hace todo en la aproximación (si no, invertía el sentido)
     const float lado = (APROX_MISMO_SENTIDO[i] && obj[i] < art[i].q()) ? -1.0f : 1.0f;
@@ -337,8 +387,8 @@ void mvIniciar(const float obj[N]) {
   bool algunaAprox = false;
   for (bool b : mv.aprox) algunaAprox = algunaAprox || b;
   mvEtapa(1);
-  msg(">> mv a (%+.2f, %+.2f, %+.2f) en %.1f s%s.", obj[I1], obj[I2], obj[I3], mv.T,
-      algunaAprox ? " + la aproximación" : "");
+  msg(">> mv %s(%+.2f, %+.2f, %+.2f) en %.1f s%s.", intermedio ? "primero a " : "a ", obj[I1], obj[I2], obj[I3],
+      mv.T, algunaAprox ? " + la aproximación" : "");
 }
 
 void mvPaso() {
@@ -395,6 +445,12 @@ void mvPaso() {
       // Las que terminaron su parte se quedan donde las dejó la trayectoria (sostener sin salto)
       for (int i = 0; i < N; i++)
         if (!mv.mueve[i] && art[i].modo() == Articulacion::Modo::Seguir) art[i].sostener(art[i].referencia());
+      // Tramo intermedio: con la referencia en el punto intermedio, el segundo tramo arranca de ahí (sin esperar)
+      if (mv.intermedio) {
+        float fin[N];
+        for (int i = 0; i < N; i++) fin[i] = mv.final[i];
+        mvIniciar(fin);
+      }
     }
     return;
   }
@@ -424,7 +480,46 @@ void mvPaso() {
       mv.obj[I2] - q[I2], mv.obj[I3] - q[I3]);
 }
 
-// "mv <q1> <q2> <q3>": valida el destino (límites con margen, franja con margen entre los destinos de J2 y J3)
+// Exceso de un mv de J2/J3 de s a o: la recta hasta el punto previo de la aproximación (APROX_GRADOS abajo, si esa
+// articulación la hace, como en mvIniciar()) y de ahí el último tramo
+float excesoMv(float s2, float s3, float o2, float o3, float paso = 0.25f) {
+  const float s[2] = {s2, s3}, o[2] = {o2, o3};
+  float pr[2];
+  for (int k = 0; k < 2; k++) {
+    const int i = I2 + k;
+    const ConfigArticulacion &c = art[i].cfg();
+    const bool aprox = fabsf(o[k] - s[k]) > c.tolPos && o[k] - APROX_GRADOS[i] >= c.limNeg + MARGEN_LIMITE;
+    pr[k] = aprox ? o[k] - APROX_GRADOS[i] : o[k];
+  }
+  return fmaxf(excesoTramo(s2, s3, pr[0], pr[1], paso), excesoTramo(pr[0], pr[1], o2, o3, paso));
+}
+
+// Punto intermedio P para ir de s a o en dos tramos dentro de la franja (s -> P sin aproximación, P -> o con ella).
+// Grilla de 5° más las dos esquinas (primero J2 o primero J3); el de camino más corto. ~1-10 ms
+bool buscarIntermedio(float s2, float s3, float o2, float o3, float tolerado, float &p2, float &p3) {
+  const ConfigArticulacion &c2 = art[I2].cfg(), &c3 = art[I3].cfg();
+  const float mn2 = c2.limNeg + MARGEN_LIMITE, mx2 = c2.limPos - MARGEN_LIMITE;
+  const float mn3 = c3.limNeg + MARGEN_LIMITE, mx3 = c3.limPos - MARGEN_LIMITE;
+  float mejor = INFINITY;
+  const auto probar = [&](float x, float y) {
+    if (x < mn2 || x > mx2 || y < mn3 || y > mx3 || excesoFranja(x, y) > -MARGEN_FRANJA) return;
+    const float largo = fmaxf(fabsf(x - s2), fabsf(y - s3)) + fmaxf(fabsf(o2 - x), fabsf(o3 - y));
+    if (largo >= mejor) return;
+    if (excesoTramo(s2, s3, x, y, 1.0f) > tolerado || excesoMv(x, y, o2, o3, 1.0f) > 0.0f) return;
+    if (excesoTramo(s2, s3, x, y) > tolerado || excesoMv(x, y, o2, o3) > 0.0f) return;
+    mejor = largo;
+    p2 = x;
+    p3 = y;
+  };
+  probar(o2, s3);  // primero J2
+  probar(s2, o3);  // primero J3
+  for (float x = 0.0f; x <= mx2; x += 5.0f)
+    for (float y = 0.0f; y <= mx3; y += 5.0f) probar(x, y);
+  return isfinite(mejor);
+}
+
+// "mv <q1> <q2> <q3>": valida el destino (límites con margen, franja con MARGEN_FRANJA) y el camino de J2 y J3 (recta
+// hasta el punto previo de la aproximación y el último tramo, como en mvIniciar()) dentro de la franja
 void comandoMv(const char *args) {
   float obj[N];
   if (sscanf(args, "%f %f %f", &obj[I1], &obj[I2], &obj[I3]) != 3) {
@@ -442,17 +537,31 @@ void comandoMv(const char *args) {
       return;
     }
   }
-  const float d = obj[I3] - obj[I2];
-  if (d < -Q2_MENOS_Q3_MAX + MARGEN_LIMITE || d > Q3_MENOS_Q2_MAX - MARGEN_LIMITE) {
-    msg("Fuera de la franja: q3 - q2 = %+.1f°, tiene que estar entre %+.1f° y %+.1f° (con margen).", d,
-        -Q2_MENOS_Q3_MAX + MARGEN_LIMITE, Q3_MENOS_Q2_MAX - MARGEN_LIMITE);
+  if (excesoFranja(obj[I2], obj[I3]) > -MARGEN_FRANJA) {
+    msg("Fuera de la franja: con J2 en %+.1f°, J3 entre %+.1f° y %+.1f° (con margen).", obj[I2],
+        obj[I2] - Q2_MENOS_Q3_MAX + MARGEN_FRANJA, q3MaxFranja(obj[I2]) - MARGEN_FRANJA);
     return;
   }
   if (fueraFranjaAhora()) {
-    msg("J2 y J3 fuera de la franja ahora (q3 - q2 = %+.2f°): volver adentro con \"j\" antes.", dFranja());
+    msg("J2 y J3 fuera de la franja ahora (%.2f° afuera): volver adentro con \"j\" antes.", excesoFranjaAhora());
     return;
   }
-  mvIniciar(obj);
+  const float s2 = art[I2].q(), s3 = art[I3].q();
+  const float tolerado = fmaxf(0.0f, excesoFranjaAhora());  // si arranca en el borde, que no salga más
+  if (excesoMv(s2, s3, obj[I2], obj[I3]) <= tolerado) {
+    mvIniciar(obj);
+    return;
+  }
+  // La recta sale de la franja (con J2 bajo es muy angosta): buscar un punto intermedio P (J1 quieta en el primer
+  // tramo) con los dos tramos adentro y el camino más corto. Primero cada 1° en una grilla de 5°; el elegido, cada 0,25°
+  float p2, p3;
+  if (!buscarIntermedio(s2, s3, obj[I2], obj[I3], tolerado, p2, p3)) {
+    msg("Fuera de la franja: el camino de J2 y J3 sale y no encontré un punto intermedio. Ir en pasos (\"j\").");
+    return;
+  }
+  const float p[N] = {art[I1].q(), p2, p3};
+  msg(">> El camino recto sale de la franja: pasa por J2 %+.1f° J3 %+.1f°.", p2, p3);
+  mvIniciar(p, true, obj);
 }
 
 // ---------- Comandos (los ejecuta la tarea) ----------
@@ -486,10 +595,13 @@ void estado() {
         a.referencia(), a.duty(), MODOS[(int)a.modo()], a.llego() ? (a.firme() ? ", firme" : ", llegó") : "",
         a.frenada() ? ", frenada" : "", a.fc() ? "apretado" : "suelto", cero[i] ? "con cero" : "SIN CERO");
   }
-  if (cerosJ2J3()) msg("   franja: q3 - q2 = %+.2f° (entre %+.1f° y %+.1f°)", dFranja(), -Q2_MENOS_Q3_MAX, Q3_MENOS_Q2_MAX);
+  if (cerosJ2J3())
+    msg("   franja: con J2 en %+.2f°, J3 entre %+.1f° y %+.1f° (%+.2f° del borde)", art[I2].q(),
+        art[I2].q() - Q2_MENOS_Q3_MAX, q3MaxFranja(art[I2].q()), -excesoFranjaAhora());
 }
 
-// Rango permitido para la articulación i con las otras donde están (o yendo a): límites propios y franja, con margen
+// Rango permitido para la articulación i con las otras donde están (o yendo a): límites propios con MARGEN_LIMITE y
+// franja con MARGEN_FRANJA
 bool rango(int i, float &mn, float &mx) {
   const ConfigArticulacion &c = art[i].cfg();
   mn = c.limNeg + MARGEN_LIMITE;
@@ -500,12 +612,13 @@ bool rango(int i, float &mn, float &mx) {
     // La otra, en el peor caso entre su medido y su referencia
     const float qo1 = art[o].q(), qo2 = art[o].referencia();
     const float lo = fminf(qo1, qo2), hi = fmaxf(qo1, qo2);
-    if (i == I2) {  // q2 entre q3 - Q3_MENOS_Q2_MAX y q3 + Q2_MENOS_Q3_MAX
-      mn = fmaxf(mn, hi - Q3_MENOS_Q2_MAX + MARGEN_LIMITE);
-      mx = fminf(mx, lo + Q2_MENOS_Q3_MAX - MARGEN_LIMITE);
-    } else {        // q3 entre q2 - Q2_MENOS_Q3_MAX y q2 + Q3_MENOS_Q2_MAX
-      mn = fmaxf(mn, hi - Q2_MENOS_Q3_MAX + MARGEN_LIMITE);
-      mx = fminf(mx, lo + Q3_MENOS_Q2_MAX - MARGEN_LIMITE);
+    // (la tabla del borde de arriba crece: el peor caso de la otra es su valor más alto o más bajo)
+    if (i == I2) {  // q2 entre q2MinFranja(q3) y q3 + Q2_MENOS_Q3_MAX
+      mn = fmaxf(mn, q2MinFranja(hi + MARGEN_FRANJA));
+      mx = fminf(mx, lo + Q2_MENOS_Q3_MAX - MARGEN_FRANJA);
+    } else {        // q3 entre q2 - Q2_MENOS_Q3_MAX y q3MaxFranja(q2)
+      mn = fmaxf(mn, hi - Q2_MENOS_Q3_MAX + MARGEN_FRANJA);
+      mx = fminf(mx, q3MaxFranja(lo) - MARGEN_FRANJA);
     }
   }
   return true;
@@ -529,8 +642,8 @@ void comandoMover(const char *args) {
     return;
   }
   if (g < mn || g > mx) {
-    msg("Fuera de rango: %s puede ir de %+.1f° a %+.1f° (límites y franja, con %.0f° de margen).", art[i].cfg().nombre,
-        mn, mx, MARGEN_LIMITE);
+    msg("Fuera de rango: %s puede ir de %+.1f° a %+.1f° (límites con %.0f° de margen y franja con %.0f°).",
+        art[i].cfg().nombre, mn, mx, MARGEN_LIMITE, MARGEN_FRANJA);
     return;
   }
   enAlto();
@@ -643,8 +756,10 @@ void joyPaso() {
     // solo hacia adentro, y la referencia no queda del lado de afuera de la medición (si no, el PI seguía empujando
     // hacia afuera sin llegar a los 5° de error que cortan; revisión de Codex, 2026-11-03)
     if ((i == I2 || i == I3) && fueraFranjaAhora()) {
-      // q3 - q2 demasiado alto (> 0): J3 hacia abajo y J2 hacia arriba; demasiado bajo: al revés
-      const float adentro = (dFranja() > 0.0f ? -1.0f : 1.0f) * (i == I3 ? 1.0f : -1.0f);
+      // Codo demasiado estirado (lado +1): J3 hacia abajo y J2 hacia arriba; hombro demasiado arriba: al revés
+      int lado = 0;
+      excesoFranjaAhora(&lado);
+      const float adentro = (lado > 0 ? -1.0f : 1.0f) * (i == I3 ? 1.0f : -1.0f);
       if (w * adentro < 0.0f) w = 0.0f;
       if ((joy.ref[i] - art[i].q()) * adentro < 0.0f) joy.ref[i] = art[i].q();
     }
@@ -709,7 +824,7 @@ void comandoZq(const char *args) {
       g[I3]);
   fueraFranja = fueraFranjaAhora();  // ya avisado acá: que la tarea no frene el primer "j" que vuelve adentro
   if (fueraFranja)
-    msg("   Fuera de la franja (q3 - q2 = %+.1f°): solo deja volver hacia adentro.", dFranja());
+    msg("   Fuera de la franja (%.1f° afuera): solo deja volver hacia adentro.", excesoFranjaAhora());
 }
 
 void ejecutar(char *l) {
@@ -846,8 +961,8 @@ void control(void *) {
     // Franja del cuatro barras: si la medición sale (con holgura) con J2 o J3 controladas (moviéndose o sosteniendo:
     // sosteniendo también pueden corregir una caída), frenar las dos donde están. Una vez por episodio.
     if (cerosJ2J3() && (art[I2].modo() != Articulacion::Modo::Suelta || art[I3].modo() != Articulacion::Modo::Suelta)) {
-      const float d = dFranja();
-      const bool fuera = d < -Q2_MENOS_Q3_MAX - FRANJA_HOLGURA || d > Q3_MENOS_Q2_MAX + FRANJA_HOLGURA;
+      const float d = excesoFranjaAhora();
+      const bool fuera = d > FRANJA_HOLGURA;
       // Al salir, y mientras siga afuera, cualquier movimiento de J2/J3 que la aleje se frena (no solo la primera vez).
       // Un "j" que vuelve adentro sí se permite (su destino está adentro: lo valida rango()).
       // Las que mueve el joystick no: joyPaso() ya no las deja alejarse (solo volver hacia adentro, 2026-11-03)
@@ -862,7 +977,8 @@ void control(void *) {
         if (!joy.mueve[I2]) art[I2].frenarAqui();
         if (!joy.mueve[I3]) art[I3].frenarAqui();
         if (!fueraFranja)
-          msg(">> FRANJA: q3 - q2 = %+.2f°, fuera de la franja. J2 y J3 frenadas donde están: volver con \"j\".", d);
+          msg(">> FRANJA: %.2f° fuera de la franja (J2 %+.2f°, J3 %+.2f°). J2 y J3 frenadas donde están: volver con "
+              "\"j\".", d, art[I2].q(), art[I3].q());
       }
       fueraFranja = fuera;
     }
@@ -937,8 +1053,10 @@ void setup() {
   colaTele = xQueueCreate(50, sizeof(Muestra));  // 1 s de muestras
   Serial.println();
   Serial.println("== 20 · J1, J2 y J3 con el mismo controlador (5a: homing, \"j\"; 5b: \"mv\"; 5c: \"t\") · WROOM, 20 kHz ==");
-  Serial.printf("Franja: q2 - %.1f° <= q3 <= q2 + %.1f°. J1 0-%.0f° (PROVISORIO: estirado choca antes), J2 0-%.0f°, "
-                "J3 0-%.0f°.\n", Q2_MENOS_Q3_MAX, Q3_MENOS_Q2_MAX, CFG_J1.limPos, CFG_J2.limPos, CFG_J3.limPos);
+  Serial.printf("Franja (manivela de 95 mm): q2 - %.1f° <= q3 <= tabla:", Q2_MENOS_Q3_MAX);
+  for (const PuntoFranja &p : FRANJA_ARRIBA) Serial.printf(" %.0f->%.1f", p.q2, p.q3Max);
+  Serial.printf(". J1 0-%.0f° (PROVISORIO: estirado choca antes), J2 0-%.0f°, J3 0-%.1f°.\n", CFG_J1.limPos,
+                CFG_J2.limPos, CFG_J3.limPos);
   if (!hwOk) Serial.println("ERROR: no se pudo configurar algún PWM o encoder.");
   Serial.println("Las tres sueltas (EN en bajo) hasta \"h\", \"s\" o \"z\". Para el cero: \"h\".");
   while (Serial.available()) Serial.read();  // basura del CH340 al abrir el puerto

@@ -45,3 +45,8 @@
   peor); `khi` queda en 8. El perfil sigue quíntico (más suave que un trapecio).
 - `17` (2026-10-26): joystick en lazo abierto (el joystick da el duty) y freno al soltar, nunca rueda libre; puente en Python porque Firefox no tiene Web Serial; cero donde está el brazo al abrir el puente (lo pidió el usuario).
 - El firmware del robot vive en `~/Documentos/recolector_de_frutas`; `09-brazo-control` se movió allá (2026-09-27) y los arreglos de los drivers para el robot se hacen allá.
+- `20` (2026-11-04): con la manivela de J3 de 95 mm, **borde de arriba de la franja con una tabla** (J2 → J3 máx,
+  interpolada) en lugar de un ancho fijo; los puntos donde J3 arrastra a J2 sin margen y donde se traba con 2°;
+  `MARGEN_FRANJA` 1°. `mv` en **dos tramos** por un punto intermedio cuando la recta sale de la franja (decisión del
+  usuario: "hacelo con la tabla"). J2/J3 vuelven a los engranajes helicoidales (las correas se probaron y se sacaron).
+

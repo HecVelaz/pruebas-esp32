@@ -16,12 +16,12 @@ Antes: cerrar el monitor (el puerto no se abre dos veces), brazo abajo y recogid
 puede reiniciar la WROOM (pierde el cero): si alguna está sin cero, el primer comando tiene que ser "h".
 
 Uso:
-    python3 tools/trayectoria.py h "mv 20 20 24" "mv 40 30 20" "mv 20 20 24" "mv 3 3 3"
-    python3 tools/trayectoria.py "mv 20 20 24" --cola 5
+    python3 tools/trayectoria.py h "mv 20 20 14" "mv 40 30 20" "mv 20 20 14" "mv 3 3 3"
+    python3 tools/trayectoria.py "mv 20 20 14" --cola 5
     python3 tools/trayectoria.py --archivo resultados/trayectoria_....csv     # volver a graficar, sin la placa
     python3 tools/trayectoria.py --archivo resultados/trayectoria_....csv --solo-resumen \
         --comparar resultados/trayectoria_20261031_180843.csv                  # contra la base (con el resorte)
-Lista fija para comparar: h "mv 20 20 24" "mv 40 30 20" "mv 20 20 24" "mv 3 3 3".
+Lista fija para comparar: h "mv 20 20 14" "mv 40 30 20" "mv 20 20 14" "mv 3 3 3".
 Opciones: --comparar CSV_BASE (totales lado a lado), --solo-resumen (con --archivo, sin gráfico), --sin-volver, --cola (s de captura después del último comando, def. 3), --espera (s para comandos sin final, def. 2),
 --puerto, --sin-ventana, --todo (graficar también el homing; por defecto arranca en el primer mv).
 Ctrl+C manda "s" (las tres se sostienen donde están) y guarda lo capturado (archivo ..._cortado).
@@ -35,9 +35,11 @@ from pathlib import Path
 
 DIR_RESULTADOS = Path(__file__).absolute().parent.parent / "resultados"
 PUERTO = "/dev/serial/by-id/usb-1a86_USB_Serial-if00-port0"
-# Franja del cuatro barras (include/config.h): q2 - Q2_MENOS_Q3_MAX <= q3 <= q2 + Q3_MENOS_Q2_MAX
-Q3_MENOS_Q2_MAX = 7.5
-Q2_MENOS_Q3_MAX = 25.0
+# Franja del cuatro barras (include/config.h, manivela de 95 mm, 2026-11-04):
+#   q2 - Q2_MENOS_Q3_MAX <= q3 <= borde de arriba (tabla FRANJA_ARRIBA (q2, q3 máx), interpolada)
+Q2_MENOS_Q3_MAX = 49.0
+FRANJA_ARRIBA = [(0.0, 3.2), (15.0, 10.8), (30.0, 27.9), (45.0, 54.2), (60.0, 72.2), (75.0, 82.7), (90.0, 91.9),
+                 (105.0, 101.6)]
 NOMBRES = ("J1", "J2", "J3")
 VOLVER = "mv 3 3 3"  # al final de cada serie (salvo --sin-volver): cerca del cero, listo para el próximo homing
 COLUMNAS = ["t_ms", "etapa"] + [f"{c}{i}" for i in (1, 2, 3) for c in ("q", "r", "u", "w", "s")]
@@ -403,11 +405,12 @@ def graficar(archivo, sin_ventana, todo=False, base=None, solo_resumen=False):
     q2, r2 = columnas(d, 1)[:2]
     q3, r3 = columnas(d, 2)[:2]
     lim = [min(q2.min(), r2.min()) - 5, max(q2.max(), r2.max()) + 5]
-    x = np.array(lim)
-    ax_c.fill_between(x, x - Q2_MENOS_Q3_MAX, x + Q3_MENOS_Q2_MAX, color="tab:green", alpha=0.08,
+    x = np.linspace(lim[0], lim[1], 200)
+    arriba = np.interp(x, [p[0] for p in FRANJA_ARRIBA], [p[1] for p in FRANJA_ARRIBA])
+    ax_c.fill_between(x, x - Q2_MENOS_Q3_MAX, arriba, color="tab:green", alpha=0.08,
                       label="franja del cuatro barras")
     ax_c.plot(x, x - Q2_MENOS_Q3_MAX, color="tab:green", lw=0.8)
-    ax_c.plot(x, x + Q3_MENOS_Q2_MAX, color="tab:green", lw=0.8)
+    ax_c.plot(x, arriba, color="tab:green", lw=0.8)
     ax_c.plot(r2, r3, "--", color="tab:gray", lw=1, label="referencia")
     ax_c.plot(q2, q3, color="tab:blue", lw=1, label="medido")
     ax_c.set_xlabel("q2 (°)")
@@ -442,7 +445,7 @@ def graficar(archivo, sin_ventana, todo=False, base=None, solo_resumen=False):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("comandos", nargs="*", help='comandos en orden, entre comillas ("mv 20 20 24")')
+    ap.add_argument("comandos", nargs="*", help='comandos en orden, entre comillas ("mv 20 20 14")')
     ap.add_argument("--cola", type=float, default=3.0, help="s de captura después del último comando (def. 3)")
     ap.add_argument("--espera", type=float, default=2.0, help="s para comandos sin línea de final (def. 2)")
     ap.add_argument("--puerto", default=PUERTO)
@@ -458,7 +461,7 @@ def main():
         graficar(args.archivo, args.sin_ventana, args.todo, args.comparar, args.solo_resumen)
         return
     if not args.comandos:
-        ap.error('falta la lista de comandos (por ejemplo: h "mv 20 20 24")')
+        ap.error('falta la lista de comandos (por ejemplo: h "mv 20 20 14")')
     archivo = correr_en_placa(args)
     if archivo:
         graficar(archivo, args.sin_ventana, args.todo, args.comparar)

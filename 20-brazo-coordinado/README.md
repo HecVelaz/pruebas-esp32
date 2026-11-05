@@ -14,8 +14,13 @@ bloqueante a 100 Hz**. `19` queda como banco de pruebas de una articulación por
   (`HOMING_RECORRIDO_SIN_CERO`, 2026-11-03: arrancó estirado, J3 subió 28° y se trabó contra la franja). Cada una llega a su final de carrera **despacio** (las tres a 1,5 °/s desde el 03/11; antes J2 0,5 y
   J3/J1 1 °/s: el golpe giraba los finales de carrera), cero en el flanco, retrocede 3° y queda sostenida. Informa cuánto se corrió cada flanco
   (`HOMING,t,d1,d2,d3,con_cero`).
-- **Franja del cuatro barras** `q2 − 25° ≤ q3 ≤ q2 + 7,5°`: los destinos se validan con 3° de margen y, si la
-  medición sale de la franja (0,5° de holgura) mientras J2 o J3 se mueven, frena las dos.
+- **Franja del cuatro barras** (desde el 2026-11-04, manivela de J3 de 95 mm): `q2 − 49° ≤ q3 ≤ borde de arriba`,
+  donde el borde de arriba es una **tabla** (J2 → J3 máx: 0 → 3,2 · 15 → 10,8 · 30 → 27,9 · 45 → 54,2 · 60 → 72,2 ·
+  75 → 82,7 · 90 → 91,9 · 105 → 101,6, interpolada; `FRANJA_ARRIBA` en `config.h`). Medida con `17 -e explorar`
+  (`17-brazo-joystick/resultados/limites_20261104_213919.csv`). Con J2 en 0–30° J3 empieza a **arrastrar a J2** (valor
+  medido, sin margen); desde 45° se **traba** (medido − 2°). Los destinos se validan con 1° de margen a la franja
+  (`MARGEN_FRANJA`; 3° a los límites propios) y, si la medición sale (0,5° de holgura) mientras J2 o J3 se mueven,
+  frena las dos. J2 0–105°, J3 0–101,5°. Antes (manivela de 80 mm): `q2 − 25° ≤ q3 ≤ q2 + 7,5°`, J2 0–97°, J3 0–113°.
 - **J1:** 0–118° PROVISORIO (desde el 03/11, antes 90°; 118° medido con el brazo recogido; estirado choca antes con el soporte de la visión: medir con el joystick hasta dónde llega en las dos poses).
 - **Transmisión de J3** (dato del usuario, 2026-11-03): motor 139:1 → engranajes 75:15 (5:1) → manivela de 80 mm en
   el engranaje grande → pivote a 40 mm del eje del antebrazo (cuatro barras: la pinza queda paralela). **q3 es el
@@ -58,7 +63,7 @@ abajo y recogido, `h` toma el cero de verdad.
 **Joystick `jv`** (2026-11-03, para medir la caja sin cambiar de firmware): cada eje, de −1 a 1, es la velocidad de su
 articulación **en lazo cerrado** (la referencia avanza a esa velocidad, a fondo `JOY_FACTOR_VEL` 0,4 de vMax: J1
 12 °/s, J2 y J3 8 °/s; acelera y frena con la mitad de aMax) y la cascada la sigue. Al soltar (eje en 0) frena y **se
-sostiene donde quedó** (J2 y J3 no caen). No pasa los límites ni la franja con 3° de margen: frena a tiempo para
+sostiene donde quedó** (J2 y J3 no caen). No pasa los límites (3° de margen) ni la franja (1°): frena a tiempo para
 quedar en el borde. Hombre muerto: sin `jv` en 300 ms, frena las tres. Necesita el cero (`h`). `jv 0 0 0` con el
 joystick quieto no corta el homing ni un `mv`; cualquier otro comando corta el joystick (se sostienen). Corta y frena si
 una se aleja más de 5° de su referencia o la franja la frena. Telemetría: etapa 8. Desde el monitor un `jv` mueve unos
@@ -116,7 +121,9 @@ Línea de telemetría: `T,ms,etapa,` y por cada una `q,ref,duty,w,estado` (etapa
 - [x] 5a: biblioteca, sostener las tres, homing de las tres, `j` (**probada en placa 2026-10-31**: flancos al nivel
   de una cuenta del encoder; `j` firmes con error ≤ 0,25°)
 - [x] 5b (**probada en placa 2026-10-31**: terminan juntas, las que bajan se pasan y vuelven subiendo; errores ≤ 0,46°): `mv q1 q2 q3`: las tres siguen el mismo perfil quíntico
-  (terminan juntas; recta en (q2, q3) dentro de la franja), a la mitad de su vMax/aMax (`MV_FACTOR_VEL`,
+  (terminan juntas; recta en (q2, q3); desde el 04/11 se revisa el camino entero y, si la recta sale de la franja,
+  va en **dos tramos** por un punto intermedio, buscado en una grilla de 5°: desde el reposo suele ser (10, 5); un
+  solo `LLEGO`, al final), a la mitad de su vMax/aMax (`MV_FACTOR_VEL`,
   PROVISORIO); todas las que se mueven (desde el 31/10 también las que suben) terminan 2° por debajo y suben el último
   tramo a 2 °/s (llegada siempre con el ángulo creciendo; desde el 03/11 la que ya está dentro de su `tolPos` no se
   mueve, y **J1 hace un último tramo propio de 0,5° a 5 °/s, en el sentido en que viene** (`APROX_MISMO_SENTIDO`: desde
@@ -167,3 +174,6 @@ Línea de telemetría: `T,ms,etapa,` y por cada una `q,ref,duty,w,estado` (etapa
 | 2026-11-03 | Aproximación dentro del margen de los límites (`trayectoria_20261103_135232` y `_135524`, `1c8a0ea`) | Vuelta a 3 3 3 directa, **15,8 s** (antes 19,0), ≤ 0,11°. Inversiones 0 en las tres. J1 una vez 0,41° corta (freno a 0,3° y la correa retrocede); en la segunda corrida ≤ 0,18° |
 | 2026-11-03 | Paso 5, deriva 30 s en 40/74/70 (`trayectoria_20261103_135824` con limón, `_140115` sin) | Las tres frenadas (duty 0) y **0,000° en los encoders** los 30 s, con y sin limón; llegan con ≤ 0,09° |
 | 2026-11-03 | Fase 6, repetibilidad articular, 10 ciclos × 5 poses (`repetibilidad_20261103_141454`, `918cfde`) | **RP J1 0,33°, J2 0,32°, J3 0,17°** (en los encoders). J1 cae en dos valores separados por un salto de stick-slip (19,94 / 20,23; 39,83 / 39,99). J2 con un sesgo fijo por pose (a 30°, +0,21 a +0,29°) y poco desvío |
+| 2026-11-04 | Manivela de J3 de 95 mm: franja con tabla y `mv` en dos tramos (`trayectoria_20261104_222836`) | `h`, `mv 3 30 20` (recta), `mv 3 74 70` (recta), `mv 3 3 3` **por (10, 5)**: sin `FRANJA` ni `MV_ERROR`; `LLEGO` ≤ 0,25° en J2/J3; lo más cerca del borde, 0,38° (J2 15°, J3 10°) |
+| 2026-11-04 | Brazo estirado, `mv 3 100 97` (`trayectoria_20261104_223055_cortado`) | Cortado a los 0,56 s: **J2 "al revés de lo pedido"**. J2 había quedado 0,15° adelante de su referencia, wPedida arrancó negativa y J2 despegó de la fricción a +5,7 °/s en el sentido del `mv`. Arreglo: en `Seguir` el sentido se compara con la trayectoria (`Articulacion.cpp`) |
+| 2026-11-04 | Lo mismo con el arreglo (`trayectoria_20261104_223620_cortado`) | `mv 3 74 70` por (10, 5) bien; **`mv 3 100 97` llega a 100,22 · 96,82** (≤ 1,1° del borde de la franja), pero **J3 queda trabada 0,18° corta** (`tolPos` 0,15) y el duty sube hasta +27 % en 20 s sin moverla: `no quedan firmes`. Está a ~3,5° de la traba del cuatro barras |

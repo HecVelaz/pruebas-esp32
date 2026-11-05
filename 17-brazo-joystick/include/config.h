@@ -58,8 +58,16 @@ constexpr int32_t ATASCO_CUENTAS = 5;
 // Cuatro barras (J2 y J3 juntas), medido con el joystick el 2026-10-30 (resultados/limites_20261030_210733.csv):
 // el codo baja como mucho q2 + 9,7° (peor caso) y el hombro sube como mucho q3 + 27,3° (peor caso; arrastra a J3).
 // Con 2° de margen:  q2 - Q2_MENOS_Q3_MAX <= q3 <= q2 + Q3_MENOS_Q2_MAX
+#ifdef EXPLORAR
+// Entorno "explorar" (2026-11-04): J3 con manivela de 95 mm (antes 80; J2 y J3 siguen con engranajes 15 -> 75, las
+// correas se probaron y se sacaron). La franja vieja no vale: apagada, para volver a medirla. J2 y J3 con límites de
+// ±EXPLORAR_LIM° desde el cero (src/main.cpp).
+constexpr float Q3_MENOS_Q2_MAX = 1000.0f;
+constexpr float Q2_MENOS_Q3_MAX = 1000.0f;
+#else
 constexpr float Q3_MENOS_Q2_MAX = 7.5f;
 constexpr float Q2_MENOS_Q3_MAX = 25.0f;
+#endif
 
 // Finales de carrera: un cambio vale con FC_LECTURAS lecturas seguidas iguales, una por ciclo (TS_MS)
 constexpr int FC_LECTURAS = 3;
