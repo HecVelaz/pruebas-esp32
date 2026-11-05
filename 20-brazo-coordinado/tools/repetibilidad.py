@@ -16,7 +16,7 @@ Antes: cerrar el monitor, brazo abajo y recogido, 12 V encendidos. Mirar el prim
 Uso:
     python3 tools/repetibilidad.py --ciclos 10                    # poses por defecto, 1 ciclo de calentamiento
     python3 tools/repetibilidad.py --ciclos 30 --calentar 3
-    python3 tools/repetibilidad.py --poses "20 20 24" "40 30 20" "40 74 70" "60 74 70" "20 74 70" --ciclos 10
+    python3 tools/repetibilidad.py --poses "20 20 14" "40 30 20" "40 74 70" "60 74 70" "20 74 70" --ciclos 10
     python3 tools/repetibilidad.py --archivo resultados/repetibilidad_....csv   # recalcular, sin la placa
 """
 import argparse

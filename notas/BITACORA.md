@@ -587,6 +587,14 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   80,13 · 74,91). En (10, 5) J2 y J3 llegan desde abajo y el homing va de a una (J2 > 5°).
 - **`trayectoria_20261104_230652`:** `h`, `mv 3 80 75`, `mv 3 10 5`, `mv 3 80 75`, `mv 3 10 5`: **cuatro `LLEGO`, sin
   cortes**. (80, 75): 79,89 · 74,99 y 80,10 · 74,89; (10, 5): 10,16 · 5,02 las dos veces. ≥ 0,96° del borde de la franja.
+- **Repetibilidad con la manivela de 95 mm** (`repetibilidad_20261104_232131`, 1 + 10 ciclos, poses `20 20 14`,
+  `40 30 20`, `40 74 70`, `60 74 70`, `20 74 70`; 50 llegadas, sin cortes). Peor RP: **J1 0,48°** (03/11: 0,33),
+  **J2 0,09°** (0,32), **J3 0,22°** (0,17). J2 en la pose 2: las 10 llegadas en 30,189° (sesgo fijo por pose, −0,19 /
+  +0,17°). J1 en dos valores ~0,5–0,6° separados (39,61 / 40,21; 59,69 / 60,17): el stick-slip conocido, más marcado
+  (no depende de la manivela). Llegadas dentro de ±0,2° del objetivo: **J2 + J3 100 %** (80 mm: 72 %), J1 42 % (72 %);
+  dentro de ±0,3°: J2 + J3 100 % (100 %), las tres 78 % (100 %). Error máx J2 0,19° (0,29), J3 0,13° (0,15), J1 0,39°
+  (0,26). Para el plano J2–J3 la manivela de 95 mm es mejor (y con más alcance); el total lo limita J1. Ojo: 10 ciclos,
+  días distintos y la pose 1 cambió (J3 14° en vez de 24°).
 - **Pendiente:** J3 cerca del borde de la traba (poses tan estiradas: usar `mv 3 95 90` o menos); medir el borde
   entre 30 y 45° de J2 (sin punto: recta supuesta); repetir la repetibilidad con la franja nueva; la franja vieja
   sigue en el modo normal de `17` (lazo abierto) y en `19`; la calibración del cuatro barras del 03/11 (80 mm) ya no
