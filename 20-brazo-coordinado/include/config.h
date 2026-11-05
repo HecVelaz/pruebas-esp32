@@ -69,6 +69,11 @@ constexpr float VEL_APROX[3] = {5.0f, 2.0f, 2.0f};  // °/s (pico del perfil del
 // cambiaba de lado y la punta, con el brazo estirado, oscilaba ±1,4 cm a ~1,5 Hz con los encoders quietos. Llegando en
 // el mismo sentido, no). Para la repetibilidad alcanza: cada pose se repite siempre por el mismo camino
 constexpr bool APROX_MISMO_SENTIDO[3] = {true, false, false};
+// Antes del último tramo, J2/J3 tienen que estar al menos esto por debajo del objetivo (antes, la mitad del tramo: 1°).
+// En los mv cortos se pasan del punto previo y bajar en seco no despega: J3 de 20 a 30 quedó en 29,10 y cortó
+// (2026-11-05, trayectoria_20261105_155923_cortado; J2 de 74 a 80 quedó en 79,38, _130006_cortado). Con el doble de
+// tolLlegada sigue siendo una llegada desde abajo
+constexpr float APROX_ABAJO_MIN = 0.3f;  // °
 // Duración propia en el recorrido: true = no espera a las otras (su perfil a su vMax/aMax con MV_FACTOR_VEL; termina
 // antes y sostiene en su punto previo hasta la aproximación). J1 (2026-11-03): con la duración de J2/J3 (12,9 s para
 // 17°) el final de su perfil iba tan lento que se trabó 1,6 s en 18,7°, se despegó con 28 % a 16 °/s, se pasó a 21,0°
@@ -154,7 +159,10 @@ constexpr ConfigArticulacion CFG_J3 = {
     0.0f, 101.5f, 70.0f,
     0.549f, 4.0f,
     20.0f, 10.0f, 40.0f, 30.0f, 0.0f,     // PROVISORIO (sin medir)
-    2.0f, 20.0f, 60.0f, 3.0f, 0.15f, 0.6f, 200,  // tolPos 0,3 -> 0,15 (2026-10-31: repite en 0,03° en vez de 0,30°)
+    // tolPos 0,3 -> 0,15 (2026-10-31: repite en 0,03° en vez de 0,30°) -> 0,20 (2026-11-05): "firme" con el mismo umbral
+    // que la llegada (tolLlegada 0,15) no tenía margen: llegó a 0,149, se corrió a 0,156 y tardó 12 s en quedar firme
+    // (trayectoria_20261105_162907, (65, 60)). La llegada sigue en 0,15
+    2.0f, 20.0f, 60.0f, 3.0f, 0.20f, 0.6f, 200,
     3.0f, 8.0f, 15.0f, 0.1f,              // compensación de fricción 15 % (19: no se pasa, 0,09°); bandaInt 0,2 -> 0,1
     1.5f, 2.0f, 2.0f, 50.0f, 120.0f, 1500, 2.0f, 1.5f,  // homing a 1,5 °/s (2026-11-03; 19: flanco ~0,04° a 1)
     // arranquePct ("sin cuentas") 45 -> 60 % (2026-11-04, trayectoria_20261104_234152: pegada, J2 despega con 44-48 % y

@@ -25,6 +25,7 @@ Lista fija para comparar: h "mv 20 20 14" "mv 40 30 20" "mv 20 20 14" "mv 3 10 5
 Opciones: --comparar CSV_BASE (totales lado a lado), --solo-resumen (con --archivo, sin gráfico), --sin-volver, --cola (s de captura después del último comando, def. 3), --espera (s para comandos sin final, def. 2),
 --puerto, --sin-ventana, --todo (graficar también el homing; por defecto arranca en el primer mv).
 Ctrl+C manda "s" (las tres se sostienen donde están) y guarda lo capturado (archivo ..._cortado).
+Si un "mv" se corta, vuelve solo a "mv 3 10 5" y hace "h" (rescate; --sin-rescate para dejarlo donde quedó).
 """
 import argparse
 import csv
@@ -146,6 +147,19 @@ def correr_en_placa(args):
             if r is None or not r.startswith("LLEGO,"):
                 print(f'\nNo volvió cerca del cero: {r or "no terminó a tiempo"}. "s" (se sostienen donde están).')
                 s.write(b"s\n")
+        # Rescate (pedido del usuario, 2026-11-05): si un "mv" se cortó (franja, "no quedan firmes", ...), volver solo al
+        # reposo y hacer el homing, en lugar de dejar el brazo sostenido donde quedó. Si la vuelta falla, igual "h"
+        # (con cero, de a una y respetando la franja). --sin-rescate: dejarlo donde quedó
+        if cortado and args.rescate and c.startswith("mv "):
+            for rc, fin, tmax in ((VOLVER, ("LLEGO,", "MV_ERROR,", "Uso:", "Fuera de", "J2 y J3 fuera", "sin cero"), 90.0),
+                                  ("h", ("HOMING,", "HOMING_ERROR,", "Homing: J2"), 240.0)):
+                print(f"<< {rc} (rescate)")
+                cap.eventos.append((cap.t_actual(), "vuelta", rc))
+                cap.s.write(f"{rc}\n".encode())
+                r = cap.leer(tmax, fin)
+                if r is None or not (r.startswith("LLEGO,") or r.startswith("HOMING,")):
+                    print(f'Rescate: "{rc}" no terminó ({r or "venció la espera"}). "s" (se sostienen donde están).')
+                    s.write(b"s\n")
     except KeyboardInterrupt:
         cortado = "Ctrl+C"
         print('\nCtrl+C: "s" (las tres se sostienen donde están).')
@@ -453,6 +467,8 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("comandos", nargs="*", help='comandos en orden, entre comillas ("mv 20 20 14")')
     ap.add_argument("--cola", type=float, default=3.0, help="s de captura después del último comando (def. 3)")
+    ap.add_argument("--sin-rescate", dest="rescate", action="store_false",
+                    help='si un mv se corta, no volver solo al reposo ni hacer "h" (por defecto sí)')
     ap.add_argument("--espera", type=float, default=2.0, help="s para comandos sin línea de final (def. 2)")
     ap.add_argument("--puerto", default=PUERTO)
     ap.add_argument("--archivo", help="volver a graficar un CSV guardado, sin tocar la placa")

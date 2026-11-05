@@ -6,12 +6,17 @@
 ## Brazo (20, lo próximo)
 
 - **`20-brazo-coordinado`, en orden:**
-  0. **Mecánica de J2/J3 (lo primero, lo está revisando el usuario):** rayas de marcador entre manivela, engranaje de
-     75 y eje; juego con la corriente apagada; prisioneros. Después: flashear y probar el planificador nuevo
-     (`h "mv 3 74 78" "mv 3 10 5" "mv 3 74 70" "mv 3 10 5"`), repetir el barrido de J3 (`mv 3 74 40..78`) con video
-     de perfil (cámara 1×, marcas amarillas en codo, muñeca, manivela y pinza) y cerrar el modelo de la punta (E4 con
-     balancín 95 mm, J2 × 1,167, ceros y offset de la pinza). Decidir si se cambia la escala de J2 (≈ 106 cuentas/°) en
-     el firmware o solo en la cinemática. Borde de abajo de la franja: −49° → ~−40° (punto muerto).
+  0. **Cinemática de la punta (lo próximo).** Sin cambios mecánicos (decisión del usuario; J3 con ~25–30° de juego en el
+     antebrazo). Camino recomendado: **calibrar directamente con las cámaras estéreo del robot** (marca amarilla en la
+     pinza, muchas poses con q3 − q2 ≥ −25°, llegando siempre desde abajo) y **corregir el final del agarre con la
+     visión**; alternativa: más poses con la cámara de perfil (2 videos cortos de ~12) para una tabla de ~5 mm. Con el
+     modelo: comando `mx x y z` (punta en mm, en recta) sobre el `mv`. Lo medido: `notas/BITACORA.md` del 05/11
+     (J2 × 1,170, brazo y manivela lineales en q2/q3, pinza a (179, 29) mm de la muñeca). Decidir si la escala de J2
+     (≈ 105,6 cuentas/°) se cambia en el firmware o solo en la cinemática.
+  0b. **Franja:** llevar el borde de abajo de −49° a −25° (`Q2_MENOS_Q3_MAX`; punto muerto de J3) y revisar los
+     destinos de las listas (`20 20 14`, repetibilidad) contra el nuevo borde.
+  0c. **Agarre con el juego:** diseñar la aproximación y la tracción para no empujar el antebrazo hacia arriba
+     (horizontal y tirar hacia atrás o abajo).
   1. **J3 en las poses bajas** (`repetibilidad_20261105_115640`: (20, 14) en ~14,10 y (30, 20) en ~20,14, antes
      ~13,97 / ~19,93): corrida corta con telemetría; si es real, freno anticipado como J2. Sin lubricante (en seco):
      si algún día se lubrica, repetir la repetibilidad y revisar `tAnticipo` (J1 0,03 s, J2 0,055 s).
@@ -25,11 +30,7 @@
      (con los límites nuevos).
   7. **Lista fija con el firmware final** (`h "mv 20 20 14" "mv 40 30 20" "mv 20 20 14" "mv 3 10 5"`; la del 03/11
      usaba `20 20 24`, hoy fuera de la franja).
-  8. **Fase 6, en la punta:** la repetibilidad **en la punta** (video con el
-     celular fijo y una marca en la pinza, o un comparador); para pasar de grados a mm con los encoders faltan los
-     largos de los eslabones del cuatro barras y hasta la pinza, los ángulos del cero contra la horizontal, y de J3 el
-     largo de la biela y la distancia entre el eje del engranaje y el del antebrazo (manivela **95 mm** desde el 04/11,
-     pivote a 40 mm).
+  8. **Fase 6, en la punta:** ver el punto 0 (la repetibilidad en mm sale del mismo modelo).
   9. Opcional, si J2/J3 vuelven a pasarse (una vez en cinco capturas, J2 0,5° y 13,8 s hasta firme): `VEL_APROX` de
      J2/J3 2 → 3 °/s o dither. Más velocidad (`MV_FACTOR_VEL`): solo al final, con video.
   10. **Zona prohibida (caja y mástil):** geometría medida a ojo (bitácora del 03/11: caja 40 × 40 × 23 cm, J1 a 9 cm

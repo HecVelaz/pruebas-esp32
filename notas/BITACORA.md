@@ -728,3 +728,38 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   camino podía pasar a 0,1° del borde; la vuelta de (74, 78) a (10, 5) eligió como intermedio el mismo destino, J2 se
   atrasó ~0,6° al bajar y cortó por la franja dos veces (0,52° afuera). Simulado en Python con la tabla: los `mv` de
   las listas habituales siguen directos; (10, 5) ↔ (74, 70) y (74, 78) → (10, 5) pasan por (15, 5). Compila, sin probar.
+- **Calibración con video, 12 poses** (`trayectoria_20261105_164644` + `VID_20261105_164409.mp4`, cámara 1× fija, marcas
+  en codo, muñeca, manivela y pinza; poses con q3 − q2 ≥ −25°; antes, `_162907` (22 poses, sin video, J3 firme en
+  14,5 s en (65, 60) → `tolPos` de J3 0,15 → 0,20, llegada sigue en 0,15) y `_163442` (12 poses, todas firmes en ≤ 1,1 s)).
+  Hombro por el círculo de la manivela (rms 1 px), codo a radio constante (±0,3 %). **J2: 1,170° reales por grado**
+  (tercera medición). **Brazo = 113,0 − 1,087·q2 − 0,094·q3** (residuos ≤ 1,7°): con J2 quieta, el brazo cambia hasta
+  ~5° según J3 (el juego de J2 cambia de lado con la carga). **Manivela = 171,3 − 0,851·q3 − 0,133·q2** (lineal,
+  residuos ≤ 0,44°: lo "no lineal" del barrido anterior era el hombro mal estimado). Antebrazo (codo → muñeca) 334,8 mm;
+  la pinza a (178,8 afuera, 29,4 arriba) mm de la muñeca, siempre horizontal. Modelo de la punta: empírico (ángulos
+  cuadráticos en q2, q3) **error medio 8,6 mm, máx 30 mm** dejando cada pose afuera; con el cuatro barras de la E4
+  12,8 / 24 mm. Con 12 poses no alcanza para < 5 mm en los bordes. Propuesta: más poses (tabla) o calibrar
+  directamente en el marco de las cámaras estéreo del robot y corregir el final con la visión.
+- **Juego de J3 medido con video** (motores sin corriente, levantando la pinza a mano; `VID_20261105_153008_JUEGO_J3`
+  en la mano y `VID_20261105_154302_juego_j3_2` en trípode, fuera del repo): el antebrazo se mueve **~23–30°**
+  libremente entre el tope de abajo (el peso; −39,4° / −44,5°, repite ±0,3°) y el de arriba; **la manivela gira ~6–8°
+  y el motor no** (el usuario: el engranaje de 75 se mueve un paso de diente = 4,8°, el encoder nada; levantando se
+  llega a tocar el final de carrera de J3). El juego está entre el piñón de 15 y la manivela (engrane impreso con un
+  diente de huelgo) y el cuatro barras lo multiplica ×2,5–3. El codo (J2) se corre ~0,8°. **Decisión del usuario: no
+  hay cambios mecánicos posibles** → todo por software: el peso apoya el juego siempre del mismo lado en las poses
+  quietas (por eso la repetibilidad da bien); calibración por mediciones + la visión para el final del agarre.
+- **Planificador probado en placa** (`trayectoria_20261105_155450`, `h "mv 3 74 78" "mv 3 10 5" "mv 3 74 70" "mv 3 10
+  5"`): las cuatro sin cortes, por (15, 5).
+- **`APROX_ABAJO_MIN` 0,3°** (`config.h`): antes del último tramo J2/J3 tienen que estar al menos 0,3° bajo el objetivo
+  (antes la mitad del tramo, 1°). `_155923_cortado`: J3 de 20 a 30 (J2 en 35) se pasó del punto previo a 29,10 y no
+  podía bajar → cortaba; igual que J2 de 74 a 80 el 05/11 (79,38). Con 0,3 la lista de 22 poses pasa (`_160607`).
+- **Poses cerca del punto muerto:** q3 − q2 ≈ −35° no queda firme (`_161228_cortado` en (65, 30); en `_160607` (65,
+  30) y (74, 40) tardaron 11 s y J3 se movió 0,7° quieta); con ≥ −30° tardan 10–16 s (`_162158`); **con ≥ −25° firmes
+  en ≤ 1,1 s** (`_162907`, `_163442`). Llevar el borde de abajo de la franja a ~−25°.
+- **Rescate automático en `trayectoria.py`** (pedido del usuario): si un `mv` se corta, manda `mv 3 10 5` y `h` solo
+  (`--sin-rescate` para dejarlo; con Ctrl+C no rescata).
+- **Comandos útiles:** lista de calibración corta (12 poses, ~2 min): `h "mv 3 20 5" c "mv 3 20 14" c "mv 3 35 10" c
+  "mv 3 35 30" c "mv 3 50 25" c "mv 3 50 55" c "mv 3 65 40" c "mv 3 65 70" c "mv 3 74 50" c "mv 3 74 78" c "mv 3 78
+  55" c "mv 3 78 81" c --espera 3`; bajar el brazo sin cero: `"zq <q del último CSV>" "mv 3 10 5" h --sin-volver`.
+  Videos de calibración: trípode, 1×, 1080p 30 fps, marcas amarillas en codo, muñeca, perno de la manivela y pinza.
+- **Commits del día:** `d450c54` (J1 `tolLlegada` y freno anticipado), `f003952` (J2 freno anticipado), `b450ec1`
+  (cinemática, `MARGEN_CAMINO`, `zq`) y el del cierre (`APROX_ABAJO_MIN`, `tolPos` J3 0,20, rescate, calibración).

@@ -53,3 +53,14 @@
   quedó); quedan el corte por trabada y el recorrido máximo. J1 (autobloqueo) da por llegada al **cruzar** el destino
   (frena sin invertir). "Sin cuentas" de J2/J3 a 60 %.
 
+
+## 2026-11-05 — Juego de J2/J3: por software, sin cambios mecánicos
+
+- J3 tiene ~25–30° de juego en el antebrazo (un diente entre el piñón de 15 y el engranaje de 75, multiplicado por el
+  cuatro barras) y J2 algunos grados. El usuario no puede cambiar la mecánica: se compensa por software. El peso apoya
+  el juego siempre del mismo lado en las poses quietas (repetibilidad 0,05–0,18°), así que la posición de la punta se
+  calibra con mediciones (video o, mejor, las cámaras estéreo del robot) y el final del agarre se corrige con la visión.
+  Se trabaja con q3 − q2 ≥ −25° (más abajo J3 no queda firme) y llegando siempre desde abajo.
+- La escala de J2 (1,170° reales por grado del encoder: reductora ~120:1, no 139:1) **no se cambió en el firmware**:
+  las ganancias, la franja y los límites están afinados en grados de encoder; la conversión va en la cinemática
+  hasta decidir lo contrario.

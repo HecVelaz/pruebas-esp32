@@ -6,35 +6,26 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
 ## Brazo: lo próximo
 
 - **`20-brazo-coordinado` (lo actual):** J1, J2 y J3 con el mismo controlador (`lib/Articulacion`), lazo no
-  bloqueante a 100 Hz, 20 kHz, sin el resorte de la pinza. Firmware flasheado: el del commit del 05/11 (freno anticipado de J1 y J2).
-  - **Mecánica (04/11):** J3 con **manivela de 95 mm** (antes 80); J2 y J3 con engranajes 15 → 75 (las correas GT2 se
-    probaron y se sacaron). La calibración del cuatro barras del 03/11 (80 mm) ya no vale.
-  - **Franja:** `q2 − 49° ≤ q3 ≤ tabla(q2)` (J2 → J3 máx: 0 → 3,2 · 15 → 10,8 · 30 → 27,9 · 45 → 54,2 · 60 → 72,2 ·
-    75 → 82,7 · 90 → 91,9 · 105 → 101,6), margen 1° a la franja y 3° a los límites. **J2 0–83° (destinos hasta 80°)**:
-    cerca de 90° J2 se pasa ~0,7° y no puede volver. J3 0–101,5° (dejar aire: cerca de la traba no queda firme).
-  - `h`: con cero, despacio a los flancos; **sin cero baja las tres juntas desde donde estén** (sin límite de
-    búsqueda; arrancar con J3 ≤ J2). `zq q1 q2 q3` para rescatarlo. `mv`: perfil quíntico, J2/J3 terminan juntas;
-    **si la recta sale de la franja va en dos tramos** (por (10, 5) desde el reposo). **Reposo `mv 3 10 5`** (vuelta
-    de los scripts). J2/J3 llegan desde abajo; **J1 en el sentido en que viene y frena antes de cruzar el destino**
-    (no invierte; llegada con 0,15° o anticipando el deslizamiento). "Sin cuentas" de J2/J3 a 60 %. No esquiva la caja.
-  - **Repetibilidad** (`repetibilidad_20261105_115640`, 10 ciclos × 5 poses, sin cortes): RP **J1 0,17°, J2 0,05°,
-    J3 0,18°**; las tres dentro de ±0,2° el **98 %** de las llegadas (03/11 con 80 mm: 44 %). J1 y J2 con `tolLlegada`
-    0,15° y freno anticipado (`tAnticipo` J1 0,03 s, J2 0,055 s; J2 también en la aproximación del `mv`, desde duty
-    0); videos de la punta: J1 sigue al encoder, juego de la correa 0,04°. Engranajes en seco (sin lubricante). J3 sin
-    tocar: en las poses bajas quedó ~0,1° arriba (todas dentro de ±0,15°), sin mirar todavía.
-  - **Cinemática (05/11 tarde, videos de perfil + inclinómetro):** el mecanismo es el de la E4
-    (`recolector_de_frutas/.../brazo_ik/cinematica.py`) con balancín de 95 mm; la pinza queda siempre horizontal.
-    **J2 gira 1,167° reales por grado del encoder** (inclinómetro: 74,7° contra 64,0°; reductora ~120:1, no 139:1):
-    los "grados" de J2 del firmware son de encoder (no se cambió la escala). **La manivela de J3 gira menos que su
-    encoder y de forma no lineal** (0,84 → 0,45°/°) y **J2 tiene ~3° de juego** que dependen de la carga; el homing dio
-    el cero +0,75° (J2) y −1,10° (J3) corrido tras una sesión: **revisar la mecánica** (patinan o tienen juego) antes de
-    cerrar el modelo de la punta. Cerca del borde de abajo de la franja (q3 − q2 ≈ −44°) J3 no sostiene firme.
-  - **`mv` con `MARGEN_CAMINO` 1° en todo el camino** (antes solo el destino; la vuelta de (74, 78) a (10, 5) cortaba
-    por la franja): compila, simulado, **sin probar en placa ni flashear**. `trayectoria.py` acepta `zq` como primer
-    comando (bajar rápido el brazo sin cero).
-  - Joystick `jv` (puente `17/tools/joystick.py --placa 20`). `17 -e explorar`: sin franja, para medir límites.
-  - **J1 0–118° PROVISORIO** (libre hasta 115° recogido; falta estirado y más allá). La caja no está en el firmware
-    (geometría a ojo en la bitácora del 03/11). `MV_FACTOR_VEL` 0,5 PROVISORIO.
+  bloqueante a 100 Hz, 20 kHz, sin el resorte de la pinza. Firmware flasheado: el del cierre del 05/11
+  (`APROX_ABAJO_MIN`, `tolPos` J3 0,20; las corridas `_163442` y `_164644` ya lo usan).
+  - **Mecánica:** J3 con manivela de 95 mm; J2 y J3 con helicoidales impresos 15 → 75, en seco. **J3 tiene ~25–30° de
+    juego en el antebrazo** (un diente entre el piñón y el engranaje de 75) y J2 algunos grados; sin corriente el brazo
+    se queda donde está. **No se puede cambiar la mecánica** (decisión del usuario): todo por software.
+  - **Franja:** `q2 − 49° ≤ q3 ≤ tabla(q2)` (0 → 3,2 · 15 → 10,8 · 30 → 27,9 · 45 → 54,2 · 60 → 72,2 · 75 → 82,7 ·
+    90 → 91,9 · 105 → 101,6), margen 1° al destino y **1° a todo el camino** (`MARGEN_CAMINO`), 3° a los límites. J2
+    0–83° (destinos hasta 80°), J3 0–101,5°. **Usar q3 − q2 ≥ −25°**: más abajo J3 no queda firme (punto muerto).
+  - `h` (sin cero baja las tres juntas desde donde estén; arrancar con J3 ≤ J2); `zq` para bajar rápido sin cero.
+    `mv`: quíntico, J2/J3 terminan juntas, J1 con su duración; si la recta sale de la franja, por un intermedio (desde
+    el reposo, (15, 5)). Llegada desde abajo (J2/J3 al menos 0,3° bajo el objetivo antes del último tramo); J1 en el
+    sentido en que viene. `tolLlegada` 0,15° y freno anticipado (J1 0,03 s, J2 0,055 s). Reposo `mv 3 10 5`.
+  - **Repetibilidad** (`repetibilidad_20261105_115640`): RP **J1 0,17°, J2 0,05°, J3 0,18°**, las tres dentro de ±0,2°
+    el 98 %. El juego no la afecta: el peso lo apoya siempre del mismo lado en las poses quietas.
+  - **Cinemática (calibración con video, `trayectoria_20261105_164644`):** **J2 gira 1,170° reales por grado del
+    encoder** (reductora ~120:1; confirmado con inclinómetro; el firmware sigue en grados de encoder). Brazo =
+    113,0 − 1,087·q2 − 0,094·q3; manivela = 171,3 − 0,851·q3 − 0,133·q2 (lineal); antebrazo 335 mm; pinza horizontal
+    a (179, 29) mm de la muñeca. Modelo de la punta con 12 poses: **~9 mm de error medio, hasta ~3 cm en los bordes.**
+  - `tools/trayectoria.py`: si un `mv` se corta, vuelve solo al reposo y hace `h` (`--sin-rescate`); acepta `zq` primero.
+  - Joystick `jv` (`17/tools/joystick.py --placa 20`). J1 0–118° PROVISORIO. La caja no está en el firmware.
 - **`19-j2-j3-conjunto`:** banco de pruebas de J2 y J3 (una activa, la otra sostenida). Fases 1–4 del plan probadas
   en placa (franja, sostener con banda 0,2° / compensación de fricción / freno en banda, mapa de gravedad, homing);
   20 kHz. La fase 5 siguió en `20`.

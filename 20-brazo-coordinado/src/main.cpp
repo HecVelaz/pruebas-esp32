@@ -433,9 +433,9 @@ void mvPaso() {
         // Antes de subir el último tramo, todas las que se aproximan tienen que estar de verdad por debajo del objetivo (si no,
         // la llegada podía terminar siendo desde arriba): esperar en el punto previo, hasta 3 s
         for (int i = 0; i < N; i++) {
-          // todavía no está del lado del que llega (a más de la mitad del tramo antes del objetivo)
+          // todavía no está del lado del que llega (al menos APROX_ABAJO_MIN antes del objetivo; antes la mitad del tramo)
           const float lado = mv.antes[i] <= mv.obj[i] ? 1.0f : -1.0f;
-          if (mv.esperar[i] && lado * (mv.obj[i] - art[i].q()) < 0.5f * APROX_GRADOS[i]) {
+          if (mv.esperar[i] && lado * (mv.obj[i] - art[i].q()) < APROX_ABAJO_MIN) {
             if (mv.k * Articulacion::TS > mv.T + 3.0f) {
               mvCortar("no bajó por debajo del objetivo para llegar desde abajo");
             }
