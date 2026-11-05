@@ -49,4 +49,7 @@
   interpolada) en lugar de un ancho fijo; los puntos donde J3 arrastra a J2 sin margen y donde se traba con 2°;
   `MARGEN_FRANJA` 1°. `mv` en **dos tramos** por un punto intermedio cuando la recta sale de la franja (decisión del
   usuario: "hacelo con la tabla"). J2/J3 vuelven a los engranajes helicoidales (las correas se probaron y se sacaron).
+- `20` (2026-11-04, noche): **homing sin límite de búsqueda** (pedido del usuario: bajar el brazo con `h` desde donde
+  quedó); quedan el corte por trabada y el recorrido máximo. J1 (autobloqueo) da por llegada al **cruzar** el destino
+  (frena sin invertir). "Sin cuentas" de J2/J3 a 60 %.
 

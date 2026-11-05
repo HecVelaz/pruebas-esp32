@@ -35,9 +35,12 @@ constexpr float MARGEN_FRANJA = 1.0f;
 constexpr float MARGEN_LIMITE = 3.0f;      // ° de margen a los límites (propios y de la franja) para los destinos
 constexpr float HOMING_RETROCESO = 3.0f;   // ° donde queda cada una después de su cero
 constexpr float HOMING_Q2_MAX_ARRANQUE = 20.0f;  // con el cero conocido, J2 más alta: el codo no llega a su final
-// Sin cero el homing supone el brazo abajo y recogido: si una avanza más que esto sin su final de carrera, corta
-// (2026-11-03: arrancó con el brazo estirado, J3 subió 28° y se trabó contra la franja). Desde "mv 3 3 3", ~3°
-constexpr float HOMING_RECORRIDO_SIN_CERO = 15.0f;
+// Sin cero, recorrido máximo buscando el final de carrera. 2026-11-03: 15° (arrancó estirado, J3 subió 28° y se trabó
+// contra la franja vieja). 2026-11-04, pedido del usuario: SIN límite propio (0 = el homingRecorridoMax de cada una,
+// 120-130°, todo el rango), para bajar el brazo con "h" desde donde quedó. Siguen el corte por trabada (duty al tope
+// sin avanzar) y el recorrido máximo. Sin cero las tres bajan juntas a la misma velocidad: q3 - q2 no cambia, así que
+// arrancar con el codo no más estirado que el hombro (q3 <= q2, como en las poses de trabajo)
+constexpr float HOMING_RECORRIDO_SIN_CERO = 0.0f;
 constexpr float HOMING_Q2_JUNTAS = 5.0f;  // las tres hacen el homing juntas si J2 está abajo (o sin cero: el brazo
                                           // tiene que estar recogido); si no, J3 -> J2 -> J1
 constexpr uint32_t ASENTAMIENTO_MS = 2000;
@@ -120,7 +123,9 @@ constexpr ConfigArticulacion CFG_J2 = {
     // homing a 1,5 °/s (2026-11-03: 0,5 tardaba 6,3 s en 3°, 1 tardaba 3,4 s; 19: flanco ~0,07° a 0,5). Duty máximo 65 % (PROVISORIO): con 50 % no la levantaba desde el final
     // de carrera (2026-10-31: subió 1,5° y se trabó; sostenerla abajo pide ~25 % más el despegue)
     1.5f, 2.0f, 2.0f, 65.0f, 120.0f, 1500, 2.0f, 1.5f,  // con cero: 2 °/s hasta 1,5° del cero anterior
-    2.0f, 60.0f, 300, 45.0f, 150, 5.0f, 100, 30.0f,
+    // arranquePct ("sin cuentas") 45 -> 60 % (2026-11-04, trayectoria_20261104_234152: pegada, J2 despega con 44-48 % y
+    // J3 con hasta 37 %; con 45 % se cortaba a veces, en la repetibilidad _233423_cortado). Igual que el atasco (60 %)
+    2.0f, 60.0f, 300, 60.0f, 150, 5.0f, 100, 30.0f,
     false};
 
 // ---------- J3 (codo): 36-555 58 rpm (139:1), engranajes 15 -> 75 (19, a 20 kHz)
@@ -138,5 +143,7 @@ constexpr ConfigArticulacion CFG_J3 = {
     2.0f, 20.0f, 60.0f, 3.0f, 0.15f, 0.6f, 200,  // tolPos 0,3 -> 0,15 (2026-10-31: repite en 0,03° en vez de 0,30°)
     3.0f, 8.0f, 15.0f, 0.1f,              // compensación de fricción 15 % (19: no se pasa, 0,09°); bandaInt 0,2 -> 0,1
     1.5f, 2.0f, 2.0f, 50.0f, 120.0f, 1500, 2.0f, 1.5f,  // homing a 1,5 °/s (2026-11-03; 19: flanco ~0,04° a 1)
-    2.0f, 60.0f, 300, 45.0f, 150, 5.0f, 100, 30.0f,
+    // arranquePct ("sin cuentas") 45 -> 60 % (2026-11-04, trayectoria_20261104_234152: pegada, J2 despega con 44-48 % y
+    // J3 con hasta 37 %; con 45 % se cortaba a veces, en la repetibilidad _233423_cortado). Igual que el atasco (60 %)
+    2.0f, 60.0f, 300, 60.0f, 150, 5.0f, 100, 30.0f,
     false};

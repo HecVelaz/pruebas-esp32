@@ -167,7 +167,7 @@ void homingIniciar() {
     return;
   }
   if (!cero[I1] || !cero[I2] || !cero[I3])
-    msg(">> Alguna sin cero: el brazo tiene que estar abajo y recogido (cerca de los finales de carrera).");
+    msg(">> Alguna sin cero: bajan juntas despacio hasta sus finales de carrera, desde donde estén (mano cerca).");
   enAlto();
   for (auto &a : art) {  // todo quieto donde está antes de empezar (también lo que iba a otro destino)
     a.reiniciarEstado();

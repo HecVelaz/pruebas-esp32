@@ -13,8 +13,10 @@
   2. **Borde de la franja entre 30 y 45° de J2:** sin punto medido (recta supuesta); medir uno en ~37° con
      `17 -e explorar` si se traba ahí.
   3. ~~Repetibilidad de nuevo~~ hecha (`repetibilidad_20261104_232131`: J2 0,09°, J3 0,22°, J1 0,48°). Falta la de
-     30 ciclos (`--ciclos 30 --calentar 3`, ~45 min) para confirmar, y **la precisión de J1** (punto 2 de abajo), que
-     hoy cae en dos valores separados ~0,5°.
+     30 ciclos (`--ciclos 30 --calentar 3`, ~45 min) para confirmar. J1 ya no cae en dos valores (RP 0,16°,
+     `repetibilidad_20261104_235252`), pero **bajando a 20° queda siempre 0,32° corta**: probar `tolPos` de J1 0,15°
+     (ahora frena al cruzar) con `trayectoria.py` entre 60 y 20 con el brazo estirado, o compensarlo. El usuario va a
+     pasar un video.
   4. La franja vieja sigue en el modo normal de `17` (lazo abierto) y en `19`: pasarles la tabla si se usan.
   5. `17 -e explorar` (entorno para medir sin franja) queda en el repo: usarlo si cambia otra vez la mecánica.
 - **`20-brazo-coordinado`, en orden:**

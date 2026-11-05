@@ -336,7 +336,12 @@ void Articulacion::paso() {
           // Llegó: dentro de la tolerancia Y casi quieta (como 19). Si la daba por llegada pasando rápido por el
           // destino, seguía de largo y el sostener (hecho para décimas) no la volvía: 2026-10-31, el retroceso de J2
           // (0 -> 3°) quedaba en 5-6° trabada por la fricción.
-          if (fabsf(e) < c_.tolPos && fabsf(w_) < VEL_LLEGADA) {
+          // Con autobloqueo (J1), también si CRUZÓ el destino (el error cambió de signo) a menos de tolSalida, aunque vaya
+          // rápido: frena ahí en vez de invertir. 2026-11-04 (trayectoria_20261104_232850): J1 se pegaba 0,4° antes,
+          // despegaba a 7 °/s y se pasaba 0,2-0,3°; si invertía para volver quedaba en 39,75-39,87 y si no, en 40,11-40,16
+          // (las dos llegadas de la repetibilidad, RP 0,48°). Invertir además hamaca la punta (correa).
+          const bool cruzo = c_.autobloqueo && e * signoIda_ < 0.0f && fabsf(e) < c_.tolSalida;
+          if ((fabsf(e) < c_.tolPos && fabsf(w_) < VEL_LLEGADA) || cruzo) {
             llegado_ = true;
             // Arranca del duty que sostiene el peso, estimado del feedforward: el medio entre la marcha subiendo y
             // bajando (J2 +8,5 %, J3 -10 %, J1 0). Antes arrancaba del duty con que venía: al final de un recorrido

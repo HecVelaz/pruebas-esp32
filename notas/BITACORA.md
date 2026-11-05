@@ -595,7 +595,27 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   dentro de ±0,3°: J2 + J3 100 % (100 %), las tres 78 % (100 %). Error máx J2 0,19° (0,29), J3 0,13° (0,15), J1 0,39°
   (0,26). Para el plano J2–J3 la manivela de 95 mm es mejor (y con más alcance); el total lo limita J1. Ojo: 10 ciclos,
   días distintos y la pose 1 cambió (J3 14° en vez de 24°).
-- **Pendiente:** J3 cerca del borde de la traba (poses tan estiradas: usar `mv 3 95 90` o menos); medir el borde
+- **Precisión de J1** (`trayectoria_20261104_232850`, 5 × 20 ↔ 40 con J2/J3 en 30/20): J1 se pega en 39,56–39,58 al
+  final del recorrido, no despega en la aproximación y en la llegada despega con ~19 % a 7 °/s y se pasa 0,16–0,31°.
+  Si el control invertía para volver, quedaba en 39,75–39,87; si no, en 40,11–40,16 (los dos valores de la
+  repetibilidad). **Arreglo** (`Articulacion.cpp`, solo con autobloqueo = J1): "llegó" también si **cruzó** el destino
+  (el error cambió de signo, `signoIda_`) a menos de `tolSalida`, aunque vaya rápido: frena ahí sin invertir.
+  `_233146`: subidas 39,994 ×4 y 40,114 (rango 0,12°, antes 0,41°), sin inversión (duty mín −1,7 %), y la correa la
+  devuelve casi al objetivo.
+- **Corte "sin cuentas" de J2** en la repetibilidad (`repetibilidad_20261104_233423_cortado`, primer ciclo, subiendo
+  a (74, 70)). `trayectoria_20261104_234152` (4 × (30, 20) ↔ (74, 70), sin cortes): pegada, J2 despega con **44–48 %**
+  y J3 con hasta 37 %, justo en el umbral de 45 %. **`arranquePct` de J2 y J3 45 → 60 %** (como el atasco; duty máx
+  70 %).
+- **Homing sin límite de búsqueda** (pedido del usuario): `HOMING_RECORRIDO_SIN_CERO` 15 → 0 (= el recorrido máximo
+  de cada una, 120–130°). Sin cero, las tres bajan juntas a 1,5 °/s desde donde estén; siguen el corte por trabada y
+  el recorrido máximo. Probado: desde ~(29, 62, 55) en 42 s (`_234152`). Arrancar con el codo no más estirado que el
+  hombro (J3 ≤ J2).
+- **Repetibilidad con los arreglos** (`repetibilidad_20261104_235252`, 10 ciclos, sin cortes): peor RP **J1 0,16°**
+  (tarde: 0,48), **J2 0,21°** (0,09; solo la pose 1, rango 0,28°; las demás ≤ 0,04°), **J3 0,10°** (0,22). J1 en 60°
+  y en 20° el mismo valor las 10 veces, pero **bajando a 20° queda siempre en 20,322° (−0,32°, sesgo fijo)**: las
+  tres dentro de ±0,2° 60 % (tarde 42 %, 03/11 44 %), dentro de ±0,3° 60 % (78 %, 100 %) por ese sesgo.
+- **Pendiente:** el sesgo de J1 bajando a 20° (opción A: `tolPos` de J1 0,15° ahora que frena al cruzar; opción B:
+  compensarlo); el usuario va a pasar un video. J3 cerca del borde de la traba (poses tan estiradas: usar `mv 3 95 90` o menos); medir el borde
   entre 30 y 45° de J2 (sin punto: recta supuesta); repetir la repetibilidad con la franja nueva; la franja vieja
   sigue en el modo normal de `17` (lazo abierto) y en `19`; la calibración del cuatro barras del 03/11 (80 mm) ya no
   vale.

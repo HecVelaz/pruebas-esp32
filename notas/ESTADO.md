@@ -16,7 +16,10 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
     ≤ 0,16°). Cerca de 90° J2 se pasaba ~0,7° y no podía volver ("sin cuentas"); en (100, 97) J3 quedaba trabada.
   - **Repetibilidad con 95 mm** (`repetibilidad_20261104_232131`, 10 ciclos × 5 poses): RP **J1 0,48°, J2 0,09°, J3
     0,22°** (03/11 con 80 mm: 0,33 / 0,32 / 0,17). J2 + J3 dentro de ±0,2° en el 100 % de las llegadas (80 mm: 72 %).
-    J1 cae en dos valores ~0,5° separados: es lo que más limita ahora. La repetibilidad del 03/11 y la calibración del
+    J1 cae en dos valores ~0,5° separados: es lo que más limita ahora.
+  - **Con los arreglos de la noche** (J1 frena al cruzar el destino; "sin cuentas" de J2/J3 a 60 %; homing sin
+    límite de búsqueda): `repetibilidad_20261104_235252`, RP **J1 0,16°, J2 0,21°, J3 0,10°**, sin cortes. Queda un
+    **sesgo fijo de J1 bajando a 20°** (20,322 las 10 veces). Firmware flasheado: el del commit de esa noche. La repetibilidad del 03/11 y la calibración del
     cuatro barras son con la manivela de 80 mm.
   - `h`: las tres juntas si el brazo está abajo (3,5 s desde ~3°), cero en el flanco; sin cero corta si una avanza
     15° sin su final de carrera (el brazo tiene que estar recogido). `zq q1 q2 q3` para rescatarlo sin cero.

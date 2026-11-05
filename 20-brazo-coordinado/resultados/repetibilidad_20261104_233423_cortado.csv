@@ -1,0 +1,17 @@
+# 20-brazo-coordinado, repetibilidad: poses 20 20 14 | 40 30 20 | 40 74 70 | 60 74 70 | 20 74 70; 1 de calentamiento + 10 ciclos
+# cortado: MV_ERROR,sin cuentas del encoder (¿suelto o trabada?)
+# cmd,0,h
+# msg,0,HOMING,10465,-3.013,-10.238,-5.034,000
+# cmd,0,mv 20 20 14
+# cmd,0,mv 40 30 20
+# cmd,0,mv 40 74 70
+# cmd,0,mv 60 74 70
+# cmd,0,mv 20 74 70
+# cmd,0,mv 20 20 14
+# cmd,0,mv 40 30 20
+# cmd,0,mv 40 74 70
+# msg,0,>> mv CORTADO: sin cuentas del encoder (¿suelto o trabada?). Quedan sosteniendo donde están.
+# msg,0,MV_ERROR,sin cuentas del encoder (¿suelto o trabada?)
+ciclo,pose,obj1,obj2,obj3,q1,q2,q3,e1,e2,e3,t_ms
+1,1,20.0,20.0,14.0,19.961,20.064,13.994,0.039,-0.064,0.006,67435
+1,2,40.0,30.0,20.0,40.163,30.165,20.04,-0.163,-0.165,-0.04,75095
