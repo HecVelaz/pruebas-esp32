@@ -22,6 +22,16 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
     0,15° y freno anticipado (`tAnticipo` J1 0,03 s, J2 0,055 s; J2 también en la aproximación del `mv`, desde duty
     0); videos de la punta: J1 sigue al encoder, juego de la correa 0,04°. Engranajes en seco (sin lubricante). J3 sin
     tocar: en las poses bajas quedó ~0,1° arriba (todas dentro de ±0,15°), sin mirar todavía.
+  - **Cinemática (05/11 tarde, videos de perfil + inclinómetro):** el mecanismo es el de la E4
+    (`recolector_de_frutas/.../brazo_ik/cinematica.py`) con balancín de 95 mm; la pinza queda siempre horizontal.
+    **J2 gira 1,167° reales por grado del encoder** (inclinómetro: 74,7° contra 64,0°; reductora ~120:1, no 139:1):
+    los "grados" de J2 del firmware son de encoder (no se cambió la escala). **La manivela de J3 gira menos que su
+    encoder y de forma no lineal** (0,84 → 0,45°/°) y **J2 tiene ~3° de juego** que dependen de la carga; el homing dio
+    el cero +0,75° (J2) y −1,10° (J3) corrido tras una sesión: **revisar la mecánica** (patinan o tienen juego) antes de
+    cerrar el modelo de la punta. Cerca del borde de abajo de la franja (q3 − q2 ≈ −44°) J3 no sostiene firme.
+  - **`mv` con `MARGEN_CAMINO` 1° en todo el camino** (antes solo el destino; la vuelta de (74, 78) a (10, 5) cortaba
+    por la franja): compila, simulado, **sin probar en placa ni flashear**. `trayectoria.py` acepta `zq` como primer
+    comando (bajar rápido el brazo sin cero).
   - Joystick `jv` (puente `17/tools/joystick.py --placa 20`). `17 -e explorar`: sin franja, para medir límites.
   - **J1 0–118° PROVISORIO** (libre hasta 115° recogido; falta estirado y más allá). La caja no está en el firmware
     (geometría a ojo en la bitácora del 03/11). `MV_FACTOR_VEL` 0,5 PROVISORIO.

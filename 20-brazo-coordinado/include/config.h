@@ -30,6 +30,10 @@ constexpr float FRANJA_HOLGURA = 0.5f;  // el control frena todo si la medición
 // Margen a la franja para los destinos de "j", "mv" y el joystick (el de los límites propios es MARGEN_LIMITE). Con
 // 3° como los límites, "mv 3 3 3" y el reposo del homing quedaban afuera (en q2 = 3 el codo llega a 4,7°)
 constexpr float MARGEN_FRANJA = 1.0f;
+// Margen a la franja de TODO el camino de un "mv" (antes solo el destino: el camino podía pasar a 0,1° del borde). En el
+// brazo J2 se atrasa al bajar ~0,6° y con FRANJA_HOLGURA 0,5 se cortaba (2026-11-05, vuelta de (74, 78) a (10, 5):
+// trayectoria_20261105_133335 y _150143, 0,52° afuera en J2 ~30°). Si arranca más cerca del borde, no se acerca más
+constexpr float MARGEN_CAMINO = 1.0f;
 
 // ---------- Movimientos de una articulación ("j") y homing ("h")
 constexpr float MARGEN_LIMITE = 3.0f;      // ° de margen a los límites (propios y de la franja) para los destinos

@@ -685,3 +685,46 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   dentro de ±0,15°. ¿Variación o efecto del cuatro barras con J2 frenando en otro lugar? Sin mirar todavía.
 - **Pendiente:** J3 en las poses bajas (corrida corta con telemetría); repetibilidad de 30 ciclos; calibrar el cuatro
   barras con la manivela de 95 mm (punto 10) para pasar la repetibilidad a mm en la punta.
+- **Geometría para el modelo de la punta (usuario, a mano, 05/11; manivela de 95 mm):** en el cero (los tres finales
+  de carrera apretados) el antebrazo está ~60° bajo la horizontal y forma ~30° con el brazo (transportador, al ojo;
+  el dibujo `~/Imágenes/brazo/CERO_vista_frontal.jpg` marca el brazo a 80°). Codo (J3) → muñeca 34 cm; codo → centro
+  del limón agarrado ~46 cm, corrido hacia arriba de la línea del antebrazo entre 0 y 30°. Eje de J2 a ~18 cm sobre la
+  tapa (~41 cm del piso del robot). Visto desde arriba el eje de J2 cruza el eje de J1 y el brazo sube justo sobre el
+  centro de J1 (sin desplazamientos). Brazo J2 → J3 34,5 cm (03/11). El cuatro barras interno (biela, manivela 95 mm,
+  pivote a 40 mm) no se mide: se ajusta con el video de perfil de 8 poses (cinta verde en el codo y sobre el limón).
+- **Cuatro barras con video, 05/11 tarde** (`trayectoria_20261105_130006_cortado` + `VID_20261105_125756.mp4` gran
+  angular; `trayectoria_20261105_133335` + `VID_20261105_133039.mp4` 1×, 60 fps, marcas amarillas en codo, muñeca,
+  perno de la manivela y pinza; videos fuera del repo). El mecanismo es el de la E4
+  (`recolector_de_frutas/ros2_ws/src/brazo_ik/brazo_ik/cinematica.py`: brazo 350,22, antebrazo 329,51, acoplador 338,
+  salida 40 mm) con el balancín de 95 mm (medido 93,9); la manivela gira en el eje de J2; la pinza queda siempre
+  horizontal (offset fijo desde la muñeca, ~18 cm afuera y ~3 cm arriba). **Hallazgo:** con el centro del hombro
+  sacado del círculo de la manivela (rms 0,4 px), el brazo gira **1,160° por grado del encoder de J2** (rango 10–74°,
+  residuos ±1,7°): coincide con una reductora de ~120:1 en vez de 139:1 (139/120 = 1,158; un 36-555 de 58 rpm a 12 V
+  da ~120:1). Las 123,6 cuentas/° de J2/J3 nunca se verificaron (paso 1 de `13`/`14` sin hacer). **J3, sin resolver:**
+  con J2 fija en 74°, la manivela gira 0,69°/° entre q3 55 y 70 y 0,51°/° entre 70 y 78 (no lineal: no es solo la
+  relación). Vuelta al reposo desde (74, 78) cortada por la franja (J2 trabada al bajar, 0,52° afuera en (30,0, 28,5));
+  el planificador elige como intermedio el mismo destino (10, 5): arreglar. Pendiente: verificar con el inclinómetro
+  del celular el ángulo del brazo en q2 = 10 y 74 (64° si 1:1, 74° si 120:1) y el barrido de J3.
+- **J2 confirmado con inclinómetro** (otra app, celular de canto sobre la barra del brazo, ángulo respecto de la vertical
+  visto de frente; `trayectoria_20261105_135910` y `_140212`): en (10, 5) **16° hacia atrás** y en (74, 70) **58,7°
+  hacia la pinza** → el brazo giró **74,7°** con el encoder marcando **64,0°** (1,167; el video daba 1,16). J2 tiene
+  ~105,9 cuentas por grado real, no 123,6: reductora de ~120:1, no 139:1. Las mediciones anteriores con la app de
+  cámara (−60,7° y 30,7°) estaban mal: el celular en la mano, fuera del plano del brazo. Todo lo de J2 en grados
+  (límites, franja, velocidades) está en "grados del encoder" = grados reales / 1,167. J3 (mismo motor) sin verificar.
+- **Barrido de J3 con J2 fija en 74°** (`trayectoria_20261105_150143` + `VID_20261105_145955.mp4`, cámara movida, otra
+  luz; la pose (74, 30) del primer intento, `_145213_cortado`, cortó "no quedan firmes": con q3 − q2 = −44° el cuatro
+  barras está cerca del punto muerto, J3 no despega ni con −48 % y el peso la desliza; correr el borde de abajo de la
+  franja de −49° a ~−40°). Cámara quieta (fondo < 0,4 px). (1) **La manivela no sigue al encoder de J3:** gira 0,84°
+  por grado del encoder entre q3 48 y 62, 0,60 entre 62 y 70 y 0,45 entre 70 y 78 (no lineal: se pierde movimiento
+  entre el motor y la manivela, más con más carga). El cuatro barras sí: el antebrazo gira ~2,4° por grado de la
+  manivela (como la E4). (2) **J2 con juego:** con el encoder quieto en 73,88° el codo se corrió ~3,3° en la pose con
+  el antebrazo más estirado. (3) El homing siguiente (`trayectoria_20261105_151610`, con `zq` desde la última posición)
+  dio el cero real a +0,75° (J2) y −1,10° (J3) del de la sesión anterior: algo se corrió durante la sesión. **Revisar
+  la mecánica** (rayas de marcador entre manivela/engranaje de 75/eje en J2 y J3, juego con la corriente apagada,
+  prisioneros) antes de seguir con la cinemática. Sin corriente, los helicoidales sostienen el brazo donde quedó.
+- **`zq` como primer comando de `trayectoria.py`** (además de `h`): con el último q del CSV, `zq`, `mv 3 10 5` y `h`
+  bajan el brazo en ~25 s en lugar de ~50 s del homing sin cero.
+- **Planificador del `mv` con margen en todo el camino** (`MARGEN_CAMINO` 1°): antes solo el destino tenía margen y el
+  camino podía pasar a 0,1° del borde; la vuelta de (74, 78) a (10, 5) eligió como intermedio el mismo destino, J2 se
+  atrasó ~0,6° al bajar y cortó por la franja dos veces (0,52° afuera). Simulado en Python con la tabla: los `mv` de
+  las listas habituales siguen directos; (10, 5) ↔ (74, 70) y (74, 78) → (10, 5) pasan por (15, 5). Compila, sin probar.

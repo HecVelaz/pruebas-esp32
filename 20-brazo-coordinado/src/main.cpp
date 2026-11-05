@@ -511,8 +511,9 @@ bool buscarIntermedio(float s2, float s3, float o2, float o3, float tolerado, fl
     if (x < mn2 || x > mx2 || y < mn3 || y > mx3 || excesoFranja(x, y) > -MARGEN_FRANJA) return;
     const float largo = fmaxf(fabsf(x - s2), fabsf(y - s3)) + fmaxf(fabsf(o2 - x), fabsf(o3 - y));
     if (largo >= mejor) return;
-    if (excesoTramo(s2, s3, x, y, 1.0f) > tolerado || excesoMv(x, y, o2, o3, 1.0f) > 0.0f) return;
-    if (excesoTramo(s2, s3, x, y) > tolerado || excesoMv(x, y, o2, o3) > 0.0f) return;
+    // los dos tramos con MARGEN_CAMINO (el primero, con lo que se tolere si arranca más cerca del borde)
+    if (excesoTramo(s2, s3, x, y, 1.0f) > tolerado || excesoMv(x, y, o2, o3, 1.0f) > -MARGEN_CAMINO) return;
+    if (excesoTramo(s2, s3, x, y) > tolerado || excesoMv(x, y, o2, o3) > -MARGEN_CAMINO) return;
     mejor = largo;
     p2 = x;
     p3 = y;
@@ -553,7 +554,8 @@ void comandoMv(const char *args) {
     return;
   }
   const float s2 = art[I2].q(), s3 = art[I3].q();
-  const float tolerado = fmaxf(0.0f, excesoFranjaAhora());  // si arranca en el borde, que no salga más
+  // Todo el camino a MARGEN_CAMINO del borde; si arranca más cerca, que no se acerque más (2026-11-05)
+  const float tolerado = fmaxf(-MARGEN_CAMINO, excesoFranjaAhora());
   if (excesoMv(s2, s3, obj[I2], obj[I3]) <= tolerado) {
     mvIniciar(obj);
     return;

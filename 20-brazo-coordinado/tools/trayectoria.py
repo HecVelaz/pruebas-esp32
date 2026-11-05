@@ -111,8 +111,11 @@ def correr_en_placa(args):
         cap.mandar("c")
         cap.leer(1.0)
         sin_cero = any("SIN CERO" in e[2] for e in cap.eventos if e[1] == "msg")
-        if sin_cero and (not args.comandos or args.comandos[0] != "h"):
-            print('\nAlguna está SIN CERO (la placa se reinició al abrir el puerto): empezar la lista con "h".')
+        # "zq q1 q2 q3" (cero estimado: el brazo quedó lejos de los finales de carrera y no se mueve sin corriente)
+        # también vale como primer comando: baja rápido con "mv" y después "h"
+        if sin_cero and (not args.comandos or not (args.comandos[0] == "h" or args.comandos[0].startswith("zq "))):
+            print('\nAlguna está SIN CERO (la placa se reinició al abrir el puerto): empezar la lista con "h" '
+                  '(o con "zq q1 q2 q3" si se sabe dónde quedó el brazo).')
             return
         cap.mandar("t 1")
         cap.leer(1.0, ("TELE_CFG",))

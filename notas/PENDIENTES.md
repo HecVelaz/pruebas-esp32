@@ -6,6 +6,12 @@
 ## Brazo (20, lo próximo)
 
 - **`20-brazo-coordinado`, en orden:**
+  0. **Mecánica de J2/J3 (lo primero, lo está revisando el usuario):** rayas de marcador entre manivela, engranaje de
+     75 y eje; juego con la corriente apagada; prisioneros. Después: flashear y probar el planificador nuevo
+     (`h "mv 3 74 78" "mv 3 10 5" "mv 3 74 70" "mv 3 10 5"`), repetir el barrido de J3 (`mv 3 74 40..78`) con video
+     de perfil (cámara 1×, marcas amarillas en codo, muñeca, manivela y pinza) y cerrar el modelo de la punta (E4 con
+     balancín 95 mm, J2 × 1,167, ceros y offset de la pinza). Decidir si se cambia la escala de J2 (≈ 106 cuentas/°) en
+     el firmware o solo en la cinemática. Borde de abajo de la franja: −49° → ~−40° (punto muerto).
   1. **J3 en las poses bajas** (`repetibilidad_20261105_115640`: (20, 14) en ~14,10 y (30, 20) en ~20,14, antes
      ~13,97 / ~19,93): corrida corta con telemetría; si es real, freno anticipado como J2. Sin lubricante (en seco):
      si algún día se lubrica, repetir la repetibilidad y revisar `tAnticipo` (J1 0,03 s, J2 0,055 s).
