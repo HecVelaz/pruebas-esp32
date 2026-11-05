@@ -175,4 +175,6 @@ constexpr ConfigArticulacion CFG_J3 = {
     2.0f, 60.0f, 300, 60.0f, 150, 5.0f, 100, 30.0f,
     false,
     0.15f,   // tolLlegada = tolPos
-    0.0f};   // tAnticipo: sin freno anticipado (RP 0,08°)
+    // tAnticipo 0 -> 0,045 s (2026-11-05, trayectoria_20261105_193535): subiendo a (30, 20) J3 cruzaba el objetivo a
+    // 3,0-3,2 °/s y seguía 0,137° (velocidad × 0,042-0,058 s): las 4 llegadas en 20,13; la primera a (20, 14) en 14,13
+    0.045f};

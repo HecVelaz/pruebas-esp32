@@ -794,3 +794,10 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   muestran el borde nuevo; `cinematica.py` y `punta.py` con el mismo margen. Prueba: `mv 3 40 14` (−26) rechazado,
   `mv 3 40 16` (−24) acepta y queda firme, `j 2 45` con J3 en 16 rechazado (hasta 40). La lista de calibración del
   05/11 tiene (35, 10), (50, 25), (65, 40) a −25°: ya no pasa.
+- **Paso 1, J3 en las poses bajas: freno anticipado para J3** (probado en placa). Ciclo de la repetibilidad × 3 con
+  telemetría (`trayectoria_20261105_193535`): J3 en (30, 20) **20,129 · 20,129 · 20,129 · 20,137** (cruzaba el
+  objetivo a 3,0–3,2 °/s y seguía 0,137° = velocidad × 0,042–0,058 s, el mismo efecto que J2); en (20, 14) 14,131 (la
+  primera, subiendo desde el homing) y después 13,98 / 13,92 / 13,92 (frenaba antes, sin cruzar); en (74, 70) −0,09 a
+  −0,15°. **`tAnticipo` J3 0 → 0,045 s** (`_194139`, misma lista): (30, 20) **20,023 · 19,975 · 20,015 · 20,015**;
+  (20, 14) 14,058 · 14,018 · 13,978 · 14,018; (74, 70) −0,05 · −0,10 · −0,05. |e LLEGO| máx J3 0,145 → **0,096°**, J1
+  0,199 → 0,175, J2 0,155 → 0,183 (sin cambios en J2); llegada → firmes igual (9,1 s en 17 `mv`, peor 1,1 s).

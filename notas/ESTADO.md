@@ -7,7 +7,7 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
 
 - **`20-brazo-coordinado` (lo actual):** J1, J2 y J3 con el mismo controlador (`lib/Articulacion`), lazo no
   bloqueante a 100 Hz, 20 kHz, sin el resorte de la pinza. Firmware flasheado: el del cierre del 05/11
-  (`APROX_ABAJO_MIN`, `tolPos` J3 0,20) + el borde de los destinos a −25° (0b, 05/11 noche).
+  (`APROX_ABAJO_MIN`, `tolPos` J3 0,20) + el borde de los destinos a −25° (0b) + el freno anticipado de J3 (0,045 s), 05/11 noche.
   - **Mecánica:** J3 con manivela de 95 mm; J2 y J3 con helicoidales impresos 15 → 75, en seco. **J3 tiene ~25–30° de
     juego en el antebrazo** (un diente entre el piñón y el engranaje de 75) y J2 algunos grados; sin corriente el brazo
     se queda donde está. **No se puede cambiar la mecánica** (decisión del usuario): todo por software.
@@ -18,7 +18,7 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
   - `h` (sin cero baja las tres juntas desde donde estén; arrancar con J3 ≤ J2); `zq` para bajar rápido sin cero.
     `mv`: quíntico, J2/J3 terminan juntas, J1 con su duración; si la recta sale de la franja, por un intermedio (desde
     el reposo, (15, 5)). Llegada desde abajo (J2/J3 al menos 0,3° bajo el objetivo antes del último tramo); J1 en el
-    sentido en que viene. `tolLlegada` 0,15° y freno anticipado (J1 0,03 s, J2 0,055 s). Reposo `mv 3 10 5`.
+    sentido en que viene. `tolLlegada` 0,15° y freno anticipado (J1 0,03 s, J2 0,055 s, J3 0,045 s). Reposo `mv 3 10 5`.
   - **Repetibilidad** (`repetibilidad_20261105_115640`): RP **J1 0,17°, J2 0,05°, J3 0,18°**, las tres dentro de ±0,2°
     el 98 %. El juego no la afecta: el peso lo apoya siempre del mismo lado en las poses quietas.
   - **Cinemática (calibración con video, `trayectoria_20261105_164644`):** **J2 gira 1,170° reales por grado del

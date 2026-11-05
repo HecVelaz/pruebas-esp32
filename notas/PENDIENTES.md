@@ -20,9 +20,9 @@
      freno siguen en −49°). Las listas de repetibilidad y la fija siguen adentro.
   0c. **Agarre con el juego:** diseñar la aproximación y la tracción para no empujar el antebrazo hacia arriba
      (horizontal y tirar hacia atrás o abajo).
-  1. **J3 en las poses bajas** (`repetibilidad_20261105_115640`: (20, 14) en ~14,10 y (30, 20) en ~20,14, antes
-     ~13,97 / ~19,93): corrida corta con telemetría; si es real, freno anticipado como J2. Sin lubricante (en seco):
-     si algún día se lubrica, repetir la repetibilidad y revisar `tAnticipo` (J1 0,03 s, J2 0,055 s).
+  1. ~~J3 en las poses bajas~~ (05/11, hecho: cruzaba a ~3 °/s y seguía 0,13°; `tAnticipo` J3 0,045 s, (30, 20)
+     en 20,13 → 20,00 ± 0,03). Sin lubricante (en seco): si algún día se lubrica, repetir la repetibilidad y revisar
+     `tAnticipo` (J1 0,03 s, J2 0,055 s, J3 0,045 s).
   2. **Repetibilidad de 30 ciclos** (`--ciclos 30 --calentar 3`, ~45 min) con el firmware final.
   3. **J2 más allá de 80°** (límite 83°), solo si hace falta alcance: cerca de 90° se pasa ~0,7° y no puede volver.
      Opción: aceptar sobrepasos < 1° de J2 ahí. J3 cerca de la traba (en (100, 97) quedó 0,18° corta): dejar aire.
