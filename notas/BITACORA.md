@@ -807,5 +807,6 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   0,136°. J3 en (30, 20) media **20,001** (antes 20,13). No se degrada en 25 min. Queda error fijo (exactitud, no
   repetibilidad): J1 −0,13/−0,14° (corta) en 40 y 60°, J2 −0,14/−0,16° en 20 y 30° (< 1 mm en la punta).
 - **Commits de la noche:** `7b6639f` (cinemática), `1d0961a` (`punta.py`, hombro 175), `295ec87` (destinos −25°),
-  `073b4bd` (freno de J3) y el del cierre (repetibilidad de 30 ciclos, notas). Comandos útiles: `python3 tools/punta.py`
+  `073b4bd` (freno de J3) `836e9ba` (cierre: repetibilidad de 30 ciclos, notas) y `4eeb804` (trayectorias del 03/11
+  `111523` y `112915`, que habían quedado sin versionar; el video `20_20_24.mp4` queda fuera del repo). Comandos útiles: `python3 tools/punta.py`
   (`p 0 500 300`, `ver x y z`, `donde`); `python3 tools/punta.py --simular --desde 3 10 5 0 520 80`.
