@@ -763,3 +763,14 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   Videos de calibración: trípode, 1×, 1080p 30 fps, marcas amarillas en codo, muñeca, perno de la manivela y pinza.
 - **Commits del día:** `d450c54` (J1 `tolLlegada` y freno anticipado), `f003952` (J2 freno anticipado), `b450ec1`
   (cinemática, `MARGEN_CAMINO`, `zq`) y el del cierre (`APROX_ABAJO_MIN`, `tolPos` J3 0,20, rescate, calibración).
+- **Cinemática directa e inversa de la punta** (`tools/cinematica.py`, después del cierre; datos en
+  `resultados/calibracion_punta_20261105_164644.csv`, las 12 poses del video en mm). Marco del robot: origen en el eje
+  de J1 a la altura de la tapa, x a la derecha, y adelante, z arriba (visto de frente); q1 = 0 → +x, + hacia el frente.
+  Directa: brazo lineal y antebrazo cuadrático en (q2, q3) ajustados al CSV, pinza horizontal a (178,8, 29,4) mm de la
+  muñeca, hombro 180 mm sobre la tapa (el dibujo dice 175: confirmar). Inversa numérica (grilla de 2° + Newton) que
+  devuelve el `mv`. Revisa límites, franja, q3 − q2 ≥ −25° y choques del brazo entero (hombro-codo-muñeca-pinza) con
+  la caja, el mástil y el piso (geometría de `~/Imágenes/brazo/medidas.jpeg`, 30 mm de aire); avisa fuera de la zona
+  medida. `prueba`: dejando cada pose afuera, **8,4 mm de media, 20 mm de máximo**; ida y vuelta exacta. Choques
+  coherentes: (92, 78, 81) choca con la caja (anotación del 03/11), J1 140° con el mástil. Sin probar en placa.
+  Verificación propuesta con cinta métrica (J1 en 3°): r 500 / z 300 → `mv 3.00 32.68 29.20`; r 600 / z 150 →
+  `mv 3.00 60.66 54.16`; r 520 / z 30 → `mv 3.00 73.40 76.95`.

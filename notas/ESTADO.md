@@ -24,6 +24,9 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
     encoder** (reductora ~120:1; confirmado con inclinómetro; el firmware sigue en grados de encoder). Brazo =
     113,0 − 1,087·q2 − 0,094·q3; manivela = 171,3 − 0,851·q3 − 0,133·q2 (lineal); antebrazo 335 mm; pinza horizontal
     a (179, 29) mm de la muñeca. Modelo de la punta con 12 poses: **~9 mm de error medio, hasta ~3 cm en los bordes.**
+  - **`tools/cinematica.py`** (sin probar en placa): directa e inversa de la punta con ese modelo, en el marco del robot
+    (origen en J1 a la altura de la tapa, x derecha, y adelante, z arriba), con límites, franja y choques con la caja,
+    el mástil y el piso. Validación: 8,4 mm de media, 20 mm de máximo. Falta medir 3 puntos con cinta.
   - `tools/trayectoria.py`: si un `mv` se corta, vuelve solo al reposo y hace `h` (`--sin-rescate`); acepta `zq` primero.
   - Joystick `jv` (`17/tools/joystick.py --placa 20`). J1 0–118° PROVISORIO. La caja no está en el firmware.
 - **`19-j2-j3-conjunto`:** banco de pruebas de J2 y J3 (una activa, la otra sostenida). Fases 1–4 del plan probadas

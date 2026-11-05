@@ -1,0 +1,17 @@
+# 20-brazo-coordinado: calibración de la punta con video (VID_20261105_164409, fuera del repo; telemetría
+# trayectoria_20261105_164644). Plano del brazo con J1 en 2,94°: origen en el eje del hombro (J2), x hacia afuera,
+# z hacia arriba, mm. Escala: el codo a 350,22 mm del hombro (círculo de la manivela, rms 1 px); giro de la cámara
+# 0.66° (marco de la puerta). q2/q3: encoder promedio de la pose quieta. Marcas amarillas: codo, muñeca, pinza.
+q2,q3,codo_x,codo_z,muneca_x,muneca_z,pinza_x,pinza_z
+19.853,5.131,0.5,349.9,326.0,281.2,503.9,309.5
+19.853,13.897,0.3,349.9,281.4,172.1,457.1,203.5
+34.940,10.052,97.2,335.9,431.4,323.1,610.7,350.0
+34.940,29.954,105.1,333.2,335.5,92.6,511.3,126.9
+49.961,25.041,191.0,293.3,515.9,207.4,694.7,238.0
+49.961,54.850,216.9,273.9,308.9,-46.4,485.6,-13.1
+64.983,40.047,271.7,221.2,575.4,72.9,755.8,103.2
+64.983,69.936,284.4,203.2,318.9,-127.9,497.4,-99.2
+74.040,50.204,312.4,161.2,594.6,-26.3,775.2,3.7
+74.040,77.852,315.0,153.7,338.3,-178.9,518.4,-153.5
+77.957,55.093,324.4,136.2,589.9,-74.8,771.4,-46.4
+77.957,80.919,325.2,131.0,345.2,-202.2,525.9,-177.6

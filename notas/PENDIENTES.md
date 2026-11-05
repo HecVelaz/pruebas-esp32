@@ -6,7 +6,11 @@
 ## Brazo (20, lo próximo)
 
 - **`20-brazo-coordinado`, en orden:**
-  0. **Cinemática de la punta (lo próximo).** Sin cambios mecánicos (decisión del usuario; J3 con ~25–30° de juego en el
+  0. **Verificar `tools/cinematica.py` con cinta métrica** (J1 en 3°; medir distancia horizontal al eje de J1 y altura
+     sobre la tapa del centro de la pinza): `h "mv 3.00 32.68 29.20" c --espera 40 --sin-volver` (r 500 / z 300),
+     `mv 3.00 60.66 54.16` (600 / 150), `mv 3.00 73.40 76.95` (520 / 30). Confirmar el hombro a 180 mm de la tapa.
+     Después: comando `mx x y z` en el firmware (o en el puente de la Pi) con la zona prohibida.
+  0a. **Cinemática de la punta, precisión.** Sin cambios mecánicos (decisión del usuario; J3 con ~25–30° de juego en el
      antebrazo). Camino recomendado: **calibrar directamente con las cámaras estéreo del robot** (marca amarilla en la
      pinza, muchas poses con q3 − q2 ≥ −25°, llegando siempre desde abajo) y **corregir el final del agarre con la
      visión**; alternativa: más poses con la cámara de perfil (2 videos cortos de ~12) para una tabla de ~5 mm. Con el
