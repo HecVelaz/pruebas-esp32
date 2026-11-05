@@ -94,7 +94,7 @@ def revisar_camino(s, o):
 
 def intermedio_valido(q2, q3):
     return (k.Q2_LIM[0] <= q2 <= k.Q2_LIM[1] and k.Q3_LIM[0] <= q3 <= k.Q3_LIM[1]
-            and q3 <= k.q3_max_franja(q2) - k.MARGEN_FRANJA and q3 - q2 >= k.Q3_MENOS_Q2_MIN)
+            and q3 <= k.q3_max_franja(q2) - k.MARGEN_FRANJA and q3 - q2 >= k.Q3_MENOS_Q2_MIN + k.MARGEN_FRANJA)
 
 
 def planear(s, x, y, z):

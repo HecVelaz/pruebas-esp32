@@ -787,3 +787,10 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   tomaba J1 2,84° (después del homing) y el `mv` exige ≥ 3°. Con el hombro en 175: `p 0 500 300` bien,
   **`p 0 600 150` → r 620** (z 150 bien; la pose más estirada, otra vez ~2 cm afuera), `p 0 520 80` 520 / ~80,
   `p 500 30 300` bien. No se corrige el modelo con 3 puntos a ojo: queda para la calibración con las cámaras.
+- **0b, borde de abajo de los destinos a −25°** (probado en placa). En vez de mover `Q2_MENOS_Q3_MAX` (49, el límite
+  mecánico), nueva `Q2_MENOS_Q3_DESTINO = 25` en `config.h` solo para los destinos (`mv`, `j`, joystick: donde J2/J3
+  quedan sostenidas) con `MARGEN_FRANJA` (q3 − q2 ≥ −24°). El camino del `mv` (y su intermedio), el homing y el freno
+  de seguridad siguen con −49°: pasar por ahí moviéndose no es problema y no aparecen cortes nuevos. `c` y el saludo
+  muestran el borde nuevo; `cinematica.py` y `punta.py` con el mismo margen. Prueba: `mv 3 40 14` (−26) rechazado,
+  `mv 3 40 16` (−24) acepta y queda firme, `j 2 45` con J3 en 16 rechazado (hasta 40). La lista de calibración del
+  05/11 tiene (35, 10), (50, 25), (65, 40) a −25°: ya no pasa.

@@ -14,6 +14,11 @@
 // Borde de abajo (el hombro sube con el codo atrás): q2 - q3 llegó a 51,0° (J2 no subía más con J3 en 5°; 53,8 y 54,1
 // en 70 y 113°) -> 49 con 2° de margen.
 constexpr float Q2_MENOS_Q3_MAX = 49.0f;
+// Borde de abajo para los DESTINOS (donde J2/J3 quedan sostenidas: "mv", "j" y el joystick), con MARGEN_FRANJA: cerca
+// del punto muerto del cuatro barras J3 no queda firme (2026-11-05: q3 - q2 ~ -35 no queda; >= -30 tarda 10-16 s;
+// >= -25 firme en <= 1,1 s). El camino de un mv y el freno de seguridad siguen con Q2_MENOS_Q3_MAX (el límite
+// mecánico): pasar por ahí moviéndose no es problema y así no aparecen cortes nuevos a mitad de camino
+constexpr float Q2_MENOS_Q3_DESTINO = 25.0f;
 // Borde de arriba (el codo estira): no es una recta, una tabla (q2, q3 máximo) interpolada; fuera de la tabla, el
 // valor del extremo. Con J2 en 0-30° J3 empezaba a ARRASTRAR a J2 (A: no es una traba, J2 se sostiene con su lazo):
 // medidos, sin margen (si no, la pose de reposo (3, 3) quedaba afuera). Desde 45° J3 se TRABA (T): medido - 2°.

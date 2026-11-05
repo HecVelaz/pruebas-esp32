@@ -20,7 +20,10 @@ bloqueante a 100 Hz**. `19` queda como banco de pruebas de una articulación por
   (`17-brazo-joystick/resultados/limites_20261104_213919.csv`). Con J2 en 0–30° J3 empieza a **arrastrar a J2** (valor
   medido, sin margen); desde 45° se **traba** (medido − 2°). Los destinos se validan con 1° de margen a la franja
   (`MARGEN_FRANJA`; 3° a los límites propios) y, si la medición sale (0,5° de holgura) mientras J2 o J3 se mueven,
-  frena las dos. J2 0–83° (destinos hasta 80°: cerca de 90° J2 se pasa y no vuelve), J3 0–101,5°. Reposo de los
+  frena las dos. **Destinos** (`mv`, `j`, joystick; desde el 2026-11-05): además **q3 − q2 ≥ −25°** + 1° de margen
+  (`Q2_MENOS_Q3_DESTINO`: más abajo J3 no queda firme, punto muerto); el camino y el freno siguen con −49° (límite
+  mecánico). La lista de calibración del 05/11 tiene poses a −25° ((35, 10), (50, 25), (65, 40)): ya no las acepta.
+  J2 0–83° (destinos hasta 80°: cerca de 90° J2 se pasa y no vuelve), J3 0–101,5°. Reposo de los
   scripts: `mv 3 10 5` (en (3, 3) J2/J3 llegaban sin aproximación y J3 oscilaba). Antes (manivela de 80 mm): `q2 − 25° ≤ q3 ≤ q2 + 7,5°`, J2 0–97°, J3 0–113°.
 - **J1:** 0–118° PROVISORIO (desde el 03/11, antes 90°; 118° medido con el brazo recogido; estirado choca antes con el soporte de la visión: medir con el joystick hasta dónde llega en las dos poses).
 - **Transmisión de J3** (dato del usuario, 2026-11-03): motor 139:1 → engranajes 75:15 (5:1) → manivela de 80 mm en

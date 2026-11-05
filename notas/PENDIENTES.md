@@ -16,8 +16,8 @@
      modelo: comando `mx x y z` (punta en mm, en recta) sobre el `mv`. Lo medido: `notas/BITACORA.md` del 05/11
      (J2 × 1,170, brazo y manivela lineales en q2/q3, pinza a (179, 29) mm de la muñeca). Decidir si la escala de J2
      (≈ 105,6 cuentas/°) se cambia en el firmware o solo en la cinemática.
-  0b. **Franja:** llevar el borde de abajo de −49° a −25° (`Q2_MENOS_Q3_MAX`; punto muerto de J3) y revisar los
-     destinos de las listas (`20 20 14`, repetibilidad) contra el nuevo borde.
+  0b. ~~Franja: borde de abajo a −25°~~ (05/11, hecho: `Q2_MENOS_Q3_DESTINO` para los destinos; el camino y el
+     freno siguen en −49°). Las listas de repetibilidad y la fija siguen adentro.
   0c. **Agarre con el juego:** diseñar la aproximación y la tracción para no empujar el antebrazo hacia arriba
      (horizontal y tirar hacia atrás o abajo).
   1. **J3 en las poses bajas** (`repetibilidad_20261105_115640`: (20, 14) en ~14,10 y (30, 20) en ~20,14, antes

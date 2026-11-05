@@ -95,6 +95,8 @@ float excesoFranja(float q2, float q3, int *lado = nullptr) {
   return fmaxf(arriba, abajo);
 }
 float excesoFranjaAhora(int *lado = nullptr) { return excesoFranja(art[I2].q(), art[I3].q(), lado); }
+// Lo mismo para un destino (donde J2/J3 quedan sostenidas): el borde de abajo es Q2_MENOS_Q3_DESTINO (firmeza de J3)
+float excesoDestino(float q2, float q3) { return fmaxf(q3 - q3MaxFranja(q2), (q2 - Q2_MENOS_Q3_DESTINO) - q3); }
 
 // El exceso más grande sobre la recta de (a2, a3) a (b2, b3), mirando cada "paso" grados
 float excesoTramo(float a2, float a3, float b2, float b3, float paso = 0.25f) {
@@ -544,9 +546,9 @@ void comandoMv(const char *args) {
       return;
     }
   }
-  if (excesoFranja(obj[I2], obj[I3]) > -MARGEN_FRANJA) {
-    msg("Fuera de la franja: con J2 en %+.1f°, J3 entre %+.1f° y %+.1f° (con margen).", obj[I2],
-        obj[I2] - Q2_MENOS_Q3_MAX + MARGEN_FRANJA, q3MaxFranja(obj[I2]) - MARGEN_FRANJA);
+  if (excesoDestino(obj[I2], obj[I3]) > -MARGEN_FRANJA) {
+    msg("Fuera de la franja: con J2 en %+.1f°, J3 entre %+.1f° y %+.1f° (con margen; abajo, J3 firme).", obj[I2],
+        obj[I2] - Q2_MENOS_Q3_DESTINO + MARGEN_FRANJA, q3MaxFranja(obj[I2]) - MARGEN_FRANJA);
     return;
   }
   if (fueraFranjaAhora()) {
@@ -604,12 +606,13 @@ void estado() {
         a.frenada() ? ", frenada" : "", a.fc() ? "apretado" : "suelto", cero[i] ? "con cero" : "SIN CERO");
   }
   if (cerosJ2J3())
-    msg("   franja: con J2 en %+.2f°, J3 entre %+.1f° y %+.1f° (%+.2f° del borde)", art[I2].q(),
-        art[I2].q() - Q2_MENOS_Q3_MAX, q3MaxFranja(art[I2].q()), -excesoFranjaAhora());
+    msg("   franja: con J2 en %+.2f°, J3 entre %+.1f° y %+.1f° (%+.2f° del borde); destinos desde %+.1f°", art[I2].q(),
+        art[I2].q() - Q2_MENOS_Q3_MAX, q3MaxFranja(art[I2].q()), -excesoFranjaAhora(),
+        art[I2].q() - Q2_MENOS_Q3_DESTINO + MARGEN_FRANJA);
 }
 
 // Rango permitido para la articulación i con las otras donde están (o yendo a): límites propios con MARGEN_LIMITE y
-// franja con MARGEN_FRANJA
+// franja de los destinos (borde de abajo Q2_MENOS_Q3_DESTINO) con MARGEN_FRANJA
 bool rango(int i, float &mn, float &mx) {
   const ConfigArticulacion &c = art[i].cfg();
   mn = c.limNeg + MARGEN_LIMITE;
@@ -621,11 +624,11 @@ bool rango(int i, float &mn, float &mx) {
     const float qo1 = art[o].q(), qo2 = art[o].referencia();
     const float lo = fminf(qo1, qo2), hi = fmaxf(qo1, qo2);
     // (la tabla del borde de arriba crece: el peor caso de la otra es su valor más alto o más bajo)
-    if (i == I2) {  // q2 entre q2MinFranja(q3) y q3 + Q2_MENOS_Q3_MAX
+    if (i == I2) {  // q2 entre q2MinFranja(q3) y q3 + Q2_MENOS_Q3_DESTINO
       mn = fmaxf(mn, q2MinFranja(hi + MARGEN_FRANJA));
-      mx = fminf(mx, lo + Q2_MENOS_Q3_MAX - MARGEN_FRANJA);
-    } else {        // q3 entre q2 - Q2_MENOS_Q3_MAX y q3MaxFranja(q2)
-      mn = fmaxf(mn, hi - Q2_MENOS_Q3_MAX + MARGEN_FRANJA);
+      mx = fminf(mx, lo + Q2_MENOS_Q3_DESTINO - MARGEN_FRANJA);
+    } else {        // q3 entre q2 - Q2_MENOS_Q3_DESTINO y q3MaxFranja(q2)
+      mn = fmaxf(mn, hi - Q2_MENOS_Q3_DESTINO + MARGEN_FRANJA);
       mx = fminf(mx, q3MaxFranja(lo) - MARGEN_FRANJA);
     }
   }
@@ -1061,7 +1064,8 @@ void setup() {
   colaTele = xQueueCreate(50, sizeof(Muestra));  // 1 s de muestras
   Serial.println();
   Serial.println("== 20 · J1, J2 y J3 con el mismo controlador (5a: homing, \"j\"; 5b: \"mv\"; 5c: \"t\") · WROOM, 20 kHz ==");
-  Serial.printf("Franja (manivela de 95 mm): q2 - %.1f° <= q3 <= tabla:", Q2_MENOS_Q3_MAX);
+  Serial.printf("Franja (manivela de 95 mm): q2 - %.1f° <= q3 <= tabla (destinos desde q2 - %.1f°):", Q2_MENOS_Q3_MAX,
+                Q2_MENOS_Q3_DESTINO);
   for (const PuntoFranja &p : FRANJA_ARRIBA) Serial.printf(" %.0f->%.1f", p.q2, p.q3Max);
   Serial.printf(". J1 0-%.0f° (PROVISORIO: estirado choca antes), J2 0-%.0f°, J3 0-%.1f°.\n", CFG_J1.limPos,
                 CFG_J2.limPos, CFG_J3.limPos);

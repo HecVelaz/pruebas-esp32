@@ -7,12 +7,13 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
 
 - **`20-brazo-coordinado` (lo actual):** J1, J2 y J3 con el mismo controlador (`lib/Articulacion`), lazo no
   bloqueante a 100 Hz, 20 kHz, sin el resorte de la pinza. Firmware flasheado: el del cierre del 05/11
-  (`APROX_ABAJO_MIN`, `tolPos` J3 0,20; las corridas `_163442` y `_164644` ya lo usan).
+  (`APROX_ABAJO_MIN`, `tolPos` J3 0,20) + el borde de los destinos a −25° (0b, 05/11 noche).
   - **Mecánica:** J3 con manivela de 95 mm; J2 y J3 con helicoidales impresos 15 → 75, en seco. **J3 tiene ~25–30° de
     juego en el antebrazo** (un diente entre el piñón y el engranaje de 75) y J2 algunos grados; sin corriente el brazo
     se queda donde está. **No se puede cambiar la mecánica** (decisión del usuario): todo por software.
   - **Franja:** `q2 − 49° ≤ q3 ≤ tabla(q2)` (0 → 3,2 · 15 → 10,8 · 30 → 27,9 · 45 → 54,2 · 60 → 72,2 · 75 → 82,7 ·
-    90 → 91,9 · 105 → 101,6), margen 1° al destino y **1° a todo el camino** (`MARGEN_CAMINO`), 3° a los límites. J2
+    90 → 91,9 · 105 → 101,6), margen 1° al destino y **1° a todo el camino** (`MARGEN_CAMINO`), 3° a los límites. **Destinos** (`mv`, `j`, joystick) además con
+    q3 − q2 ≥ −24° (`Q2_MENOS_Q3_DESTINO` 25 + 1°, 05/11; el camino y el freno siguen con −49°). J2
     0–83° (destinos hasta 80°), J3 0–101,5°. **Usar q3 − q2 ≥ −25°**: más abajo J3 no queda firme (punto muerto).
   - `h` (sin cero baja las tres juntas desde donde estén; arrancar con J3 ≤ J2); `zq` para bajar rápido sin cero.
     `mv`: quíntico, J2/J3 terminan juntas, J1 con su duración; si la recta sale de la franja, por un intermedio (desde

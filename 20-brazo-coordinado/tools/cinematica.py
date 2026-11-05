@@ -116,8 +116,8 @@ def problemas(q1, q2, q3):
             m.append(f"{n} = {q:.1f}° fuera de [{lo:.0f}, {hi:.1f}]")
     if q3 > q3_max_franja(q2) - MARGEN_FRANJA:
         m.append(f"franja: con J2 en {q2:.1f}°, J3 hasta {q3_max_franja(q2) - MARGEN_FRANJA:.1f}°")
-    if q3 - q2 < Q3_MENOS_Q2_MIN:
-        m.append(f"q3 - q2 = {q3 - q2:.1f}° < {Q3_MENOS_Q2_MIN:.0f}° (J3 no queda firme)")
+    if q3 - q2 < Q3_MENOS_Q2_MIN + MARGEN_FRANJA:   # como el firmware (Q2_MENOS_Q3_DESTINO con MARGEN_FRANJA)
+        m.append(f"q3 - q2 = {q3 - q2:.1f}° < {Q3_MENOS_Q2_MIN + MARGEN_FRANJA:.0f}° (J3 no queda firme)")
     m += choques(directa(q1, q2, q3)[1])
     return m
 
