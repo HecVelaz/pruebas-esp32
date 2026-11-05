@@ -108,8 +108,11 @@ constexpr ConfigArticulacion CFG_J2 = {
     PIN_J2_RPWM, PIN_J2_LPWM, PIN_BRAZO_EN, PIN_FC_J2, 2, 3, PIN_J2_ENC_A, PIN_J2_ENC_B, PCNT_UNIT_1, 20000, 10,
     16.0f * 4.0f * 139.0f * (75.0f / 15.0f) / 360.0f,  // 123,6 cuentas/°
     false, false,
-    // 2026-11-04 (manivela de J3 de 95 mm): 97 -> 105°, el último punto medido del borde de la franja (llegó a 113°)
-    0.0f, 105.0f, 70.0f,
+    // 2026-11-04 (manivela de J3 de 95 mm): 97 -> 105° (último punto medido de la franja) -> 83°. Cerca de 90° el peso
+    // casi no carga a J2: en la aproximación se pega, despega con +27 % y se pasa ~0,7° (95,65 en un mv a 95 y 90,75 en
+    // uno a 90) y para volver hacia abajo no despega ni con -46 % (corte "sin cuentas", trayectoria_20261104_224409 y
+    // _225335_cortado). En 74° el peso frena el salto (se pasa <= 0,15°). Con MARGEN_LIMITE, destinos hasta 80°
+    0.0f, 83.0f, 70.0f,
     0.549f, 4.0f,
     35.0f, 25.0f, 22.0f, 8.0f, 8.0f,      // despegue 35 % (medido a 20 kHz), resto PROVISORIO (19)
     2.0f, 20.0f, 60.0f, 3.0f, 0.3f, 0.6f, 200,  // 2026-10-31: con tolPos 0,15 y bandaInt 0,1 J2 repetía peor (0,29°; una vez "no quedan firmes")

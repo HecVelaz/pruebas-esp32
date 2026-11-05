@@ -2,7 +2,7 @@
 """Fase 5c: telemetría de 20 ("t", 50 Hz) durante una serie de comandos; la guarda en un CSV y la grafica.
 
 Manda "t 1", cada comando de la lista esperando su final ("mv" hasta LLEGO o MV_ERROR, "h" hasta HOMING o
-HOMING_ERROR, los demás --espera s), sigue capturando --cola s (el sostener después de llegar), manda "mv 3 3 3" si la lista no
+HOMING_ERROR, los demás --espera s), sigue capturando --cola s (el sostener después de llegar), manda "mv 3 10 5" si la lista no
 terminaba ahí (cerca del cero, para que el próximo homing tarde poco; no entra en el resumen; --sin-volver: no) y
 manda "t 0".
 Guarda resultados/trayectoria_<fecha>_<hora>.csv y su .png: para cada articulación, referencia contra medido, el error
@@ -16,12 +16,12 @@ Antes: cerrar el monitor (el puerto no se abre dos veces), brazo abajo y recogid
 puede reiniciar la WROOM (pierde el cero): si alguna está sin cero, el primer comando tiene que ser "h".
 
 Uso:
-    python3 tools/trayectoria.py h "mv 20 20 14" "mv 40 30 20" "mv 20 20 14" "mv 3 3 3"
+    python3 tools/trayectoria.py h "mv 20 20 14" "mv 40 30 20" "mv 20 20 14" "mv 3 10 5"
     python3 tools/trayectoria.py "mv 20 20 14" --cola 5
     python3 tools/trayectoria.py --archivo resultados/trayectoria_....csv     # volver a graficar, sin la placa
     python3 tools/trayectoria.py --archivo resultados/trayectoria_....csv --solo-resumen \
         --comparar resultados/trayectoria_20261031_180843.csv                  # contra la base (con el resorte)
-Lista fija para comparar: h "mv 20 20 14" "mv 40 30 20" "mv 20 20 14" "mv 3 3 3".
+Lista fija para comparar: h "mv 20 20 14" "mv 40 30 20" "mv 20 20 14" "mv 3 10 5".
 Opciones: --comparar CSV_BASE (totales lado a lado), --solo-resumen (con --archivo, sin gráfico), --sin-volver, --cola (s de captura después del último comando, def. 3), --espera (s para comandos sin final, def. 2),
 --puerto, --sin-ventana, --todo (graficar también el homing; por defecto arranca en el primer mv).
 Ctrl+C manda "s" (las tres se sostienen donde están) y guarda lo capturado (archivo ..._cortado).
@@ -41,7 +41,10 @@ Q2_MENOS_Q3_MAX = 49.0
 FRANJA_ARRIBA = [(0.0, 3.2), (15.0, 10.8), (30.0, 27.9), (45.0, 54.2), (60.0, 72.2), (75.0, 82.7), (90.0, 91.9),
                  (105.0, 101.6)]
 NOMBRES = ("J1", "J2", "J3")
-VOLVER = "mv 3 3 3"  # al final de cada serie (salvo --sin-volver): cerca del cero, listo para el próximo homing
+# Al final de cada serie (salvo --sin-volver): cerca del cero, listo para el próximo homing. 2026-11-04: 3 3 3 -> 3 10 5
+# (el punto intermedio de las salidas): en (3, 3) J2/J3 llegaban sin la aproximación desde abajo (el punto previo
+# quedaba a 1° del final de carrera) y J3 oscilaba ±0,3° hasta "no quedan firmes" (trayectoria_20261104_230336_cortado)
+VOLVER = "mv 3 10 5"
 COLUMNAS = ["t_ms", "etapa"] + [f"{c}{i}" for i in (1, 2, 3) for c in ("q", "r", "u", "w", "s")]
 ESTADOS = {0: "suelta", 1: "yendo", 2: "llegó", 3: "firme", 4: "frenada", 5: "siguiendo", 6: "homing"}
 ETAPAS = {0: "", 1: "recorrido", 2: "aproximación", 3: "llegada", 4: "asentamiento", 8: "joystick", 9: "homing"}

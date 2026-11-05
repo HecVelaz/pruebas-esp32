@@ -20,7 +20,8 @@ bloqueante a 100 Hz**. `19` queda como banco de pruebas de una articulación por
   (`17-brazo-joystick/resultados/limites_20261104_213919.csv`). Con J2 en 0–30° J3 empieza a **arrastrar a J2** (valor
   medido, sin margen); desde 45° se **traba** (medido − 2°). Los destinos se validan con 1° de margen a la franja
   (`MARGEN_FRANJA`; 3° a los límites propios) y, si la medición sale (0,5° de holgura) mientras J2 o J3 se mueven,
-  frena las dos. J2 0–105°, J3 0–101,5°. Antes (manivela de 80 mm): `q2 − 25° ≤ q3 ≤ q2 + 7,5°`, J2 0–97°, J3 0–113°.
+  frena las dos. J2 0–83° (destinos hasta 80°: cerca de 90° J2 se pasa y no vuelve), J3 0–101,5°. Reposo de los
+  scripts: `mv 3 10 5` (en (3, 3) J2/J3 llegaban sin aproximación y J3 oscilaba). Antes (manivela de 80 mm): `q2 − 25° ≤ q3 ≤ q2 + 7,5°`, J2 0–97°, J3 0–113°.
 - **J1:** 0–118° PROVISORIO (desde el 03/11, antes 90°; 118° medido con el brazo recogido; estirado choca antes con el soporte de la visión: medir con el joystick hasta dónde llega en las dos poses).
 - **Transmisión de J3** (dato del usuario, 2026-11-03): motor 139:1 → engranajes 75:15 (5:1) → manivela de 80 mm en
   el engranaje grande → pivote a 40 mm del eje del antebrazo (cuatro barras: la pinza queda paralela). **q3 es el
@@ -177,3 +178,6 @@ Línea de telemetría: `T,ms,etapa,` y por cada una `q,ref,duty,w,estado` (etapa
 | 2026-11-04 | Manivela de J3 de 95 mm: franja con tabla y `mv` en dos tramos (`trayectoria_20261104_222836`) | `h`, `mv 3 30 20` (recta), `mv 3 74 70` (recta), `mv 3 3 3` **por (10, 5)**: sin `FRANJA` ni `MV_ERROR`; `LLEGO` ≤ 0,25° en J2/J3; lo más cerca del borde, 0,38° (J2 15°, J3 10°) |
 | 2026-11-04 | Brazo estirado, `mv 3 100 97` (`trayectoria_20261104_223055_cortado`) | Cortado a los 0,56 s: **J2 "al revés de lo pedido"**. J2 había quedado 0,15° adelante de su referencia, wPedida arrancó negativa y J2 despegó de la fricción a +5,7 °/s en el sentido del `mv`. Arreglo: en `Seguir` el sentido se compara con la trayectoria (`Articulacion.cpp`) |
 | 2026-11-04 | Lo mismo con el arreglo (`trayectoria_20261104_223620_cortado`) | `mv 3 74 70` por (10, 5) bien; **`mv 3 100 97` llega a 100,22 · 96,82** (≤ 1,1° del borde de la franja), pero **J3 queda trabada 0,18° corta** (`tolPos` 0,15) y el duty sube hasta +27 % en 20 s sin moverla: `no quedan firmes`. Está a ~3,5° de la traba del cuatro barras |
+| 2026-11-04 | `mv 3 95 90` y `mv 3 90 85` (`trayectoria_20261104_224409_cortado`, `_225335_cortado`) | J2 se pega en la aproximación, despega y se pasa ~0,7°; para volver no despega ni con −46 %: corte "sin cuentas". → J2 hasta 83° (destinos hasta 80°) |
+| 2026-11-04 | `mv 3 80 75` ×2 con vuelta a `3 3 3` (`_230336_cortado`) | Las dos llegadas a (80, 75) bien (≤ 0,13°); la 2.ª vuelta a (3, 3): J3 oscila ±0,3° sin aproximación → `no quedan firmes`. → reposo `mv 3 10 5` |
+| 2026-11-04 | `mv 3 80 75` ↔ `mv 3 10 5` ×2 (`trayectoria_20261104_230652`) | **Cuatro `LLEGO`, sin cortes.** (80, 75): 79,89 · 74,99 / 80,10 · 74,89; (10, 5): 10,16 · 5,02 las dos |

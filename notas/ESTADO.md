@@ -10,10 +10,10 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
   resorte de la pinza**). Firmware flasheado: el del commit del 04/11 (franja con tabla).
   - **04/11: manivela de J3 de 95 mm** (antes 80; J2 y J3 siguen con los engranajes 15 → 75, las correas GT2 se
     probaron y se sacaron). **Franja nueva:** `q2 − 49° ≤ q3 ≤ tabla(q2)` (J2 → J3 máx: 0 → 3,2 · 15 → 10,8 · 30 →
-    27,9 · 45 → 54,2 · 60 → 72,2 · 75 → 82,7 · 90 → 91,9 · 105 → 101,6), J2 0–105°, J3 0–101,5°. Con J2 bajo es un
-    cuello: `mv` va en dos tramos (por (10, 5) desde el reposo) si la recta sale. Probado en placa: `h`, `mv 3 30 20`,
-    `mv 3 74 70`, vuelta a `3 3 3`. **Estirado** (`mv 3 100 97`) llega a (100,2; 96,8) pero J3 queda trabada 0,18°
-    corta (cerca de la traba del cuatro barras): `no quedan firmes`. La repetibilidad del 03/11 y la calibración del
+    27,9 · 45 → 54,2 · 60 → 72,2 · 75 → 82,7 · 90 → 91,9 · 105 → 101,6), **J2 0–83° (destinos hasta 80°)**, J3
+    0–101,5°. Con J2 bajo es un cuello: `mv` va en dos tramos (por (10, 5)) si la recta sale. **Reposo `mv 3 10 5`**
+    (la vuelta de los scripts). **Sin cortes:** `trayectoria_20261104_230652` (dos veces (80, 75) ↔ (10, 5), errores
+    ≤ 0,16°). Cerca de 90° J2 se pasaba ~0,7° y no podía volver ("sin cuentas"); en (100, 97) J3 quedaba trabada. La repetibilidad del 03/11 y la calibración del
     cuatro barras son con la manivela de 80 mm.
   - `h`: las tres juntas si el brazo está abajo (3,5 s desde ~3°), cero en el flanco; sin cero corta si una avanza
     15° sin su final de carrera (el brazo tiene que estar recogido). `zq q1 q2 q3` para rescatarlo sin cero.
@@ -35,7 +35,7 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
   en placa (franja, sostener con banda 0,2° / compensación de fricción / freno en banda, mapa de gravedad, homing);
   20 kHz. La fase 5 siguió en `20`.
 - **Cero del brazo:** la pose con los tres finales de carrera apretados (foto del 30/10); + = alejarse de cada uno.
-  Límites: J1 0–118° (brazo recogido), J2 0–105°, J3 0–101,5°; franja con tabla (04/11, ver arriba). Finales de carrera:
+  Límites: J1 0–118° (brazo recogido), J2 0–83°, J3 0–101,5°; franja con tabla (04/11, ver arriba). Finales de carrera:
   J1 32, J2 27, J3 33. **Tienen un solo punto de apoyo y el golpe los gira** (el 31/10 el cero se corrió ~9° en J3 y
   ~30° en J2 con pulsos de 25 %): llegar despacio (`h`) y fijarlos mejor (pendiente).
 - **20 kHz en J2 y J3** (decisión del 31/10, sin pitido): más duty por la misma fuerza (J2 arranca subiendo con 35 %);

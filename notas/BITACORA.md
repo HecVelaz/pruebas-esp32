@@ -575,6 +575,18 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   quedado 0,15° adelante de la referencia; wPedida empezaba negativa y despegó a +5,7 °/s hacia el lado correcto) →
   en `Seguir` el sentido se compara con la trayectoria. `_223620_cortado`: llega a **(100,22; 96,82)**, pero J3 queda
   trabada 0,18° corta (duty 0 → +27 % en 20 s sin moverse, a ~3,5° de la traba): `no quedan firmes`.
+- **Límite de J2 105 → 93 → 83° (destinos hasta 80°).** `mv 3 95 90` (`_224409_cortado`) y `mv 3 90 85`
+  (`_225335_cortado`): J2 se pega en la aproximación, despega con +27 % y se pasa ~0,7° (95,65 y 90,75); para volver
+  hacia abajo no despega ni con −46 % → corte "sin cuentas". Primero se pensó que a ~95° el hombro pasaba la vertical,
+  pero en 90° pasó lo mismo con el peso todavía en contra (+14 % para subir): cerca de 90° el peso casi no la carga y
+  no frena el salto. En 74–80° sí (se pasa ≤ 0,15°). Opción B (sin hacer): aceptar sobrepasos < 1° de J2 cerca de la
+  vertical o subirle el umbral de "sin cuentas", para volver a 90°.
+- **Reposo `mv 3 10 5`** en lugar de `3 3 3` (`VOLVER` de `trayectoria.py`, también en `repetibilidad.py`): en (3, 3)
+  el último tramo va sin aproximación (el punto previo queda a 1° del final de carrera) y J3 oscilaba ±0,3° con ±20 %
+  hasta "no quedan firmes" (`_230336_cortado`, la 2.ª vuelta; las dos llegadas a (80, 75) bien: 80,04 · 75,02 y
+  80,13 · 74,91). En (10, 5) J2 y J3 llegan desde abajo y el homing va de a una (J2 > 5°).
+- **`trayectoria_20261104_230652`:** `h`, `mv 3 80 75`, `mv 3 10 5`, `mv 3 80 75`, `mv 3 10 5`: **cuatro `LLEGO`, sin
+  cortes**. (80, 75): 79,89 · 74,99 y 80,10 · 74,89; (10, 5): 10,16 · 5,02 las dos veces. ≥ 0,96° del borde de la franja.
 - **Pendiente:** J3 cerca del borde de la traba (poses tan estiradas: usar `mv 3 95 90` o menos); medir el borde
   entre 30 y 45° de J2 (sin punto: recta supuesta); repetir la repetibilidad con la franja nueva; la franja vieja
   sigue en el modo normal de `17` (lazo abierto) y en `19`; la calibración del cuatro barras del 03/11 (80 mm) ya no

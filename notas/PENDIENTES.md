@@ -6,8 +6,10 @@
 ## Brazo (20, lo próximo)
 
 - **Manivela de J3 de 95 mm (04/11), lo primero:**
-  1. **J3 en las poses muy estiradas:** `mv 3 100 97` quedó trabada 0,18° corta (`no quedan firmes`). Usar poses
-     con más aire (`mv 3 95 90`) o ajustar el sostener de J3 cerca de la traba.
+  1. **J2 más allá de 80°** (límite 83° desde el 04/11): cerca de 90° se pasa ~0,7° en la aproximación y no puede
+     volver (corte "sin cuentas"). Si hace falta más alcance: aceptar sobrepasos < 1° de J2 ahí o subirle el umbral
+     de "sin cuentas" (opción B). J3 cerca de la traba (en (100, 97) quedó 0,18° corta): dejar unos grados de aire.
+     J3 oscila en (3, 3) sin aproximación: el reposo es `mv 3 10 5`.
   2. **Borde de la franja entre 30 y 45° de J2:** sin punto medido (recta supuesta); medir uno en ~37° con
      `17 -e explorar` si se traba ahí.
   3. **Repetibilidad de nuevo** (`tools/repetibilidad.py --ciclos 10`, poses nuevas con `20 20 14`): la del 03/11
