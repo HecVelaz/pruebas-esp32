@@ -774,3 +774,16 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   coherentes: (92, 78, 81) choca con la caja (anotación del 03/11), J1 140° con el mástil. Sin probar en placa.
   Verificación propuesta con cinta métrica (J1 en 3°): r 500 / z 300 → `mv 3.00 32.68 29.20`; r 600 / z 150 →
   `mv 3.00 60.66 54.16`; r 520 / z 30 → `mv 3.00 73.40 76.95`.
+- **Verificación de la cinemática en placa (después del cierre, a ojo con cinta).** Con J1 en 90° (brazo hacia el
+  frente; la pose 3 vieja, z 30, chocaba con la caja con J1 en 90°: cambiada por z 80). Pedido → medido (r / z, mm):
+  `mv 90 32.68 29.20` 500 / 300 → ~500 / ~300; `mv 90 60.66 54.16` 600 / 150 → 615 / 150; `mv 90 65.84 68.77`
+  520 / 80 → ~520 / ~80. **Hombro medido: 175 mm** sobre la tapa (`H_HOMBRO` 180 → 175).
+- **`tools/punta.py`** (nuevo, probado en placa): sesión serie como el monitor con `p x y z` (punta en mm del marco del
+  robot), `ver x y z` (solo el plan) y `donde`; lo demás pasa a la placa. Antes de mandar: inversa y revisión del
+  destino (`cinematica.py`), el camino de J2/J3 como el firmware (recta al punto previo de la aproximación + último
+  tramo) en la franja con 1,2° y **choques en todo el camino para cualquier J1 entre la de partida y la de llegada**;
+  si no sirve, intermedio con J1 quieta (grilla de 5°) y dos `mv`. Corta con `s` si el firmware elige otro camino,
+  si pasa `--timeout` o con Ctrl+C. `--simular --desde q1 q2 q3 x y z`: solo el plan. Arreglo en placa: el intermedio
+  tomaba J1 2,84° (después del homing) y el `mv` exige ≥ 3°. Con el hombro en 175: `p 0 500 300` bien,
+  **`p 0 600 150` → r 620** (z 150 bien; la pose más estirada, otra vez ~2 cm afuera), `p 0 520 80` 520 / ~80,
+  `p 500 30 300` bien. No se corrige el modelo con 3 puntos a ojo: queda para la calibración con las cámaras.
