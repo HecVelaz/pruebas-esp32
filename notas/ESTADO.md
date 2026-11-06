@@ -60,7 +60,8 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
 ## Base (S3)
 
 - **`24-bumpers-s3`:** los tres responden (frente 14, izq. 21, der. 39; 0 rebotes, 06/11); falta el paragolpes montado.
-  La S3 quedó con este firmware, no con micro-ROS. USB con `Write timeout`: desenchufar y volver a enchufar.
+- **`03-hcsr04`:** los tres HC-SR04 responden (TRIG 10/41/42, ECHO 11/12/13, driver de la base; 06/11); falta la cinta.
+  La S3 quedó con el firmware de `03`, no con micro-ROS. USB con `Write timeout`: desenchufar y volver a enchufar.
 
 ## Máquinas
 
@@ -71,7 +72,6 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
 - Respaldo del firmware micro-ROS del brazo de la WROOM de la Pi: `~/firmware/brazo/respaldo_20261001_183959.bin`.
 
 ## Pruebas terminadas
-
 - IMU MPU-6500 (01, 02) OK, sin magnetómetro; GPS UP501 (04, 05) OK por WiFi; lazo abierto 06/07 y 08 (`Freno`) OK.
 
 ## Firmware del robot

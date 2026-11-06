@@ -1,0 +1,7 @@
+{
+  "name": "HCSR04",
+  "version": "0.1.0",
+  "description": "Varios HC-SR04 con un TRIG por sensor y ECHO por interrupción (sin pulseIn): no bloquea",
+  "frameworks": "arduino",
+  "platforms": "espressif32"
+}

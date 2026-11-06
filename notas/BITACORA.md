@@ -867,5 +867,11 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   < 30 ms). Comandos `s`, `r`, `?`.
   - Probado en placa (lo flasheó el usuario): **los tres responden**, cada uno cambia solo el suyo, 0 rebotes, sin
     avisos; apretadas de 177–274 ms. Salida en `24-bumpers-s3/resultados/bumpers_20261106_195403.txt`.
-- Commit: el de este cierre (24 y notas).
+- **`03-hcsr04`** (nueva, era la carpeta reservada): los tres HC-SR04 de la base con los pines de `firmware/base`:
+  **TRIG 10 · 41 · 42, ECHO 11 · 12 · 13** (frente · esq. izq. · esq. der.; divisor 1 k / 2 k en cada ECHO, VCC 5 V).
+  `lib/HCSR04` es copia del driver de la base (`recolector_de_frutas/firmware/lib/HCSR04`, commit `b2b5b2d`): ECHO por
+  interrupción, uno por vez cada 60 ms. Imprime las tres distancias cada 0,5 s (`sin eco` / `NO RESPONDE`), `e [n]`
+  estadística, `p` pausa. Probado en placa (lo flasheó el usuario): **los tres funcionan**; salida sin guardar,
+  distancias con cinta sin medir.
+- Commits: `5900bb4` (24 y notas) y el de 03.
 

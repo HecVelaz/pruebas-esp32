@@ -9,6 +9,9 @@
   la base contra un obstáculo). Después, la seta (GPIO 47, NC) con el mismo programa, y llevarlo a
   `recolector_de_frutas/firmware/base`.
 
+- **`03-hcsr04`:** pasos 4–6 (caja a 20 / 50 / 100 cm con cinta y `e 30`, distancia mínima, que el frente no pise
+  a las esquinas); guardar la salida en `resultados/`.
+
 ## Pinza y muñeca (23 en la WROOM; 21, 22 sueltas)
 
 - **`23-servos-wroom`: recalzar el brazo del servo de la pinza** (~45° corrido): `p 0` (1500 µs), apagar los 12 V,
@@ -97,4 +100,4 @@
 
 ## Otros
 
-- **Falta:** opcional, un magnetómetro externo por I2C (por ejemplo QMC5883L en 0x0D) para corregir el yaw. `03-hcsr04` (idea: `sensor_msgs/Range` por micro-ROS para la altura). Lidar por UART2 (pines reservados).
+- **Falta:** opcional, un magnetómetro externo por I2C (por ejemplo QMC5883L en 0x0D) para corregir el yaw. Lidar por UART2 (pines reservados).

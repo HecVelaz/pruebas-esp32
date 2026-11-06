@@ -62,7 +62,7 @@ de frutas. El **firmware del robot** (lo que ya no es una prueba de un component
 | `00-hola-mundo`  | Serial "hola mundo" (verificación de toolchain y flasheo) |
 | `01-imu-mpu9250` | IMU MPU-9250 / MPU-6500 por I2C |
 | `02-imu-ros2`    | IMU publicado en ROS 2 Jazzy con micro-ROS (`/imu/data_raw`, 50 Hz) |
-| `03-hcsr04`      | Sensor ultrasónico HC-SR04 (pendiente, todavía sin carpeta) |
+| `03-hcsr04`      | Los tres HC-SR04 de la base (frente · esq. izq. · esq. der., TRIG 10 · 41 · 42, ECHO 11 · 12 · 13 con divisor) con el driver de la base, en la **S3** |
 | `04-gps-up501`   | GPS Fastrax UP501 por UART (NMEA) |
 | `05-gps-ros2`    | GPS publicado en ROS 2 Jazzy con micro-ROS (`/gps/fix`, `/gps/status`, 1 Hz) |
 | `06-motor-36gp555` | Motor DC 36GP-555 (12 V, 160 rpm, encoder Hall) con driver IBT-2 (BTS7960), lazo abierto |

@@ -13,6 +13,9 @@
 			"path": "02-imu-ros2"
 		},
 		{
+			"path": "03-hcsr04"
+		},
+		{
 			"path": "04-gps-up501"
 		},
 		{
