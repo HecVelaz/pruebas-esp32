@@ -3,16 +3,17 @@
 <!-- Movido desde CLAUDE.md (2026-10-22). Los bloques "Pendiente GPS", "Pendiente" de 08 y "Falta" se movieron
      tal cual; el resto se copió de los "Pendiente:" que siguen dentro de cada entrada de BITACORA.md. -->
 
-## Pinza y muñeca (21, 22: servos)
+## Pinza y muñeca (23 en la WROOM; 21, 22 sueltas)
 
-- **`22-servo-muneca`:** flashear la versión con ±90° guardados y verificar `0`, `a`, `b`; anotar el **modelo** del
-  servo (y renombrar la carpeta a `22-servo-<modelo>-muneca`); medir su velocidad máxima (`w 0`, `a` → `b` = 180°,
-  con video) y, si hace falta, ponerle tope a `w`.
-- **`21-servo-mg996r-pinza`:** confirmar en placa `a` (500 µs, 73 mm) y `c` (1250 µs, limón de 51 mm); probar cierre
-  a 45–90 °/s; posiciones de cierre para otras frutas (tamaños) con `C`.
-- Pinza y muñeca juntas: **no hace falta en la ESP32 de prueba** (decisión del 06/11). Se hace cuando se conecten
-  a la **ESP32-WROOM-32D** del brazo (elegir GPIO libres ahí; los 18/19 de la prueba no tienen por qué servir).
-- Revisar por qué la placa se desconectó del USB con el servo andando (cable o caída de tensión).
+- **`23-servos-wroom`: recalzar el brazo del servo de la pinza** (~45° corrido): `p 0` (1500 µs), apagar los 12 V,
+  sacar el brazo del eje, dedo en su cero, volver a calzarlo; confirmar `p 0` = cero, `p p 1000` = 45°, `p a` = 90°
+  (73 mm). Después `p c` con el limón (guardar con `p C`) y anotar los valores en el código.
+- `23`: verificar la muñeca `m 0`, `m a`, `m b` y anotar el resultado; probar los dos a la vez (pico de corriente en
+  el buck 3); después llevarlo a `recolector_de_frutas/firmware/brazo` (pines 4 / 14 ya están).
+- **`22`:** anotar el **modelo** del servo (y renombrar la carpeta a `22-servo-<modelo>-muneca`); medir su velocidad
+  máxima (`w 0`, `a` → `b` = 180°, con video) y, si hace falta, ponerle tope a `w`.
+- **`21`:** probar cierre a 45–90 °/s; posiciones de cierre para otras frutas (tamaños) con `C`.
+- Revisar por qué la ESP32 de prueba se desconectó del USB con el servo andando (cable o caída de tensión).
 
 ## Brazo (20, lo próximo)
 

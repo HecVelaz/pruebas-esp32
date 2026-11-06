@@ -833,3 +833,22 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
 - Velocidad máxima: el firmware no limita `w`; la pone el servo (MG996R ~350 °/s a 4,8 V, ~430–460 °/s a 6 V).
   Sugerido no pasar de 120–180 °/s (golpe y pico de corriente); para cerrar la pinza 45–90 °/s.
 - Commit: el de este cierre (21, 22 y notas).
+
+## 2026-11-06 (tarde) — Pinza y muñeca en la WROOM-32D del brazo (23)
+
+- **Conexiones verificadas:** `recolector_de_frutas/docs/html/todo.html` (lo arma `armar_todo.py`, es del 21/10 22:51,
+  posterior a todos sus HTML fuente) coincide con `placa_wroom.html` y con `firmware/brazo/include/pins.h`:
+  **apertura de la pinza en GPIO 4, giro J4 (muñeca) en GPIO 14** (pulsa al arrancar); 6 V del buck 3, GND común.
+  WROOM en `/dev/ttyUSB0` (CH340 `1a86:7523`).
+- **`23-servos-wroom`** (nueva): primero un firmware de identificación (`m <gpio>`: meneo ±150 µs de un servo, el otro
+  suelto; EN 23 y los seis PWM de los IBT-2 en LOW). `m 14` movió la muñeca; `m 4` al principio no movió nada
+  (tampoco con `p 4 1250` / `p 4 800`); tras revisar el cableado, se movieron los dos.
+- Después, **21 y 22 juntos** en 23: `p <cmd>` pinza / `m <cmd>` muñeca, con los comandos y valores de cada prueba
+  (struct `Junta` con cero, franja, µs/° por lado y dos posiciones con nombre). Un `p a` dio "comando desconocido"
+  (byte invisible al principio de la línea, probablemente): ahora se descartan los bytes no imprimibles y el error
+  imprime los bytes en hex.
+- **Pinza: brazo del servo ~45° corrido** respecto de 21: el dedo se ve en su cero con **1000 µs**; `p a` (500 µs)
+  abre 45° y no 90°. Se probó el cero en 1000 µs (abierto 500 = −45°, cerrado provisorio 750) y, a pedido, se volvió a
+  los valores de 21 (cero 1500, abierto 500, cerrado 1250). Para los 90° hay que recalzar el brazo en el estriado
+  (~3 dientes): no se puede bajar de 500 µs (tope interno del MG996R). Quedó compilado; flasheo y recalce sin confirmar.
+- Commit: el de este cierre (23 y notas).
