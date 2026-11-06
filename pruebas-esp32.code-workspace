@@ -68,6 +68,9 @@
 		},
 		{
 			"path": "23-servos-wroom"
+		},
+		{
+			"path": "24-bumpers-s3"
 		}
 	],
 	"settings": {

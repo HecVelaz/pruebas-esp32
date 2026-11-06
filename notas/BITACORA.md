@@ -852,3 +852,20 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   los valores de 21 (cero 1500, abierto 500, cerrado 1250). Para los 90° hay que recalzar el brazo en el estriado
   (~3 dientes): no se puede bajar de 500 µs (tope interno del MG996R). Quedó compilado; flasheo y recalce sin confirmar.
 - Commit: el de este cierre (23 y notas).
+
+## 2026-11-06 (noche) — Bumpers de la base en la S3 (24)
+
+- **S3 conectada:** al principio enumeraba (`303a:1001`, `/dev/ttyACM0`) pero esptool y una escritura simple con
+  pyserial daban `Write timeout`, también en modo bootloader (BOOT + RST). Se arregló **desenchufando y volviendo a
+  enchufar el USB-C**. `esptool flash_id`: ESP32-S3 (QFN56) rev. v0.2, 16 MB de flash, PSRAM 8 MB, MAC
+  `94:a9:90:30:24:24`.
+- Antes de flashear, el monitor mostraba tramas `~` (0x7E) repetidas: era el firmware micro-ROS viejo buscando al
+  agente, no ruido. **La S3 ya no tiene el firmware micro-ROS** (hay que volver a flashear `02`/`05` para usarlo).
+- **`24-bumpers-s3`** (nueva): los tres bumpers de la base con los pines de `docs/html/placa_s3.html`: **frente 14,
+  izquierdo 21, derecho 39** (NA al GPIO, común a GND, pull-up interno); EN 38 y PWM 4–7 de la tracción en LOW. Misma
+  lógica que `18` (lectura cada 1 ms, cambio confirmado con 3 lecturas, rebotes contados, aviso si cambia dos veces en
+  < 30 ms). Comandos `s`, `r`, `?`.
+  - Probado en placa (lo flasheó el usuario): **los tres responden**, cada uno cambia solo el suyo, 0 rebotes, sin
+    avisos; apretadas de 177–274 ms. Salida en `24-bumpers-s3/resultados/bumpers_20261106_195403.txt`.
+- Commit: el de este cierre (24 y notas).
+

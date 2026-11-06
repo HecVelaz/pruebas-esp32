@@ -1,0 +1,7 @@
+# 24-bumpers-s3 · 2026-11-06 · salida del monitor (pasos 2-3, una apretada por bumper)
+   15.293 s  izquierdo APRETADO (rebotes 0, 15293 ms desde el cambio anterior)
+   15.567 s  izquierdo suelto   (rebotes 0, 274 ms desde el cambio anterior)
+   21.164 s  frente    APRETADO (rebotes 0, 21164 ms desde el cambio anterior)
+   21.362 s  frente    suelto   (rebotes 0, 198 ms desde el cambio anterior)
+   23.505 s  derecho   APRETADO (rebotes 0, 23505 ms desde el cambio anterior)
+   23.682 s  derecho   suelto   (rebotes 0, 177 ms desde el cambio anterior)

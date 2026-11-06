@@ -11,8 +11,9 @@
 | 41 | RX1 ← TXD del GPS (pin 2 del UP501) | ocupado |
 | 42 | TX1 → RXD del GPS (pin 1 del UP501) | ocupado |
 | 47 | PPS del GPS | reservado (sin conectar) |
-| 14 | RX2 ← TX del lidar | reservado |
-| 21 | TX2 → RX del lidar | reservado |
+| 14 | Bumper frente (NA a GND, pull-up interno; `24`) | ocupado |
+| 21 | Bumper izquierdo (`24`) | ocupado |
+| 39 | Bumper derecho (`24`) | ocupado |
 | 19, 20 | USB nativo (`/dev/ttyACM0`, micro-ROS serial) | prohibido |
 | 26–37 | flash y PSRAM octal | prohibido |
 | 0, 3, 45, 46 | strapping | evitar |

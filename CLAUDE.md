@@ -82,6 +82,7 @@ de frutas. El **firmware del robot** (lo que ya no es una prueba de un component
 | `21-servo-mg996r-pinza` | Servo MG996R de la pinza (apertura / cierre del dedo), en una **ESP32 DevKit con CP2102** (`/dev/ttyUSB0`) |
 | `22-servo-muneca` | Servo de la muñeca (giro), mismo programa y driver (`ServoPWM`) que 21, señal en GPIO 19, en la misma ESP32 |
 | `23-servos-wroom` | Pinza (GPIO 4, comandos y valores de 21) y muñeca (GPIO 14, los de 22) juntas en la **WROOM-32D** del brazo, con los pines del robot |
+| `24-bumpers-s3` | Los tres bumpers de la base (frente · izq. · der. en GPIO 14 · 21 · 39): suelto / apretado y rebotes, sin mover la tracción, en la **S3** |
 | `notas/` | Estado, decisiones, pendientes, pines y flujo de trabajo (no es una prueba) |
 
 `12`–`14`: `tools/` es un enlace a `10-control-lazo-cerrado/tools`.

@@ -3,6 +3,12 @@
 <!-- Movido desde CLAUDE.md (2026-10-22). Los bloques "Pendiente GPS", "Pendiente" de 08 y "Falta" se movieron
      tal cual; el resto se copió de los "Pendiente:" que siguen dentro de cada entrada de BITACORA.md. -->
 
+## Base (S3)
+
+- **`24-bumpers-s3`:** pasos 4–5 (mover los cables sin apretar, apretar despacio) y 6 (paragolpes montado, empujar
+  la base contra un obstáculo). Después, la seta (GPIO 47, NC) con el mismo programa, y llevarlo a
+  `recolector_de_frutas/firmware/base`.
+
 ## Pinza y muñeca (23 en la WROOM; 21, 22 sueltas)
 
 - **`23-servos-wroom`: recalzar el brazo del servo de la pinza** (~45° corrido): `p 0` (1500 µs), apagar los 12 V,
