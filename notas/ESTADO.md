@@ -1,4 +1,4 @@
-# Estado de pruebas-esp32 (al 2026-11-05, noche)
+# Estado de pruebas-esp32 (al 2026-11-06)
 
 Foto de hoy. La historia, las mediciones completas y los nombres de los CSV están en `BITACORA.md`; lo que sigue, en
 `PENDIENTES.md`; los pines de la S3, en `PINES_S3.md`.
@@ -47,10 +47,18 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
 - **Fuente:** conectada a la bornera del bus de 12 V (el adaptador al XT60 tiene un contacto malo). Así no pasa por el
   fusible ni la seta: límite de 3 A y apagar la fuente como parada.
 - **`12-j1-base`:** J1 terminada (pasos 0–5); con el cero en el final de carrera falta repetir el paso 3.
-- **`17-brazo-joystick`:** probado en placa (también desde el celular). Ojo: pega fuerte contra los finales de
-  carrera. **`18-finales-de-carrera`:** los tres responden.
+- **`17-brazo-joystick`:** probado en placa; pega fuerte contra los finales de carrera. **`18`:** los tres responden.
 - **Robot:** `recolector_de_frutas/firmware/brazo` sigue con la polea de 90, el cero y los signos viejos de J1, los
   pines de los finales de carrera de J2/J3 al revés y 1 kHz.
+
+## Pinza y muñeca (servos, ESP32 "ESP32S" con CP2102)
+
+- Placa: ESP32-D0WD-V3, `board = esp32dev`; puerto por id (`/dev/serial/by-id/usb-Silicon_Labs_CP2102_…`), el
+  `ttyUSBx` cambia al reconectar. Servos con fuente externa de 5–6 V y masa común. Driver `21/lib/ServoPWM`.
+- **`21-servo-mg996r-pinza`** (GPIO 18): cero 1500 µs, **abierto fijo 500 µs = 73 mm**, **cerrado 1250 µs** (limón
+  de 51 mm), 11,1 µs/° (45° horario en 1000 µs). Flasheada; falta confirmar `a`/`c`.
+- **`22-servo-muneca`** (GPIO 19, modelo sin anotar): cero 1500 µs, **90° horario 860 µs**, **90° antihorario
+  2150 µs** (~7,2 µs/°, ¿servo de 270°?). Esa versión compila; falta flashearla y verificarla.
 
 ## Máquinas
 
@@ -60,19 +68,11 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
   (`/dev/ttyUSB1`; `tools/monitor.sh` la abre por id).
 - Respaldo del firmware micro-ROS del brazo de la WROOM de la Pi: `~/firmware/brazo/respaldo_20261001_183959.bin`.
 
-## Sensores en la S3
+## Pruebas terminadas
 
-- **IMU (01, 02): OK.** MPU-6500 (sin magnetómetro: el yaw deriva). `/imu/data_raw` a 50 Hz por micro-ROS.
-- **GPS UP501 (04, 05): OK por WiFi.** `/gps/fix` y `/gps/status`; `-e serial` sin probar; cables sueltos.
-
-## Motores en lazo abierto
-
-- **06 / 07 (36GP-555 + IBT-2, S3): OK.** K ≈ 1,6 rpm/%, zona muerta ~8–11 %, τ ≈ 60–74 ms.
-- **08 (5840-31ZY + L298N, WROOM): OK.** Modo `Freno` casi lineal entre 40 y 100 %.
-
-## Brazo en `10-control-lazo-cerrado` (historia)
-
-- J1 terminada ahí (cascada P → PI); `tools/` de `10` lo comparten `12`–`14` y `19`.
+- **Sensores (S3):** IMU MPU-6500 (01, 02) OK, sin magnetómetro; GPS UP501 (04, 05) OK por WiFi, `-e serial` sin probar.
+- **Motores en lazo abierto:** 06/07 (36GP-555 + IBT-2) y 08 (5840-31ZY + L298N, modo `Freno`) OK.
+- **`10-control-lazo-cerrado`:** historia; su `tools/` lo comparten `12`–`14` y `19`.
 
 ## Firmware del robot
 

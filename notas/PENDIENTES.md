@@ -1,7 +1,18 @@
-# Pendientes de pruebas-esp32 (al 2026-11-05)
+# Pendientes de pruebas-esp32 (al 2026-11-06)
 
 <!-- Movido desde CLAUDE.md (2026-10-22). Los bloques "Pendiente GPS", "Pendiente" de 08 y "Falta" se movieron
      tal cual; el resto se copió de los "Pendiente:" que siguen dentro de cada entrada de BITACORA.md. -->
+
+## Pinza y muñeca (21, 22: servos)
+
+- **`22-servo-muneca`:** flashear la versión con ±90° guardados y verificar `0`, `a`, `b`; anotar el **modelo** del
+  servo (y renombrar la carpeta a `22-servo-<modelo>-muneca`); medir su velocidad máxima (`w 0`, `a` → `b` = 180°,
+  con video) y, si hace falta, ponerle tope a `w`.
+- **`21-servo-mg996r-pinza`:** confirmar en placa `a` (500 µs, 73 mm) y `c` (1250 µs, limón de 51 mm); probar cierre
+  a 45–90 °/s; posiciones de cierre para otras frutas (tamaños) con `C`.
+- Las dos a la vez en la misma placa (pinza GPIO 18, muñeca GPIO 19): un firmware conjunto, y después llevarlo al
+  robot (`recolector_de_frutas`).
+- Revisar por qué la placa se desconectó del USB con el servo andando (cable o caída de tensión).
 
 ## Brazo (20, lo próximo)
 

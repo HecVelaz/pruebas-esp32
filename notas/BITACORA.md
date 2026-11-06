@@ -810,3 +810,26 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   `073b4bd` (freno de J3) `836e9ba` (cierre: repetibilidad de 30 ciclos, notas) y `4eeb804` (trayectorias del 03/11
   `111523` y `112915`, que habían quedado sin versionar; el video `20_20_24.mp4` queda fuera del repo). Comandos útiles: `python3 tools/punta.py`
   (`p 0 500 300`, `ver x y z`, `donde`); `python3 tools/punta.py --simular --desde 3 10 5 0 520 80`.
+
+## 2026-11-06 — Servos de la pinza (21) y de la muñeca (22) en una ESP32 nueva
+
+- **Placa nueva:** ESP32 DevKit "ESP32S" (rotulada XXSR69), **ESP32-D0WD-V3** rev 3.1, 4 MB, USB-serie **CP2102**
+  (`10c4:ea60`), MAC `78:42:1c:69:1f:18`, `board = esp32dev`. El número de `/dev/ttyUSBx` cambió varias veces al
+  reconectarse (0 → 1 → 0): usar `/dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0`.
+  Una vez desapareció del USB con el servo andando (¿cable o caída de tensión?): servo siempre con fuente externa.
+- **`21-servo-mg996r-pinza`** (nueva): MG996R del dedo, señal en **GPIO 18** (canal LEDC 0), fuente externa de 5–6 V,
+  masa común. Driver **`lib/ServoPWM`** (LEDC 50 Hz / 16 bits, franja de pulsos, rampa en µs/s, `soltar()`; sin
+  `Serial` ni pines). Comandos: `p <us>`, `0`, `+`/`-` (20 µs), `a`/`c`, `C`, **`w <°/s>`** (velocidad angular de la
+  rampa, `0` = salto directo), `l <min> <max>`, `s`, `e`, `?`. Arranca suelto (sin pulsos).
+  - Medido: cero **1500 µs**; `p 1000` = **45° horario** (11,1 µs/°, igual a la conversión nominal 500–2500 µs = 180°);
+    **abierto 500 µs = 73 mm** (~90° horario, fijo en el código: `US_ABIERTO`, sin comando `A`); **cerrado 1250 µs
+    aprieta bien un limón de 51 mm** (`usCerrado`, cambiable con `C`). Franja al arrancar 500–2000 µs.
+  - Flasheada la versión con abierto fijo; falta confirmar `a`/`c` en placa.
+- **`22-servo-muneca`** (nueva): servo de la muñeca (modelo sin anotar), mismo programa con posiciones `a`/`b` y
+  `A`/`B`, señal en **GPIO 19** (canal LEDC 1, para convivir con la pinza), `ServoPWM` por `symlink://` desde 21.
+  - Medido: cero **1500 µs**, **90° horario 860 µs** (7,11 µs/°), **90° antihorario 2150 µs** (7,22 µs/°): ~7,2 µs/°,
+    probablemente un servo de 270°. Firmware con conversión por lado, `a`/`b` = ±90° y franja 860–2150 al arrancar
+    (compila; falta flashearlo y verificarlo).
+- Velocidad máxima: el firmware no limita `w`; la pone el servo (MG996R ~350 °/s a 4,8 V, ~430–460 °/s a 6 V).
+  Sugerido no pasar de 120–180 °/s (golpe y pico de corriente); para cerrar la pinza 45–90 °/s.
+- Commit: el de este cierre (21, 22 y notas).

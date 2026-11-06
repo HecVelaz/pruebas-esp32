@@ -59,6 +59,12 @@
 		},
 		{
 			"path": "20-brazo-coordinado"
+		},
+		{
+			"path": "21-servo-mg996r-pinza"
+		},
+		{
+			"path": "22-servo-muneca"
 		}
 	],
 	"settings": {

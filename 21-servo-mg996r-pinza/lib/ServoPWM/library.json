@@ -1,0 +1,7 @@
+{
+  "name": "ServoPWM",
+  "version": "0.1.0",
+  "description": "Servo de hobby (50 Hz, ancho de pulso en microsegundos) con LEDC del ESP32, con límites y rampa",
+  "frameworks": "arduino",
+  "platforms": "espressif32"
+}
