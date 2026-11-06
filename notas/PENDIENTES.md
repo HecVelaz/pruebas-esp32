@@ -10,8 +10,8 @@
   con video) y, si hace falta, ponerle tope a `w`.
 - **`21-servo-mg996r-pinza`:** confirmar en placa `a` (500 µs, 73 mm) y `c` (1250 µs, limón de 51 mm); probar cierre
   a 45–90 °/s; posiciones de cierre para otras frutas (tamaños) con `C`.
-- Las dos a la vez en la misma placa (pinza GPIO 18, muñeca GPIO 19): un firmware conjunto, y después llevarlo al
-  robot (`recolector_de_frutas`).
+- Pinza y muñeca juntas: **no hace falta en la ESP32 de prueba** (decisión del 06/11). Se hace cuando se conecten
+  a la **ESP32-WROOM-32D** del brazo (elegir GPIO libres ahí; los 18/19 de la prueba no tienen por qué servir).
 - Revisar por qué la placa se desconectó del USB con el servo andando (cable o caída de tensión).
 
 ## Brazo (20, lo próximo)
