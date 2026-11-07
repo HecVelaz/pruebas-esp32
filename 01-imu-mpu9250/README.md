@@ -57,7 +57,7 @@ acc[g]   0.01  -0.02   1.00 | gyr[dps]     0.3    -1.2     0.4 | T  27.5 C | mag
 
 Con un MPU-6500, la columna del magnetómetro no aparece. Si en una línea el magnetómetro no tiene un dato válido, se muestra el motivo en lugar de repetir el último valor: `mag: sin dato nuevo`, `mag: overflow magnético` o `mag: error I2C`.
 
-Si el MPU no inicializa, el mensaje indica la causa: `no se pudo leer WHO_AM_I` (el bus no responde), `WHO_AM_I no es MPU-9250 (0x71) ni MPU-6500 (0x70)` (otro chip) o `falló una escritura I2C durante la configuración`.
+Si el MPU no inicializa, **repite el escaneo cada 2 s** (`-- reintento --`), así el diagnóstico se ve aunque el monitor se abra tarde y se puede revisar el cableado en vivo; en cuanto responde, empiezan las lecturas. El mensaje indica la causa: `no se pudo leer WHO_AM_I` (el bus no responde), `WHO_AM_I no es MPU-9250 (0x71) ni MPU-6500 (0x70)` (otro chip) o `falló una escritura I2C durante la configuración`.
 
 Después de activar el modo bypass, el escáner no vuelve a correr, así que el `0x0C` del AK8963 no aparece en la lista.
 
@@ -92,3 +92,4 @@ El programa lee el valor más reciente de los registros cada 200 ms. No usa la F
 | Fecha | Módulo | WHO_AM_I | Magnetómetro | Observaciones |
 |-------|--------|----------|--------------|---------------|
 | 2026-09-24 | Rotulado "MPU-9250/6500" (azul, 10 pines) | `0x70` en `0x68` → **MPU-6500** | No tiene (un solo dispositivo en el bus I2C) | Placa quieta y casi plana: acel. (-0,10, 0,01, 0,99) g, gyro (-0,1, -5,1, -0,2) °/s (offset de Y dentro de ±5 °/s del datasheet, lo corrige la calibración de `02`), T ≈ 28 °C. El módulo se vende con cualquiera de los dos chips: solo WHO_AM_I lo distingue. |
+| 2026-11-06 | El mismo, montado en la base de Arturito (SDA 8, SCL 9, AD0 suelto) | `0x70` en `0x68` → MPU-6500 | No tiene | Al principio `0 dispositivo(s)`: el SDA estaba en la bornera **46** (en la Freenove el orden es 18 · 8 · 3 · 46 · 9: el 8 y el 9 no están juntos). En el 8: acel. (0,01, 0,02, 1,00) g, gyro (−0,1, −5,0, −0,4) °/s, T 26,6 °C. Signos con la orientación de Arturito (X frente, Y izquierda, Z arriba) verificados por el usuario |

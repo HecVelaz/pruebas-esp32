@@ -5,12 +5,15 @@
 
 ## Base (S3)
 
-- **`24-bumpers-s3`:** pasos 4–5 (mover los cables sin apretar, apretar despacio) y 6 (paragolpes montado, empujar
+- **`24-bumpers-s3`:** pasos A4–A5 (mover los cables sin apretar, apretar despacio) y A6 (paragolpes montado, empujar
   la base contra un obstáculo). Después, la seta (GPIO 47, NC) con el mismo programa, y llevarlo a
   `recolector_de_frutas/firmware/base`.
-
-- **`03-hcsr04`:** pasos 4–6 (caja a 20 / 50 / 100 cm con cinta y `e 30`, distancia mínima, que el frente no pise
-  a las esquinas); guardar la salida en `resultados/`.
+- **`02` con RViz** (lista de pruebas pasada al usuario): flashear `-e serial`, RST quieto, `tools/agente.sh`,
+  `ros2 topic hz` (~50 Hz), bias del gyro (covarianza `1e-06`), signos, `tools/ver_imu.sh` (probar `imu.rviz`), deriva
+  del yaw por minuto; anotar en Resultados de `02`.
+- Decidir si `upload_port` / `monitor_port` de `01`, `02`, `03` y `24` pasan a la ruta `/dev/serial/by-id/…` de esta S3.
+- **`03-hcsr04`:** B4–B9 (caja a 20 / 50 / 100 cm de cada sensor con cinta y `e 30`, distancia mínima, que el frente
+  no pise a las esquinas, pared a 1–2 m con `e 50`); guardar la salida en `resultados/`.
 
 ## Pinza y muñeca (23 en la WROOM; 21, 22 sueltas)
 

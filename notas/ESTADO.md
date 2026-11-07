@@ -1,4 +1,4 @@
-# Estado de pruebas-esp32 (al 2026-11-06, noche)
+# Estado de pruebas-esp32 (al 2026-11-06, cierre de la noche)
 
 Foto de hoy. La historia, las mediciones completas y los nombres de los CSV están en `BITACORA.md`; lo que sigue, en
 `PENDIENTES.md`; los pines de la S3, en `PINES_S3.md`.
@@ -33,7 +33,6 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
     firmware no conoce la caja: con `mv` a mano no hay protección).
   - `tools/trayectoria.py`: si un `mv` se corta, vuelve solo al reposo y hace `h` (`--sin-rescate`); acepta `zq` primero.
   - Joystick `jv` (`17/tools/joystick.py --placa 20`). J1 0–118° PROVISORIO. La caja no está en el firmware.
-- **`19-j2-j3-conjunto`:** banco de pruebas de J2 y J3, fases 1–4 probadas (detalle en la bitácora); siguió en `20`.
 - **Cero del brazo:** la pose con los tres finales de carrera apretados (foto del 30/10); + = alejarse de cada uno.
   Límites: J1 0–118° (brazo recogido), J2 0–83°, J3 0–101,5°; franja con tabla (04/11, ver arriba). Finales de carrera:
   J1 32, J2 27, J3 33. **Tienen un solo punto de apoyo y el golpe los gira** (el 31/10 el cero se corrió ~9° en J3 y
@@ -41,7 +40,7 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
 - **20 kHz en J2 y J3** (decisión del 31/10, sin pitido): más duty por la misma fuerza (J2 arranca subiendo con 35 %);
   J3 sostiene con compensación de fricción 15 %. A 20 kHz la fricción sostiene el brazo en un rango ancho de duty: el
   mapa de gravedad (`19/resultados/mapa_gravedad_20261031_135400.*`) no sirve como modelo (`gm` apagado).
-- **Abrir el puerto serie reinicia la WROOM** (cero perdido, brazo suelto): después de abrir el monitor, `h`.
+- **Abrir el puerto serie reinicia la WROOM** (cero perdido, brazo suelto): después del monitor, `h`.
 - **Fuente:** conectada a la bornera del bus de 12 V (el adaptador al XT60 tiene un contacto malo). Así no pasa por el
   fusible ni la seta: límite de 3 A y apagar la fuente como parada.
 - **`12`:** J1 lista (0–5), repetir el paso 3 con el cero nuevo. **`17`:** pega fuerte en los FC. **`18`:** OK.
@@ -61,7 +60,8 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
 
 - **`24-bumpers-s3`:** los tres responden (frente 14, izq. 21, der. 39; 0 rebotes, 06/11); falta el paragolpes montado.
 - **`03-hcsr04`:** los tres HC-SR04 responden (TRIG 10/41/42, ECHO 11/12/13, driver de la base; 06/11); falta la cinta.
-  La S3 quedó con el firmware de `03`, no con micro-ROS. USB con `Write timeout`: desenchufar y volver a enchufar.
+- **IMU (`01`):** responde en la base (SDA 8, SCL 9; gyro y −5 °/s sin calibrar); `02` compilado, RViz sin probar.
+  Firmware en la S3: incierto (`24` o `03`). Puerto: usar `/dev/serial/by-id/…` (cambia a `ttyACM1` con RST).
 
 ## Máquinas
 

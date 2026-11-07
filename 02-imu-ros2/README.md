@@ -139,6 +139,10 @@ Valores esperados con la placa quieta y plana:
 
 ## Visualizar con imu_filter_madgwick y RViz2
 
+**Atajo (2026-11-06):** `tools/agente.sh` (terminal 1: agente por `/dev/serial/by-id/…`, que no cambia si la placa pasa
+de `ttyACM0` a `ttyACM1`) y `tools/ver_imu.sh` (terminal 2: filtro Madgwick + RViz2 con `tools/imu.rviz`: Fixed
+Frame `odom`, grilla, TF y el display `rviz_imu_plugin/Imu` de `/imu/data`). Abajo, lo mismo paso a paso.
+
 Instalar las herramientas (filtro y plugin de RViz2):
 
 ```bash

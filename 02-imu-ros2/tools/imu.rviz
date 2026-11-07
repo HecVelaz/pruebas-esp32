@@ -1,0 +1,76 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+  - Class: rviz_common/Views
+    Name: Views
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Class: rviz_default_plugins/Grid
+      Name: Grid
+      Enabled: true
+      Cell Size: 0.1
+      Plane Cell Count: 20
+      Reference Frame: <Fixed Frame>
+      Value: true
+    - Class: rviz_default_plugins/TF
+      Name: TF
+      Enabled: true
+      Marker Scale: 0.5
+      Show Arrows: false
+      Show Axes: true
+      Show Names: true
+      Value: true
+    - Class: rviz_imu_plugin/Imu
+      Name: Imu
+      Enabled: true
+      Topic:
+        Value: /imu/data
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Best Effort
+        Filter size: 10
+      Box properties:
+        Enable box: true
+        x_scale: 0.3
+        y_scale: 0.2
+        z_scale: 0.05
+        Color: 0; 170; 255
+        Alpha: 0.8
+      Axes properties:
+        Enable axes: true
+        Axes scale: 0.3
+        Alpha: 1
+      Acceleration properties:
+        Enable acceleration: true
+        Derotate acceleration: true
+        Acc. vector scale: 0.05
+        Acc. vector color: 255; 0; 0
+        Acc. vector alpha: 1
+      Value: true
+  Enabled: true
+  Global Options:
+    Background Color: 48; 48; 48
+    Fixed Frame: odom
+    Frame Rate: 30
+  Tools:
+    - Class: rviz_default_plugins/Interact
+    - Class: rviz_default_plugins/MoveCamera
+  Value: true
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Distance: 1.2
+      Focal Point:
+        X: 0
+        Y: 0
+        Z: 0
+      Pitch: 0.5
+      Yaw: 3.9
+      Name: Current View
+      Target Frame: <Fixed Frame>
+      Value: Orbit (rviz)
+Window Geometry:
+  Height: 800
+  Width: 1200

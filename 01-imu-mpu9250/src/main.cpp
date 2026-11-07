@@ -24,6 +24,8 @@ uint8_t scanI2C() {
   return mpuAddr;
 }
 
+bool iniciarImu();
+
 void setup() {
   Serial.begin(115200);
   // Con USB CDC, esperar hasta 3 s a que se abra el monitor para no perder los primeros mensajes
@@ -34,11 +36,17 @@ void setup() {
   Serial.println("== Prueba IMU MPU-9250 / MPU-6500 ==");
   Serial.printf("I2C: SDA=GPIO%d, SCL=GPIO%d\n", PIN_I2C_SDA, PIN_I2C_SCL);
   Wire.begin(PIN_I2C_SDA, PIN_I2C_SCL, I2C_FREQ_HZ);
+  imuOk = iniciarImu();
+  if (!imuOk) Serial.println("Se reintenta cada 2 s (revisar VCC a 3V3, GND, SDA al 8 y SCL al 9).");
+  Serial.println();
+}
 
+// Escanea el bus, inicializa el MPU e informa por Serial. true si quedó listo para leer.
+bool iniciarImu() {
   uint8_t addr = scanI2C();
   if (!addr) {
     Serial.println("ERROR: no se encontró el MPU en 0x68 ni 0x69. Revisar cableado y alimentación.");
-    return;
+    return false;
   }
   if (addr != IMU_I2C_ADDR) {
     Serial.printf("AVISO: se esperaba el MPU en 0x%02X (AD0 a GND) y está en 0x%02X. Revisar AD0.\n",
@@ -49,14 +57,13 @@ void setup() {
   MPU9250::Status st = imu.begin();
   if (st == MPU9250::Status::I2cError) {
     Serial.printf("ERROR: no se pudo leer WHO_AM_I en 0x%02X (%s).\n", addr, MPU9250::statusName(st));
-    return;
+    return false;
   }
   Serial.printf("WHO_AM_I en 0x%02X = 0x%02X\n", addr, imu.whoAmI());
   if (st != MPU9250::Status::Ok) {
     Serial.printf("ERROR: %s.\n", MPU9250::statusName(st));
-    return;
+    return false;
   }
-  imuOk = true;
   Serial.printf("Modelo detectado: %s\n", imu.modelName());
 
   if (imu.model() == MPU9250::Model::MPU9250) {
@@ -64,12 +71,16 @@ void setup() {
   } else {
     Serial.println("MPU-6500: sin magnetómetro, solo acelerómetro y giroscopio.");
   }
-  Serial.println();
+  return true;
 }
 
 void loop() {
   if (!imuOk) {
-    delay(1000);
+    // Sin IMU: repetir el diagnóstico (el primero se pierde si el monitor se abre después de los 3 s de espera)
+    delay(2000);
+    Serial.println("-- reintento --");
+    imuOk = iniciarImu();
+    if (imuOk) Serial.println();
     return;
   }
 

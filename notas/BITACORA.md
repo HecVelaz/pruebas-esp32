@@ -875,3 +875,26 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   distancias con cinta sin medir.
 - Commits: `5900bb4` (24 y notas) y el de 03.
 
+## 2026-11-06 (noche, 2) — IMU en la base de Arturito (01, 02 con RViz)
+
+- Conexiones contra "Cableado Arturito R2D2" (`docs/html/todo.html`): IMU GY-9250/6500 con VCC a 3V3, GND, **SDA 8,
+  SCL 9**, AD0 / NCS / INT / FSYNC / EDA / ECL sueltos (0x68); orientación X al frente, Y a la izquierda, Z arriba.
+  Coincide con `01`, `02` y `firmware/base` (no se cambió ningún pin).
+- **`01`:** `0 dispositivo(s)` en el bus: el SDA estaba en la bornera **46**, la de al lado del 9 (en la Freenove la
+  fila es 18 · 8 · 3 · 46 · 9: el 8 y el 9 no están juntos). Se descartaron 45, 46 y 3 para el SDA (strapping; el 46
+  además impide entrar al bootloader con BOOT + RST si queda en alto; alternativa libre: el 40). En el 8: MPU-6500
+  (`0x70`), acel. (0,01, 0,02, 1,00) g, gyro (−0,1, −5,0, −0,4) °/s, 26,6 °C; signos verificados por el usuario.
+  - `01` ahora repite el escaneo cada 2 s si el IMU no inicializa (antes lo decía una vez antes de abrir el monitor
+    y quedaba muda).
+- **Puertos:** si se pulsa RST con un monitor abierto, la S3 vuelve como `/dev/ttyACM1` y `pio` (que tiene
+  `/dev/ttyACM0` fijo) no la encuentra. Ruta estable:
+  `/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_94:A9:90:30:24:24-if00` (con `--upload-port` y `-p`).
+  Lectura pasiva con pyserial: a veces no recibe nada del USB nativo aunque el firmware imprima.
+- **`02`:** la primera compilación (cortada a mitad) dejó `micro_ros_platformio/build` a medias y el reintento falló
+  en `git pull` de `rcutils` ("ramas divergentes": micro-ROS reescribió `jazzy`). Se borró
+  `.pio/libdeps/serial/micro_ros_platformio/build` y compiló de cero en 6 min. Nuevos `tools/agente.sh`,
+  `tools/ver_imu.sh` e `tools/imu.rviz` (sin probar). **No se llegó a flashear `02` ni a abrir RViz.**
+- Se le pasó al usuario la lista completa de pruebas de `24` (A1–A6) y `03` (B1–B10); al cerrar estaba flasheando `03`
+  (los comandos con `$S3` fallaron porque la variable no estaba definida en esa terminal).
+- Commit: el de este cierre (01, 02/tools y notas).
+
