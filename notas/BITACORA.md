@@ -897,4 +897,5 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
 - Se le pasó al usuario la lista completa de pruebas de `24` (A1–A6) y `03` (B1–B10); al cerrar estaba flasheando `03`
   (los comandos con `$S3` fallaron porque la variable no estaba definida en esa terminal).
 - Commit: el de este cierre (01, 02/tools y notas).
-
+- Después del cierre: `upload_port` / `monitor_port` de `01`, `02`, `03` y `24` pasan a la ruta by-id de esta S3
+  (`pio run -t upload` y `pio device monitor` sin `--upload-port` ni `-p`, aunque vuelva como `ttyACM1`).

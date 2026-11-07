@@ -61,7 +61,7 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
 - **`24-bumpers-s3`:** los tres responden (frente 14, izq. 21, der. 39; 0 rebotes, 06/11); falta el paragolpes montado.
 - **`03-hcsr04`:** los tres HC-SR04 responden (TRIG 10/41/42, ECHO 11/12/13, driver de la base; 06/11); falta la cinta.
 - **IMU (`01`):** responde en la base (SDA 8, SCL 9; gyro y −5 °/s sin calibrar); `02` compilado, RViz sin probar.
-  Firmware en la S3: incierto (`24` o `03`). Puerto: usar `/dev/serial/by-id/…` (cambia a `ttyACM1` con RST).
+  Firmware en la S3: incierto (`24` o `03`). `01`–`03` y `24` usan el puerto by-id.
 
 ## Máquinas
 
