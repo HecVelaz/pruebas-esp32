@@ -899,3 +899,45 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
 - Commit: el de este cierre (01, 02/tools y notas).
 - Después del cierre: `upload_port` / `monitor_port` de `01`, `02`, `03` y `24` pasan a la ruta by-id de esta S3
   (`pio run -t upload` y `pio device monitor` sin `--upload-port` ni `-p`, aunque vuelva como `ttyACM1`).
+
+## 2026-11-10 — Doble helicoidales en J2 y J3: homing, franja y repetibilidad nuevos (20); se rompió el eje de J1
+
+- **Mecánica:** el usuario cambió los helicoidales simples de J2 y J3 por **doble helicoidales** (misma relación
+  15 → 75, en seco). Según él: mucho menos juego y sin ruido. La WROOM tenía el firmware del robot: se flasheó `20`.
+- **Homing:** primero cortaba por "sin cuentas" en J3: **el 3V3 del encoder de J3 estaba desconectado**. Después,
+  "atasco" / "no avanza con el duty al tope": con menos juego J3 retrocedía mientras J2 todavía bajaba y se empujaban
+  por el cuatro barras. Cambios en `20/src/main.cpp`: si J3 arranca en su final de carrera, J2 sube antes 8°
+  (`HOMING_PRE_SUBIDA_J2`); J3, al llegar a su flanco, **espera a J2** (etapa 4) y recién entonces retrocede; J2
+  retrocede a **+20°** (`HOMING_RETROCESO_J2`; con 10° quedaba contra el borde nuevo), J1 y J3 a +3°;
+  `HOMING_Q2_MAX_ARRANQUE` 20 → 25°. Funciona.
+- **Franja apagable:** comando `fr 0` / `fr 1` (al reiniciar, prendida) y `joystick.py --sin-franja`, para medir los
+  bordes con el joystick sin que frene la franja vieja (con (44, 20) quedaban las tres "frenada": q3 − q2 = −24°).
+- **Borde de arriba, re-medido** (`limites_20261110_145545.csv`; J2 quieta, subir el número de J3 hasta que arrastre
+  a J2; **todos por arrastre, ninguno por traba**, sin margen): 9,9 → 3,0 · 15,1 → 4,0 · 30,1 → 16,1 · 45,1 → 31,3 ·
+  60,2 → 52,0 · 74,6 → 75,1 · 80,1 → 83,4; el punto 0 → 0,5 es estimado. Mucho más bajo que el del 04/11
+  (15 → 10,8 · 30 → 27,9 · 45 → 54,2 · 60 → 72,2 · 75 → 82,7). Cargado en `config.h`, `cinematica.py` y
+  `trayectoria.py`. `limites_20261110_143013` y `_144703` son intentos anteriores del mismo día.
+- **Convención aclarada por el usuario:** cuando el número de J3 sube, el antebrazo **baja** (se estira). En las
+  tablas, guiarse por el número de la pantalla, no por "subir / bajar el brazo".
+- **Poses y reposo:** con la franja nueva `20 20 14` y `40 30 20` quedaron afuera → repetibilidad con
+  `20 20 6`, `40 30 14`, `40 74 70`, `60 74 70`, `20 74 70`; reposo `mv 3 10 5` → **`mv 3 20 5`**. Lista de prueba
+  `h "mv 20 20 6" "mv 40 30 14" "mv 3 20 5"` sin cortes (`trayectoria_20261110_150805`). Caminos nuevos sin
+  verificar contra la caja con `cinematica.py` (en placa no chocó).
+- **Repetibilidad** (10 ciclos + 1 de calentamiento): `repetibilidad_20261110_151950`, peor RP **J1 0,18°, J2 0,13°,
+  J3 0,07°** (05/11, engranajes viejos, 30 ciclos: 0,18 / 0,05 / 0,12). J3 mejoró; J2 empeoró en 74°.
+- **Freno anticipado de J2:** se probó `tAnticipo` 0,055 → 0,01 s (capturas `trayectoria_20261110_152310` y
+  `_152706`): mejoraba las llegadas a 20 / 30° pero la repetibilidad global empeoró (`repetibilidad_20261110_153901`:
+  J2 0,16°, J3 0,09°) → **revertido a 0,055 s** y reflasheado. En las capturas J2 tarda ~0,4 s en despegar (~36 %
+  de duty) y se atrasa hasta ~2° en el recorrido: ganancias y feedforward siguen siendo los de los engranajes viejos.
+- **Borde de abajo (bajar el número de J3 con J2 quieta), a medias.** `limites_20261110_154123.csv`, sin notas
+  (no se sabe si fue arrastre, traba o paró el usuario): (45,1; 5,0) → J2 − J3 = 40,1 · (60,1; 10,4) → 49,6 ·
+  (75,1; 27,8) → 47,3. Segunda tanda con letra en la nota (T traba, A arrastra, L libre),
+  `limites_20261110_155350.csv`: (44,8; 3,7) **L** (J3 llega a su final de carrera sin que pase nada) y (50,3; 7,4)
+  "J3 al límite cerca de FC". **Ahí se rompió el eje de J1** y se cortó la sesión: faltan 55–80°.
+  `Q2_MENOS_Q3_MAX` (49) y `Q2_MENOS_Q3_DESTINO` (25) quedaron sin tocar.
+- Los `*_cortado` de `trayectoria_20261110_13*` y `_14*` y `repetibilidad_20261110_134223_cortado` son los intentos
+  con el homing fallando o con poses fuera de la franja nueva.
+- Sin commitear a propósito: fotos de `12-j1-base/CERO/` y `17-brazo-joystick/LIMITES/` y `20/20_20_24.mp4`
+  (aparecen personas). Se borraron tres archivos vacíos creados por error en `20/` (`15%`, `Sosteniendo`, `Telemetría`).
+- `/verificar` antes del cierre: `pio run` de `20` limpio, sin warnings (RAM 7,1 %, flash 25,7 %).
+- Commit: el de este cierre.

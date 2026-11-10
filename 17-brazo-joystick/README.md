@@ -76,6 +76,10 @@ Si el brazo quedó arriba sin cero (por ejemplo trabado por un homing que arranc
 ángulos donde está manda el cero estimado al arrancar; bajarlo con el joystick (fuera de la franja solo deja volver
 hacia adentro) y después Homing.
 
+Para volver a medir la franja (2026-11-10, doble helicoidales): `--sin-franja` manda `fr 0` al arrancar y el firmware
+de 20 deja de frenar por la franja (los límites propios de cada articulación siguen). Al reiniciar la placa vuelve
+prendida.
+
 ## Medir los límites
 
 1. 12 V apagados; flashear; brazo en la pose de los finales de carrera; arrancar el puente.

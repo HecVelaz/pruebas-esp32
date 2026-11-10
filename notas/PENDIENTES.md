@@ -1,4 +1,4 @@
-# Pendientes de pruebas-esp32 (al 2026-11-06)
+# Pendientes de pruebas-esp32 (al 2026-11-10)
 
 <!-- Movido desde CLAUDE.md (2026-10-22). Los bloques "Pendiente GPS", "Pendiente" de 08 y "Falta" se movieron
      tal cual; el resto se copió de los "Pendiente:" que siguen dentro de cada entrada de BITACORA.md. -->
@@ -28,7 +28,20 @@
 
 ## Brazo (20, lo próximo)
 
-- **`20-brazo-coordinado`, en orden:**
+- **Antes de todo: arreglar el eje de J1** (se rompió el 10/11, lo hace el usuario). Al volver: `h`, comprobar el
+  cero y el límite de J1 (118° PROVISORIO) y una repetibilidad corta por si cambió algo.
+- **Doble helicoidales (10/11), en orden:**
+  a. **Terminar el borde de abajo de la franja** con `joystick.py --placa 20 --sin-franja` (Homing primero): J2
+     quieta en 55, 60, 65, 70, 75 y 80°, arrancar J3 unos 20° por debajo de J2 y bajar el número de J3 despacio;
+     Anotar con `abajo <J2> T` (traba) / `A` (J2 se corre sola > 0,3°) / `L` (llega a ~3° sin nada). Hecho: 45 → L,
+     50 → J3 llega cerca de su final de carrera. Con eso, `Q2_MENOS_Q3_MAX` (hoy 49; provisional ~45 = mínimo
+     medido − 2°) y, si hace falta, `Q2_MENOS_Q3_DESTINO` (25) en `config.h`, `trayectoria.py` y `cinematica.py`.
+  b. Repetibilidad de 30 ciclos con las poses nuevas (`repetibilidad.py --ciclos 30 --calentar 3`).
+  c. Verificar con `cinematica.py` los caminos de las poses nuevas contra la caja (hoy solo probados en placa).
+  d. **Recalibrar la cinemática de la punta** con video (el modelo del 05/11 es con el juego viejo).
+  e. Opcional: despegue y feedforward de J2 (tarda ~0,4 s en despegar, se atrasa ~2°).
+  f. Pasar franja, homing y reposo nuevos a `recolector_de_frutas/firmware/brazo` y volver a flashearlo en la WROOM.
+- **`20-brazo-coordinado`, lo anterior (revisar qué sigue valiendo con los engranajes nuevos):**
   0. ~~Verificar `tools/cinematica.py` con cinta~~ (05/11, hecho: ±1 cm salvo la pose estirada (600, 150), 2 cm
      afuera; hombro 175 mm). `mx` hecho en Python: `tools/punta.py` (`p x y z`, esquiva la caja). Falta, si hace
      falta: la punta en recta (hoy va en recta en ángulos) y llevarlo al puente de la Pi.
@@ -53,10 +66,8 @@
   4. **Borde de la franja entre 30 y 45° de J2:** sin punto medido (recta supuesta); medir uno en ~37° con
      `17 -e explorar` si se traba ahí.
   5. La franja vieja sigue en el modo normal de `17` (lazo abierto) y en `19`: pasarles la tabla si se usan.
-  6. **Joystick:** los tres arreglos de la revisión de Codex hechos; falta el uso normal con `joystick.py --placa 20`
-     (con los límites nuevos).
-  7. **Lista fija con el firmware final** (`h "mv 20 20 14" "mv 40 30 20" "mv 20 20 14" "mv 3 10 5"`; la del 03/11
-     usaba `20 20 24`, hoy fuera de la franja).
+  6. ~~Joystick con `joystick.py --placa 20`~~ (10/11, usado para medir la franja).
+  7. ~~Lista fija con el firmware final~~ (10/11: `h "mv 20 20 6" "mv 40 30 14" "mv 3 20 5"`, sin cortes).
   8. **Fase 6, en la punta:** ver el punto 0 (la repetibilidad en mm sale del mismo modelo).
   9. Opcional, si J2/J3 vuelven a pasarse (una vez en cinco capturas, J2 0,5° y 13,8 s hasta firme): `VEL_APROX` de
      J2/J3 2 → 3 °/s o dither. Más velocidad (`MV_FACTOR_VEL`): solo al final, con video.

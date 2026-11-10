@@ -1,38 +1,35 @@
-# Estado de pruebas-esp32 (al 2026-11-06, cierre de la noche)
+# Estado de pruebas-esp32 (al 2026-11-10)
 
 Foto de hoy. La historia, las mediciones completas y los nombres de los CSV están en `BITACORA.md`; lo que sigue, en
 `PENDIENTES.md`; los pines de la S3, en `PINES_S3.md`.
 
 ## Brazo: lo próximo
 
+- **PARADO: el 10/11 se rompió el eje de J1** durante la medición del borde de abajo de la franja; el usuario lo está
+  arreglando. Al volver: `h`, revisar el cero y el límite de J1 y seguir con esa medición (`PENDIENTES.md`).
 - **`20-brazo-coordinado` (lo actual):** J1, J2 y J3 con el mismo controlador (`lib/Articulacion`), lazo no
-  bloqueante a 100 Hz, 20 kHz, sin el resorte de la pinza. Firmware flasheado: el del 05/11 noche (`073b4bd`:
-  destinos con q3 − q2 ≥ −25°, freno anticipado de J3).
-  - **Mecánica:** J3 con manivela de 95 mm; J2 y J3 con helicoidales impresos 15 → 75, en seco. **J3 tiene ~25–30° de
-    juego en el antebrazo** (un diente entre el piñón y el engranaje de 75) y J2 algunos grados; sin corriente el brazo
-    se queda donde está. **No se puede cambiar la mecánica** (decisión del usuario): todo por software.
-  - **Franja:** `q2 − 49° ≤ q3 ≤ tabla(q2)` (0 → 3,2 · 15 → 10,8 · 30 → 27,9 · 45 → 54,2 · 60 → 72,2 · 75 → 82,7 ·
-    90 → 91,9 · 105 → 101,6) para el camino y el freno; **destinos** (`mv`, `j`, joystick) además q3 − q2 ≥ −24°
-    (`Q2_MENOS_Q3_DESTINO` 25 + 1°: más abajo J3 no queda firme). Margen 1° al destino y a todo el camino, 3° a los
-    límites. J2 0–83° (destinos hasta 80°), J3 0–101,5°.
-  - `h` (sin cero baja las tres juntas desde donde estén; arrancar con J3 ≤ J2); `zq` para bajar rápido sin cero.
-    `mv`: quíntico, J2/J3 terminan juntas, J1 con su duración; si la recta sale de la franja, por un intermedio (desde
-    el reposo, (15, 5)). Llegada desde abajo (J2/J3 al menos 0,3° bajo el objetivo antes del último tramo); J1 en el
-    sentido en que viene. `tolLlegada` 0,15° y freno anticipado (J1 0,03 s, J2 0,055 s, J3 0,045 s). Reposo `mv 3 10 5`.
-  - **Repetibilidad** (`repetibilidad_20261105_201209`, 30 ciclos, firmware final): RP **J1 0,18°, J2 0,05°, J3
-    0,12°**, las tres dentro de ±0,2° el 97 % y de ±0,3° el 100 %. El juego no la afecta: el peso lo apoya siempre del
-    mismo lado en las poses quietas. Error fijo ~0,14° (J1 en 40/60°, J2 en 20/30°), < 1 mm en la punta.
-  - **Cinemática (calibración con video, `trayectoria_20261105_164644`):** **J2 gira 1,170° reales por grado del
-    encoder** (reductora ~120:1; confirmado con inclinómetro; el firmware sigue en grados de encoder). Brazo =
-    113,0 − 1,087·q2 − 0,094·q3; manivela = 171,3 − 0,851·q3 − 0,133·q2 (lineal); antebrazo 335 mm; pinza horizontal
-    a (179, 29) mm de la muñeca. Modelo de la punta con 12 poses: **~9 mm de error medio, hasta ~3 cm en los bordes.**
-  - **`tools/cinematica.py`** (verificado con cinta el 05/11: ±1 cm, la pose estirada (600, 150) 2 cm afuera;
-    hombro 175 mm): directa e inversa de la punta en el marco del robot (origen en J1 a la altura de la tapa, x
-    derecha, y adelante, z arriba), con límites, franja y choques con la caja, el mástil y el piso.
-    **`tools/punta.py`** (probado en placa): `p x y z` lleva la punta ahí y revisa los choques en todo el camino (el
-    firmware no conoce la caja: con `mv` a mano no hay protección).
+  bloqueante a 100 Hz, 20 kHz, sin el resorte de la pinza. **Flasheado: el del 10/11** (homing y franja nuevos).
+  - **Mecánica (10/11):** J2 y J3 con **doble helicoidales** 15 → 75 (misma relación), en seco: mucho menos juego y
+    sin ruido. J3 con manivela de 95 mm. Con menos juego J3 arrastra a J2 mucho antes: la franja se achicó.
+  - **Franja:** `q2 − 49° ≤ q3 ≤ tabla(q2)`, tabla del 10/11 (0 → 0,5 estimado · 9,9 → 3,0 · 15,1 → 4,0 ·
+    30,1 → 16,1 · 45,1 → 31,3 · 60,2 → 52,0 · 74,6 → 75,1 · 80,1 → 83,4; todos por arrastre, sin margen);
+    **destinos** además q3 − q2 ≥ −24°. **El borde de abajo (−49 / −25) es el de los engranajes viejos:** medido a
+    medias (ver pendientes). Margen 1° al destino y al camino, 3° a los límites. J2 0–83° (destinos hasta 80°), J3
+    0–101,5°. `fr 0` / `fr 1` apaga / prende la franja para medir (`joystick.py --sin-franja`); al reiniciar, prendida.
+  - **Homing `h` (10/11):** J2 sube 8° antes si J3 arranca en su final de carrera; J3 llega a su flanco y **espera a
+    J2** para retroceder (antes se empujaban por el cuatro barras); queda en J1 y J3 +3°, **J2 +20°**. `zq` para bajar
+    rápido sin cero. Reposo de los scripts: **`mv 3 20 5`**.
+  - `mv`: quíntico, J2/J3 terminan juntas, J1 con su duración; si la recta sale de la franja, por un intermedio.
+    Llegada desde abajo; `tolLlegada` 0,15° y freno anticipado (J1 0,03 s, J2 0,055 s, J3 0,045 s; J2 con 0,01 s
+    probado el 10/11: peor).
+  - **Repetibilidad** (`repetibilidad_20261110_151950`, 10 ciclos, poses nuevas): RP **J1 0,18°, J2 0,13°, J3
+    0,07°** (05/11, engranajes viejos, 30 ciclos: 0,18 / 0,05 / 0,12). J2 tarda ~0,4 s en despegar y se atrasa hasta
+    ~2° en el recorrido: ganancias y feedforward son los de los engranajes viejos.
+  - **Cinemática: DESACTUALIZADA** (modelo del 05/11, con el juego viejo: J2 × 1,170, ~9 mm de error medio).
+    `tools/cinematica.py` y `tools/punta.py` tienen la tabla nueva de la franja pero no la geometría recalibrada.
   - `tools/trayectoria.py`: si un `mv` se corta, vuelve solo al reposo y hace `h` (`--sin-rescate`); acepta `zq` primero.
-  - Joystick `jv` (`17/tools/joystick.py --placa 20`). J1 0–118° PROVISORIO. La caja no está en el firmware.
+  - Joystick `jv` (`17/tools/joystick.py --placa 20`, probado el 10/11; botones Homing y Anotar). J1 0–118°
+    PROVISORIO. La caja no está en el firmware.
 - **Cero del brazo:** la pose con los tres finales de carrera apretados (foto del 30/10); + = alejarse de cada uno.
   Límites: J1 0–118° (brazo recogido), J2 0–83°, J3 0–101,5°; franja con tabla (04/11, ver arriba). Finales de carrera:
   J1 32, J2 27, J3 33. **Tienen un solo punto de apoyo y el golpe los gira** (el 31/10 el cero se corrió ~9° en J3 y
@@ -44,7 +41,8 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
 - **Fuente:** conectada a la bornera del bus de 12 V (el adaptador al XT60 tiene un contacto malo). Así no pasa por el
   fusible ni la seta: límite de 3 A y apagar la fuente como parada.
 - **`12`:** J1 lista (0–5), repetir el paso 3 con el cero nuevo. **`17`:** pega fuerte en los FC. **`18`:** OK.
-- **Robot:** `firmware/brazo` sigue con la polea de 90, cero y signos viejos de J1, FC de J2/J3 al revés y 1 kHz.
+- **Robot:** la WROOM tiene hoy el firmware de `20` (hay que volver a flashear `firmware/brazo`, que sigue con la
+  franja, el homing y el reposo viejos).
 
 ## Pinza y muñeca (servos)
 
@@ -77,4 +75,4 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
 ## Firmware del robot
 
 - El brazo vive en `~/Documentos/recolector_de_frutas/firmware/brazo`; sus pendientes están en el `CLAUDE.md` de ese
-  repo. Falta pasarle lo de hoy (ver `PENDIENTES.md`).
+  repo. Falta pasarle lo de `20` (ver `PENDIENTES.md`).

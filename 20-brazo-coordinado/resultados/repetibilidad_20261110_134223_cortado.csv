@@ -1,0 +1,4 @@
+# 20-brazo-coordinado, repetibilidad: poses 20 20 14 | 40 30 20 | 40 74 70 | 60 74 70 | 20 74 70; 1 de calentamiento + 10 ciclos
+# cortado: Ctrl+C
+# cmd,0,h
+ciclo,pose,obj1,obj2,obj3,q1,q2,q3,e1,e2,e3,t_ms

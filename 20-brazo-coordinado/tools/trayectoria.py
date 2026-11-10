@@ -39,13 +39,14 @@ PUERTO = "/dev/serial/by-id/usb-1a86_USB_Serial-if00-port0"
 # Franja del cuatro barras (include/config.h, manivela de 95 mm, 2026-11-04):
 #   q2 - Q2_MENOS_Q3_MAX <= q3 <= borde de arriba (tabla FRANJA_ARRIBA (q2, q3 máx), interpolada)
 Q2_MENOS_Q3_MAX = 49.0
-FRANJA_ARRIBA = [(0.0, 3.2), (15.0, 10.8), (30.0, 27.9), (45.0, 54.2), (60.0, 72.2), (75.0, 82.7), (90.0, 91.9),
-                 (105.0, 101.6)]
+# 2026-11-10 (doble helicoidales): medida de nuevo, resultados/limites_20261110_145545.csv
+FRANJA_ARRIBA = [(0.0, 0.5), (9.9, 3.0), (15.1, 4.0), (30.1, 16.1), (45.1, 31.3), (60.2, 52.0), (74.6, 75.1),
+                 (80.1, 83.4)]
 NOMBRES = ("J1", "J2", "J3")
 # Al final de cada serie (salvo --sin-volver): cerca del cero, listo para el próximo homing. 2026-11-04: 3 3 3 -> 3 10 5
 # (el punto intermedio de las salidas): en (3, 3) J2/J3 llegaban sin la aproximación desde abajo (el punto previo
 # quedaba a 1° del final de carrera) y J3 oscilaba ±0,3° hasta "no quedan firmes" (trayectoria_20261104_230336_cortado)
-VOLVER = "mv 3 10 5"
+VOLVER = "mv 3 20 5"  # 2026-11-10: (10, 5) quedó fuera de la franja nueva
 COLUMNAS = ["t_ms", "etapa"] + [f"{c}{i}" for i in (1, 2, 3) for c in ("q", "r", "u", "w", "s")]
 ESTADOS = {0: "suelta", 1: "yendo", 2: "llegó", 3: "firme", 4: "frenada", 5: "siguiendo", 6: "homing"}
 ETAPAS = {0: "", 1: "recorrido", 2: "aproximación", 3: "llegada", 4: "asentamiento", 8: "joystick", 9: "homing"}

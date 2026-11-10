@@ -14,6 +14,12 @@ bloqueante a 100 Hz**. `19` queda como banco de pruebas de una articulación por
   (`HOMING_RECORRIDO_SIN_CERO`, 2026-11-03: arrancó estirado, J3 subió 28° y se trabó contra la franja). Cada una llega a su final de carrera **despacio** (las tres a 1,5 °/s desde el 03/11; antes J2 0,5 y
   J3/J1 1 °/s: el golpe giraba los finales de carrera), cero en el flanco, retrocede 3° y queda sostenida. Informa cuánto se corrió cada flanco
   (`HOMING,t,d1,d2,d3,con_cero`).
+- **Desde el 2026-11-10 (J2 y J3 con doble helicoidales, mucho menos juego):** borde de arriba nuevo, todo por
+  arrastre y sin margen (`resultados/limites_20261110_145545.csv`): 0 → 0,5 (estimado) · 9,9 → 3,0 · 15,1 → 4,0 ·
+  30,1 → 16,1 · 45,1 → 31,3 · 60,2 → 52,0 · 74,6 → 75,1 · 80,1 → 83,4. El borde de abajo (−49° / −25°) sigue siendo
+  el viejo: medición a medias. Homing: J3 espera a J2 en su flanco y J2 retrocede a +20° (J1 y J3 a +3°). Reposo de
+  los scripts: `mv 3 20 5`. `fr 0` / `fr 1` apaga / prende la franja para medirla (`joystick.py --sin-franja`). Lo
+  que sigue en este punto es la historia con los engranajes simples.
 - **Franja del cuatro barras** (desde el 2026-11-04, manivela de J3 de 95 mm): `q2 − 49° ≤ q3 ≤ borde de arriba`,
   donde el borde de arriba es una **tabla** (J2 → J3 máx: 0 → 3,2 · 15 → 10,8 · 30 → 27,9 · 45 → 54,2 · 60 → 72,2 ·
   75 → 82,7 · 90 → 91,9 · 105 → 101,6, interpolada; `FRANJA_ARRIBA` en `config.h`). Medida con `17 -e explorar`
@@ -197,3 +203,9 @@ Línea de telemetría: `T,ms,etapa,` y por cada una `q,ref,duty,w,estado` (etapa
 | 2026-11-05 | J2 5 × (30, 20) ↔ (74, 70), base (`trayectoria_20261105_113041`) | J2 en 74°: 73,72 · 74,22 · 74,22 · 74,20 · 74,22 (se traba, despega a 3–5 °/s y se pasa) |
 | 2026-11-05 | J2 con freno anticipado 0,055 s y `tolLlegada` 0,15 (`trayectoria_20261105_114619`) | J2 en 74°: 73,93 · 73,97 · 73,93 · 73,93 · 73,92 (rango 0,05°) |
 | 2026-11-05 | Repetibilidad con J1 y J2 arregladas (`repetibilidad_20261105_115640`) | Peor RP **J1 0,168° · J2 0,052° · J3 0,177°**; las tres dentro de ±0,2° el **98 %** |
+| 2026-11-10 | Doble helicoidales en J2/J3: homing nuevo (J3 espera a J2, J2 a +20°) | Funciona; antes cortaba por atasco (J2 y J3 se empujaban) |
+| 2026-11-10 | Borde de arriba de la franja con el joystick (`limites_20261110_145545.csv`) | 9,9 → 3,0 · 15,1 → 4,0 · 30,1 → 16,1 · 45,1 → 31,3 · 60,2 → 52,0 · 74,6 → 75,1 · 80,1 → 83,4, todos por arrastre |
+| 2026-11-10 | `h "mv 20 20 6" "mv 40 30 14" "mv 3 20 5"` (`trayectoria_20261110_150805`) | Sin cortes |
+| 2026-11-10 | Repetibilidad, 10 ciclos, poses nuevas (`repetibilidad_20261110_151950`) | Peor RP **J1 0,18° · J2 0,13° · J3 0,07°** |
+| 2026-11-10 | `tAnticipo` de J2 0,01 s (`repetibilidad_20261110_153901`) | Peor (J2 0,16°, J3 0,09°): vuelve a 0,055 s |
+| 2026-11-10 | Borde de abajo (`limites_20261110_154123.csv`, `_155350.csv`) | A medias: J2 45 → J3 libre hasta su final de carrera; 60 → 10,4; 75 → 27,8 (sin saber si traba o arrastra). Se rompió el eje de J1 |

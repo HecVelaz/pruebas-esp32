@@ -45,7 +45,8 @@ Q1_LIM = (3.0, 115.0)
 Q2_LIM = (3.0, 80.0)
 Q3_LIM = (3.0, 98.5)
 Q3_MENOS_Q2_MIN = -25.0     # más abajo J3 no queda firme (punto muerto del cuatro barras, 05/11)
-FRANJA_ARRIBA = [(0, 3.2), (15, 10.8), (30, 27.9), (45, 54.2), (60, 72.2), (75, 82.7), (90, 91.9), (105, 101.6)]
+# 2026-11-10 (doble helicoidales): medida de nuevo, resultados/limites_20261110_145545.csv
+FRANJA_ARRIBA = [(0, 0.5), (9.9, 3.0), (15.1, 4.0), (30.1, 16.1), (45.1, 31.3), (60.2, 52.0), (74.6, 75.1), (80.1, 83.4)]
 MARGEN_FRANJA = 1.0
 ZONA_MEDIDA = ((19.0, 79.0), (4.0, 82.0))   # q2, q3 de las poses de calibración
 

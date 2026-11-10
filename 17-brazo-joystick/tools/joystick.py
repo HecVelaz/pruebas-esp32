@@ -116,6 +116,8 @@ def main():
     ap.add_argument("--host", default="127.0.0.1", help="0.0.0.0 para abrir la página desde otro equipo (celular)")
     ap.add_argument("--placa", type=int, choices=(17, 20), default=17,
                     help="firmware en la WROOM: 17 (lazo abierto, def.) o 20 (jv en lazo cerrado, homing)")
+    ap.add_argument("--sin-franja", action="store_true",
+                    help='con --placa 20: manda "fr 0" al arrancar (franja del cuatro barras apagada, para medirla)')
     ap.add_argument("--zq", metavar='"Q1 Q2 Q3"',
                     help='con --placa 20: el brazo está en estos ángulos (cero estimado, "zq") para bajarlo con el '
                          'joystick sin cero; después Homing')
@@ -185,6 +187,8 @@ def main():
         enviar("t 1")
         if args.zq is not None:
             enviar("zq %.2f %.2f %.2f" % tuple(zq))
+        if args.sin_franja:
+            enviar("fr 0")
 
         def pedir_estado():
             while True:

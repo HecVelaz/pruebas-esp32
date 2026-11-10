@@ -88,7 +88,15 @@ float q2MinFranja(float q3) {
 
 // Cuánto sale (q3, en °) de la franja: <= 0 adentro. lado: +1 el codo demasiado estirado (q3 sobre el borde de
 // arriba), -1 el hombro demasiado arriba (q3 bajo q2 - Q2_MENOS_Q3_MAX)
+// "fr 0" (2026-11-10): franja APAGADA para volver a medirla con el joystick (doble helicoidales). Solo quedan los
+// límites propios de cada una y los cortes por atasco / sin cuentas. Al reiniciar vuelve prendida
+bool franjaActiva = true;
+
 float excesoFranja(float q2, float q3, int *lado = nullptr) {
+  if (!franjaActiva) {
+    if (lado) *lado = 0;
+    return -1000.0f;
+  }
   const float arriba = q3 - q3MaxFranja(q2);
   const float abajo = (q2 - Q2_MENOS_Q3_MAX) - q3;
   if (lado) *lado = arriba >= abajo ? 1 : -1;
@@ -96,7 +104,7 @@ float excesoFranja(float q2, float q3, int *lado = nullptr) {
 }
 float excesoFranjaAhora(int *lado = nullptr) { return excesoFranja(art[I2].q(), art[I3].q(), lado); }
 // Lo mismo para un destino (donde J2/J3 quedan sostenidas): el borde de abajo es Q2_MENOS_Q3_DESTINO (firmeza de J3)
-float excesoDestino(float q2, float q3) { return fmaxf(q3 - q3MaxFranja(q2), (q2 - Q2_MENOS_Q3_DESTINO) - q3); }
+float excesoDestino(float q2, float q3) { return !franjaActiva ? -1000.0f : fmaxf(q3 - q3MaxFranja(q2), (q2 - Q2_MENOS_Q3_DESTINO) - q3); }
 
 // El exceso más grande sobre la recta de (a2, a3) a (b2, b3), mirando cada "paso" grados
 float excesoTramo(float a2, float a3, float b2, float b3, float paso = 0.25f) {
@@ -134,7 +142,9 @@ struct {
   int grupo = 0;                 // índice en grupos
   int nGrupos = 0;
   int grupos[N][N];              // articulaciones de cada grupo (-1 = vacío); el grupo siguiente arranca al terminar
-  int etapa[N] = {};             // 0 arrancar, 1 buscando, 2 retrocediendo, 3 terminada
+  int etapa[N] = {};             // 0 arrancar, 1 buscando, 2 retrocediendo, 3 terminada, 4 J3 en su flanco esperando a J2
+  bool preSubida = false;        // J2 sube antes de empezar (J3 arrancó con su final de carrera apretado)
+  uint32_t tPre = 0;
   uint32_t tEtapa[N] = {};       // millis() al empezar el retroceso
   bool conCero[N] = {};
   float delta[N] = {NAN, NAN, NAN};
@@ -194,6 +204,14 @@ void homingIniciar() {
   hm.grupo = 0;
   for (auto &e : hm.etapa) e = 0;
   for (auto &d : hm.delta) d = NAN;
+  // 2026-11-10 (doble helicoidales, casi sin juego): con J2 abajo J3 no puede alejarse de su final de carrera para
+  // volver a buscar el flanco (trayectoria_20261110_141606_cortado: +50 % sin una cuenta). J2 sube antes
+  hm.preSubida = art[I3].fc();
+  if (hm.preSubida) {
+    hm.tPre = millis();
+    art[I2].sostener(art[I2].q() + HOMING_PRE_SUBIDA_J2);
+    msg("   J3 ya aprieta su final de carrera: J2 sube %.0f° antes de empezar.", HOMING_PRE_SUBIDA_J2);
+  }
   msg(">> Homing: %s (J3 %.1f, J2 %.1f, J1 %.1f °/s). Cualquier comando corta.",
       juntas ? "las tres juntas" : "J3, J2 y al final J1 (J2 arriba)", CFG_J3.homingVelBuscar,
       CFG_J2.homingVelBuscar, CFG_J1.homingVelBuscar);
@@ -217,12 +235,31 @@ bool homingPasoArt(int i) {
     hm.delta[i] = a.flancoGrados();
     a.ceroEnFlanco();
     cero[i] = true;
-    a.sostener(HOMING_RETROCESO);
+    // 2026-11-10: J3 no retrocede hasta que J2 terminó. Con los doble helicoidales (casi sin juego) J3 subiendo a 3°
+    // mientras J2 baja a su final de carrera se empujan por el cuatro barras (q3 <= ~3° con J2 en 0) y se traban las
+    // dos (trayectoria_20261110_135031_cortado: J3 +69 % y J2 -65 % sin avanzar). Queda sostenida en su flanco
+    if (i == I3 && hm.etapa[I2] != 3) {
+      hm.etapa[i] = 4;
+      msg("   J3 en su final de carrera: espera a J2 para retroceder.");
+      return true;
+    }
+    a.sostener(i == I2 ? HOMING_RETROCESO_J2 : HOMING_RETROCESO);
     hm.etapa[i] = 2;
     hm.tEtapa[i] = millis();
     return true;
   }
   if (hm.etapa[i] == 3) return true;
+  if (hm.etapa[i] == 4) {  // J3 esperando a J2
+    if (a.error()) {
+      homingCortar(a.error());
+      return false;
+    }
+    if (hm.etapa[I2] != 3) return true;
+    a.sostener(i == I2 ? HOMING_RETROCESO_J2 : HOMING_RETROCESO);
+    hm.etapa[i] = 2;
+    hm.tEtapa[i] = millis();
+    return true;
+  }
   // etapa 2: retrocediendo
   if (a.error()) {
     homingCortar(a.error());
@@ -245,16 +282,33 @@ bool homingPasoArt(int i) {
 
 void homingPaso() {
   if (!hm.activo) return;
-  bool listas = true;
-  for (int i : hm.grupos[hm.grupo]) {
-    if (i < 0) continue;
-    if (!homingPasoArt(i)) return;
-    listas = listas && hm.etapa[i] == 3;
+  if (hm.preSubida) {
+    if (art[I2].error()) {
+      homingCortar(art[I2].error());
+      return;
+    }
+    if (!art[I2].firme()) {
+      if (millis() - hm.tPre > 15000) homingCortar("J2 no termina de subir antes de empezar (15 s)");
+      return;
+    }
+    hm.preSubida = false;
   }
-  if (!listas) return;
-  if (++hm.grupo < hm.nGrupos) return;
+  // Las del grupo actual y las que ya empezaron (J3 espera a J2, que puede estar en el grupo siguiente)
+  bool grupoListo = true;
+  for (int i = 0; i < N; i++) {
+    bool enGrupo = false;
+    if (hm.grupo < hm.nGrupos)
+      for (int x : hm.grupos[hm.grupo]) enGrupo = enGrupo || x == i;
+    if (!enGrupo && hm.etapa[i] == 0) continue;
+    if (!homingPasoArt(i)) return;
+    if (enGrupo) grupoListo = grupoListo && hm.etapa[i] >= 3;
+  }
+  if (hm.grupo < hm.nGrupos && grupoListo) hm.grupo++;
+  if (hm.grupo < hm.nGrupos) return;
+  for (int i = 0; i < N; i++)
+    if (hm.etapa[i] != 3) return;
   hm.activo = false;
-  msg(">> Homing listo: cero en los flancos, las tres en %+.1f°.", HOMING_RETROCESO);
+  msg(">> Homing listo: cero en los flancos, J1 y J3 en %+.1f°, J2 en %+.1f°.", HOMING_RETROCESO, HOMING_RETROCESO_J2);
   msg("HOMING,%lu,%.3f,%.3f,%.3f,%d%d%d", (unsigned long)millis(), hm.delta[I1], hm.delta[I2], hm.delta[I3],
       hm.conCero[I1] ? 1 : 0, hm.conCero[I2] ? 1 : 0, hm.conCero[I3] ? 1 : 0);
 }
@@ -590,6 +644,7 @@ void ayuda() {
   msg("  s            sostener las tres donde están");
   msg("  z            cero de las tres acá (tienen que estar en sus finales de carrera; mejor \"h\")");
   msg("  c            estado de las tres");
+  msg("  fr <1|0>     franja del cuatro barras prendida / apagada (apagada solo para medirla con el joystick)");
   msg("  fb           freno dentro de la banda sí/no (al llegar, duty 0 hasta que se aleje)");
   msg("  ff <n> <desp+> <marcha+> <desp-> <marcha->  feedforward de una articulación (%%)");
   msg("  zq <q1> <q2> <q3>  el brazo está en estos ángulos (cero estimado, para bajarlo sin cero; después \"h\")");
@@ -619,6 +674,7 @@ bool rango(int i, float &mn, float &mx) {
   mx = c.limPos - MARGEN_LIMITE;
   if (i == I2 || i == I3) {
     if (!cerosJ2J3()) return false;
+    if (!franjaActiva) return true;
     const int o = i == I2 ? I3 : I2;
     // La otra, en el peor caso entre su medido y su referencia
     const float qo1 = art[o].q(), qo2 = art[o].referencia();
@@ -911,6 +967,11 @@ void ejecutar(char *l) {
       msg("   OJO: alguno suelto. El cero bueno es en los finales de carrera: mejor \"h\".");
     enAlto();
     for (auto &a : art) a.sostenerAqui();
+  } else if (strcmp(l, "fr 0") == 0 || strcmp(l, "fr 1") == 0) {
+    franjaActiva = l[3] == '1';
+    fueraFranja = fueraFranjaAhora();
+    msg(">> Franja del cuatro barras %s.", franjaActiva ? "PRENDIDA" : "APAGADA: J2 y J3 solo con sus límites propios "
+        "(para medirla de nuevo con el joystick; mano en la fuente). \"fr 1\" la prende");
   } else if (strcmp(l, "fb") == 0) {
     frenoBanda = !frenoBanda;
     for (auto &a : art) a.frenoEnBanda(frenoBanda);
