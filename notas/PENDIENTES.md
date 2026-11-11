@@ -31,21 +31,25 @@
 - ~~Eje de J1~~ (10/11 noche: reemplazado, cero, recorrido y repetibilidad bien). ~~Borde de abajo de la franja~~ y
   ~~borde de arriba re-medido~~ (10/11 noche, tablas en `config.h`, probadas en placa).
 - **En orden:**
-  a. **Flashear y probar la caja desde J1 53,5** (compilado el 11/11, sin flashear): joystick con la franja, J2 70 /
+  a. **Probar la caja desde J1 53,5** (flasheada, sin probar): joystick con la franja, J2 70 /
      J3 60, J1 a 40, J3 a ~72, girar J1 al frente → tiene que frenar en 53; J1 55, subir J3 → frena en ~65,2 (medir la
      muñeca). Si frena bien, repetibilidad con las poses nuevas (J3 68). Si la muñeca entra sobre la tapa antes de 53,
      bajar `CAJA_J1_MIN`. (Caminos de las listas contra la caja: hecho el 10/11, ≥ 11 cm.)
-  a1. **¿Por qué el modelo ubica la muñeca ~5 cm afuera sobre el costado?** Medir si el hombro (eje de J2) está
-     corrido respecto del eje de J1 (foto desde arriba) y la escala de J1 (a2); después, la caja con el modelo.
-  a2. **Escala de J1 en duda:** a ojo (10/11 noche) el homing (2,8 del encoder) apunta exacto al costado y 86,1 al
-     frente → J1 gira 8 % más de lo que cree el firmware (contradice el 26/10). Corregido solo en `cinematica.py`
-     (`q1_real`). Contar los dientes de la polea grande: 84 → la de hoy estuvo mal; ~78 → cambiar la escala en el
-     firmware (y revisar límites de J1).
+  a0. **Cajita de los limones sobre la tapa:** el usuario pasa posición (desde el borde de atrás y el izquierdo) y
+     medidas; agregarla como obstáculo en `cinematica.py` (`choques`) y ver desde dónde la pinza puede soltar el limón
+     (la punta no llega sobre la tapa: mínimo 36 cm de J1). Después, prueba completa con `punta.py`: agarre → cajita.
+  a1. ~~Muñeca ~5 cm afuera~~ (11/11: era el modelo del 05/11; recalibrado con video).
+  a2. **Escala de J1:** confirmada con cinta (11/11, 0°/45°/90°): 90° reales por 83,3 del encoder (en `cinematica.py`).
+     Contar los dientes de la polea grande (~78 esperado) y decidir si se cambia la escala en el firmware (y entonces
+     revisar límites de J1, franja de J1 y `CAJA_J1_MIN`, que hoy están en grados del encoder).
+  a3. Medir con cinta el centro del mástil (hoy (300, 240) a ojo; el croquis da ~(330, 258)). Próximo video de
+     calibración: trípode nivelado a la altura del hombro (el del 11/11 quedó ~8° inclinado, se corrigió).
   b. Repetibilidad de 30 ciclos (`repetibilidad.py --ciclos 30 --calentar 3`, poses nuevas con J3 68); la de 10 dio
      0,13 / 0,20 / 0,06° (con J3 70).
   c. **J2 es la peor (RP 0,20°):** ganancias, despegue y feedforward de J2 para los doble helicoidales (tarda ~0,4 s
      en despegar, se atrasa ~2°).
-  d. **Recalibrar la cinemática de la punta** con video (el modelo del 05/11 es con el juego viejo).
+  d. ~~Recalibrar la cinemática de la punta con video~~ (11/11: 19 poses, 10 mm de media). Con el modelo nuevo se
+     puede pasar la regla de la caja del firmware a una con el modelo (opcional).
   e. Opcional: el borde de arriba entre 0 y 21° es "hasta donde se llegó sin nada" (L), no el borde real; el de abajo
      en J2 = 50–55 es inconsistente (55: A en 22,5 una vez, 19,8 sin nada otra). Re-medir solo si hace falta lugar.
   f. Pasar franja (las dos tablas), caja, homing (3 / 6 / 3, J3 espera a J2 > 5°, J2 rápida con cero) y reposo nuevos a

@@ -1,4 +1,4 @@
-# Estado de pruebas-esp32 (al 2026-11-11)
+# Estado de pruebas-esp32 (al 2026-11-11, tarde)
 
 Foto de hoy. La historia, las mediciones completas y los nombres de los CSV están en `BITACORA.md`; lo que sigue, en
 `PENDIENTES.md`; los pines de la S3, en `PINES_S3.md`.
@@ -6,8 +6,8 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
 ## Brazo: lo próximo
 
 - **`20-brazo-coordinado` (lo actual):** J1, J2 y J3 con el mismo controlador (`lib/Articulacion`), lazo no
-  bloqueante a 100 Hz, 20 kHz, sin el resorte de la pinza. **Flasheado: el del 11/11 con la caja desde J1 64;
-  el de J1 53,5 está compilado y SIN flashear ni probar** (lo primero de la próxima sesión).
+  bloqueante a 100 Hz, 20 kHz, sin el resorte de la pinza. **Flasheado: el de la caja desde J1 53,5** (la captura
+  del 11/11 lo confirma), con la regla de la caja **sin probar** todavía.
   - **Mecánica (10/11):** J2 y J3 con **doble helicoidales** 15 → 75, en seco. J3 con manivela de 95 mm. **Eje de J1
     reemplazado** (misma pieza) el 10/11 a la noche: cero, recorrido 3–115° y repetibilidad bien.
   - **Franja (10/11 noche, medida entera con el joystick):** borde de arriba, tabla `FRANJA_ARRIBA` (0 → 0,5 est. ·
@@ -23,18 +23,19 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
     Llegada desde abajo; `tolLlegada` 0,15° y freno anticipado (J1 0,03 s, J2 0,055 s, J3 0,045 s).
   - **Caja (11/11):** con J1 ≥ `CAJA_J1_MIN`, J3 máximo según J2 (`CAJA_ARRIBA`: 64 → 73,2 · 68–69 → 65,0 ·
     70 → 66,2 · 74 → 69,5 · 80 → 74,2; muñeca a ≥ 3 cm de la tapa). `mv` revisa con la J1 más alta del camino; con
-    J3 alta J1 no entra; protección `>> CAJA`. Desde J1 64 (flasheado): frenó en 65,2 con la muñeca a 4 cm, pero con
-    J1 63,5 la muñeca llegó a 1 cm de la tapa → **53,5** (sin flashear). Activa también con `fr 0`.
+    J3 alta J1 no entra; protección `>> CAJA`. Desde J1 64: frenó en 65,2 con la muñeca a 4 cm, pero con J1 63,5 la
+    muñeca llegó a 1 cm de la tapa → **53,5** (flasheado, sin probar). Activa también con `fr 0`.
   - **Poses de repetibilidad:** `20 20 6`, `40 30 14`, `40 74 68`, `60 74 68`, `20 74 68` (J3 70 → 68 por la caja).
   - **Repetibilidad** (`repetibilidad_20261110_224409`, 10 ciclos, con J3 70): RP **J1 0,13°, J2 0,20°, J3 0,06°**; 5 ciclos con
     la franja completa (`_230137`): 0,06 / 0,20 / 0,08. J2 la peor (ganancias y feedforward de los engranajes
     viejos; tarda ~0,4 s en despegar).
-  - **Cinemática** (`tools/cinematica.py`, modelo del 05/11, juego viejo): hombro (J2 y J3) a **165 mm**, J1 real
-    `(q1 − 2,8) · 90 / 83,3` (a ojo), tapa en **T** (40 cm atrás, J1 a 12 cm del borde derecho; 34 cm adelante, 9).
-    Acierta la altura de la muñeca (1–2 mm + ~6 mm del servo) pero la ubica ~5 cm más afuera de lo real sobre el
-    costado: la caja del firmware es empírica, no del modelo.
-  - Joystick `jv` (`17/tools/joystick.py --placa 20 [--sin-franja]`; botones Homing y Anotar). J1 0–118°
-    PROVISORIO.
+  - **Cinemática** (`tools/cinematica.py`, **recalibrada con video el 11/11**, 19 poses, error 10 mm de media y
+    25 máx): hombro (J2 y J3) a **165 mm**; J1 real `(q1 − 2,8) · 90 / 83,3` (**confirmada** con cinta a 0°, 45° y
+    90°; el firmware sigue con la escala de la polea de 84). Marco: x a la derecha del robot, y adelante; **J1 a la
+    izquierda** (0 = −x), mástil a la derecha (300, 240, a ojo). Tapa en **T**: ancha (40) adelante, angosta (34)
+    atrás con J1 a 9 cm del borde de atrás y del izquierdo. Inversa con `punta.py` probada con cinta: bien. La punta no
+    llega sobre la tapa (mínimo 36 cm de J1). La caja del firmware sigue siendo empírica.
+  - Joystick `jv` (`17/tools/joystick.py --placa 20 [--sin-franja]`; botones Homing y Anotar).
 - **Cero del brazo:** la pose con los tres finales de carrera apretados (foto del 30/10); + = alejarse de cada uno.
   Límites: J1 0–118° (brazo recogido), J2 0–83°, J3 0–101,5°; franja con tablas (ver arriba). Finales de carrera:
   J1 32, J2 27, J3 33. **Tienen un solo punto de apoyo y el golpe los gira**: llegar despacio (`h`) y fijarlos
@@ -71,8 +72,7 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
   (hoy `/dev/ttyUSB0`; `tools/monitor.sh` la abre por id).
 - Respaldo del firmware micro-ROS del brazo de la WROOM de la Pi: `~/firmware/brazo/respaldo_20261001_183959.bin`.
 
-## Pruebas terminadas
-- IMU MPU-6500 (01, 02) OK, sin magnetómetro; GPS UP501 (04, 05) OK por WiFi; lazo abierto 06/07 y 08 (`Freno`) OK.
+## Pruebas terminadas: IMU MPU-6500 (01, 02) OK, sin magnetómetro; GPS UP501 (04, 05) OK por WiFi; lazo abierto 06/07 y 08 (`Freno`) OK.
 
 ## Firmware del robot
 

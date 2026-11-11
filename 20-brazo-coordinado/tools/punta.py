@@ -6,8 +6,8 @@ Abre el puerto como un monitor: lo que se escribe va a la placa (h, c, mv, s, x,
     ver <x> <y> <z>   lo mismo sin mover nada (solo el plan)
     donde             pide "c" y dice dónde está la punta
     salir             (o Ctrl+D)
-Marco del robot (el de cinematica.py): origen en el eje de J1 a la altura de la tapa; x a la derecha, y adelante
-(hacia los ultrasonidos), z arriba. Ej.: "p 0 500 300" = 50 cm adelante y 30 cm sobre la tapa (J1 en 90°).
+Marco del robot (el de cinematica.py): origen en el eje de J1 a la altura de la tapa; x a la derecha del robot
+(J1 está a la izquierda y atrás, el mástil a la derecha), y adelante (hacia los ultrasonidos), z arriba. Ej.: "p 0 500 300" = 50 cm adelante y 30 cm sobre la tapa (J1 en 90°).
 
 Antes de mandar un "p" revisa, además de lo de cinematica.py (límites, franja, q3 - q2 >= -25°, choques del destino):
   - el camino de J2/J3 como lo hace el firmware (recta hasta el punto previo de la aproximación, 2° abajo, y el

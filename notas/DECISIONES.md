@@ -87,3 +87,10 @@
   de lo visto en el brazo (55,6 − 2°), porque en el costado el modelo se equivoca ~5 cm. Más conservadora que el
   modelo: no deja bajar la muñeca por delante del borde con J1 al frente. Con la cinemática recalibrada, se puede
   pasar a una regla con el modelo (sobre la tapa o delante).
+- **Marco del robot en `cinematica.py` (2026-11-11):** x hacia la derecha del robot (visto desde arriba con el
+  frente adelante), y hacia el frente (ultrasonidos), z arriba, origen en el eje de J1 a la altura de la tapa. J1 está
+  a la izquierda: el 0 real de J1 apunta a −x y 90° al frente. Hasta el 11/11 el marco estaba espejado (J1 a la
+  derecha); se corrigió para que las coordenadas coincidan con el robot y el croquis de la tapa.
+- **Calibración de la punta con video de frente (2026-11-11):** con la cámara inclinada se rectifica la imagen con el
+  punto de fuga de las verticales antes de medir; escala por el codo (350,22 mm) y hombro por el círculo de la
+  manivela. El modelo empírico (ángulos en q2, q3) se rehace con cada cambio mecánico de J2/J3.

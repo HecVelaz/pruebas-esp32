@@ -1,26 +1,31 @@
 #!/usr/bin/env python3
-"""Cinemática directa e inversa de la punta (centro de la pinza) de 20, con el modelo MEDIDO (2026-11-05).
+"""Cinemática directa e inversa de la punta (centro de la pinza) de 20, con el modelo MEDIDO (2026-11-11; antes 05/11).
 
 No es la cinemática ideal de la E4: J2 y J3 tienen juego y J2 gira 1,170° reales por grado del encoder, así que los
-ángulos reales del brazo y del antebrazo se ajustan a las 12 poses del video de calibración
-(resultados/calibracion_punta_20261105_164644.csv):
-    brazo     = lineal en (q2, q3)             (residuos <= 1,7°)
-    antebrazo = cuadrático en (q2, q3)
-    pinza     = muñeca + (178,8 mm afuera, 29,4 mm arriba)   (la pinza queda siempre horizontal)
-Error de la punta dejando cada pose afuera del ajuste: ~9 mm de media, hasta ~3 cm en los bordes. Fuera de la zona
-medida (q2 20-78°, q3 5-81°) el modelo extrapola: lo avisa.
+ángulos reales del brazo y del antebrazo se ajustan a las 19 poses del video de calibración del 11/11, con los
+engranajes doble helicoidales (resultados/calibracion_punta_20261111_115727.csv; el del 05/11, con el juego viejo,
+ubicaba la punta ~3 cm más afuera):
+    brazo     = lineal en (q2, q3)             (residuos <= 1,3°)
+    antebrazo = cuadrático en (q2, q3)         (codo -> muñeca 328,6 mm)
+    pinza     = muñeca + (174 mm afuera, 31 mm arriba)   (la pinza queda siempre horizontal)
+Error de la punta dejando cada pose afuera del ajuste: ~10 mm de media, hasta ~2,5 cm. Fuera de la zona medida
+(q2 10-78°, q3 5-75°) el modelo extrapola: lo avisa.
 
-Marco del robot (mm), visto desde adelante (el frente es el de los ultrasonidos):
+Marco del robot (mm), visto desde arriba con el frente (los ultrasonidos) hacia adelante:
     origen en el eje de J1, a la altura de la tapa de la caja
-    x hacia la derecha, y hacia adelante, z hacia arriba
-    J1 real 0 apunta a +x (a la derecha); + gira hacia adelante (90° = hacia el frente, sobre la caja); ver q1_real()
-Geometría de ~/Imágenes/brazo/medidas.jpeg (a ojo): caja 400 x 400 x 230 mm (tapa en T: ver CAJA_*), J1 a 120 mm del borde derecho (90 en la parte de adelante) y 315 mm del
-frente; hombro (ejes de J2 y J3) 165 mm sobre la tapa (medido, 10/11), sobre el eje de J1 y centrado; mástil Ø 50 a 300 mm a
-la izquierda y 240 mm adelante de J1.
+    x hacia la derecha del robot, y hacia adelante, z hacia arriba
+    J1 está a la IZQUIERDA y atrás; el mástil a la DERECHA y adelante (~/Imágenes/brazo/tapa.jpeg, 11/11)
+    J1 real 0 apunta a -x (a la izquierda, al borde cercano); + gira hacia adelante (90° = al frente, sobre la caja)
+    y sigue hacia la derecha (el mástil queda a ~140°); ver q1_real()
+    (hasta el 11/11 el marco estaba espejado: J1 a la derecha y 0 a +x, y la T al revés, la parte ancha atrás)
+Geometría de ~/Imágenes/brazo/tapa.jpeg: caja 400 x 400 x 230 mm, tapa en T (ver CAJA_*); J1 a 90 mm del borde de
+atrás y 90 del borde izquierdo de la parte angosta (120 de la línea del borde ancho), 310 del frente; hombro (ejes
+de J2 y J3) 165 mm sobre la tapa (medido, 10/11), sobre el eje de J1 y centrado; mástil Ø 50 a ~300 mm a la derecha
+y ~240 adelante de J1 (bitácora del 03/11, a ojo; en el croquis queda afuera del borde ancho derecho).
 
 Uso:
     python3 tools/cinematica.py directa 3 50 45            # q1 q2 q3 (grados del encoder) -> x y z de la punta
-    python3 tools/cinematica.py inversa 600 100 250        # x y z (mm) -> q1 q2 q3 (y el comando mv)
+    python3 tools/cinematica.py inversa -600 100 250       # x y z (mm) -> q1 q2 q3 (y el comando mv)
     python3 tools/cinematica.py prueba                     # validación: dejando cada pose afuera, ida y vuelta
 """
 import argparse
@@ -29,28 +34,32 @@ from pathlib import Path
 
 import numpy as np
 
-CSV = Path(__file__).absolute().parent.parent / "resultados" / "calibracion_punta_20261105_164644.csv"
+CSV = Path(__file__).absolute().parent.parent / "resultados" / "calibracion_punta_20261111_115727.csv"
+
+
+def leer_csv(ruta=CSV):
+    return np.loadtxt([l for l in open(ruta) if l[:1].isdigit() or l[:1] == "-"], delimiter=",")
 
 # Geometría (mm)
 L2 = 350.22            # hombro -> codo (escala del video)
 H_HOMBRO = 165.0       # ejes de J2 y J3 sobre la tapa (usuario, 2026-11-10 noche; antes 175 (05/11) y 180 supuesto)
-CAJA_X = (-280.0, 120.0)   # la tapa, en x (izquierda, derecha) desde J1: la parte ANCHA (40 cm)
-CAJA_Y = (-85.0, 315.0)    # en y (atrás, adelante)
-# 2026-11-11: la tapa es una T (recolector_de_frutas/docs/TPF R2/Entrega 3/Imágenes/Dimensiones_Base.jpg): 40 cm de
-# ancho en los 23 cm de atrás (J1 ahí, a 12 cm del borde derecho, usuario) y 34 cm (3 cm menos por lado, las ruedas)
-# en los 17 cm de adelante (borde derecho a 9 cm, el del croquis del 03/11)
-CAJA_Y_ANGOSTA = 145.0     # desde acá hacia adelante, la parte angosta
-CAJA_X_ANGOSTA = (-250.0, 90.0)
+# 2026-11-11 (~/Imágenes/brazo/tapa.jpeg): la tapa es una T. Adelante la parte ANCHA, 40 cm en los 23 cm del frente
+# (los ultrasonidos); atrás la ANGOSTA, 34 cm (3 cm menos por lado, las ruedas) en los 17 cm de atrás, con J1 a 9 cm
+# del borde de atrás y 9 del borde izquierdo
+CAJA_Y = (-90.0, 310.0)        # en y (atrás, adelante)
+CAJA_Y_ANCHA = 80.0            # desde acá hacia adelante, la parte ancha
+CAJA_X_ANCHA = (-120.0, 280.0)     # en x (izquierda, derecha) desde J1
+CAJA_X_ANGOSTA = (-90.0, 250.0)
 
 
 def sobre_la_tapa(x, y, margen=0.0):
     """(x, y) dentro de la huella de la tapa en T, con margen (mm)."""
-    if CAJA_Y[0] - margen <= y <= CAJA_Y_ANGOSTA + margen and CAJA_X[0] - margen <= x <= CAJA_X[1] + margen:
+    if CAJA_Y[0] - margen <= y <= CAJA_Y_ANCHA + margen and CAJA_X_ANGOSTA[0] - margen <= x <= CAJA_X_ANGOSTA[1] + margen:
         return True
-    return (CAJA_Y_ANGOSTA - margen <= y <= CAJA_Y[1] + margen
-            and CAJA_X_ANGOSTA[0] - margen <= x <= CAJA_X_ANGOSTA[1] + margen)
+    return (CAJA_Y_ANCHA - margen <= y <= CAJA_Y[1] + margen
+            and CAJA_X_ANCHA[0] - margen <= x <= CAJA_X_ANCHA[1] + margen)
 CAJA_ALTO = 230.0
-MASTIL = (-300.0, 240.0, 25.0)   # x, y, radio
+MASTIL = (300.0, 240.0, 25.0)    # x, y, radio (a la derecha; a ojo)
 MARGEN = 30.0          # mm de aire a la caja, al mástil y al piso
 
 # Límites (grados del encoder, como el firmware: include/config.h, con MARGEN_LIMITE 3° y MARGEN_FRANJA 1°)
@@ -62,7 +71,7 @@ Q3_MENOS_Q2_MIN = -25.0     # más abajo J3 no queda firme (punto muerto del cua
 FRANJA_ARRIBA = [(0, 0.5), (3.4, 1.05), (5.8, 8.1), (10.6, 10.3), (15.1, 15.4), (21.0, 20.3), (30.4, 32.4), (45.2, 51.9),
                  (60.1, 70.8), (74.6, 83.3), (79.8, 88.1)]  # 2026-11-10 noche, como config.h
 MARGEN_FRANJA = 1.0
-ZONA_MEDIDA = ((19.0, 79.0), (4.0, 82.0))   # q2, q3 de las poses de calibración
+ZONA_MEDIDA = ((9.0, 79.0), (4.0, 76.0))    # q2, q3 de las poses de calibración (11/11)
 
 
 def _cols(q2, q3, grado):
@@ -78,7 +87,7 @@ class Modelo:
     """Ángulos reales del brazo y del antebrazo (desde la horizontal, hacia afuera) en función de q2, q3."""
 
     def __init__(self, filas=None):
-        d = np.loadtxt(CSV, delimiter=",", comments="#", skiprows=5) if filas is None else filas
+        d = leer_csv() if filas is None else filas
         q2, q3 = d[:, 0], d[:, 1]
         codo, muneca, pinza = d[:, 2:4], d[:, 4:6], d[:, 6:8]
         a2 = np.degrees(np.arctan2(codo[:, 1], codo[:, 0]))
@@ -125,8 +134,8 @@ def q1_encoder(real):
 
 def al_robot(q1, rz):
     """(r, z) del plano del brazo -> (x, y, z) del robot (q1 en grados del encoder)."""
-    a = math.radians(q1_real(q1))
-    return np.array([rz[0] * math.cos(a), rz[0] * math.sin(a), H_HOMBRO + rz[1]])
+    a = math.radians(q1_real(q1))   # 0 = hacia -x (izquierda), 90 = hacia +y (frente)
+    return np.array([-rz[0] * math.cos(a), rz[0] * math.sin(a), H_HOMBRO + rz[1]])
 
 
 def directa(q1, q2, q3):
@@ -190,7 +199,7 @@ def fuera_de_lo_medido(q2, q3):
 def inversa(x, y, z, tol=0.5):
     """(x, y, z) de la punta en mm -> (q1, q2, q3) en grados del encoder, o (None, motivos)."""
     r = math.hypot(x, y)
-    q1 = q1_encoder(math.degrees(math.atan2(y, x)))
+    q1 = q1_encoder(math.degrees(math.atan2(y, -x)))
     objetivo = np.array([r, z - H_HOMBRO])
     mod = modelo()
     # semilla: la mejor de una grilla de 2° dentro de los límites
@@ -217,7 +226,7 @@ def inversa(x, y, z, tol=0.5):
 
 
 def prueba():
-    d = np.loadtxt(CSV, delimiter=",", comments="#", skiprows=5)
+    d = leer_csv()
     n = len(d)
     print(f"Modelo con las {n} poses: L3 {modelo().L3:.1f} mm, pinza desde la muñeca "
           f"({modelo().pinza[0]:.1f}, {modelo().pinza[1]:.1f}) mm")

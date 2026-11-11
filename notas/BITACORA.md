@@ -1016,3 +1016,35 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
 - **Al cierre:** la WROOM tiene la versión con `CAJA_J1_MIN` 64 (probada arriba); la de 53,5 quedó compilada y **sin
   flashear ni probar**. Sin commitear a propósito: fotos de `12/CERO/`, `17/LIMITES/` y `20/20_20_24.mp4`.
 - Commits: `0f44950` (hombro a 165 mm, caminos contra la caja; push hecho) y el de este cierre (sin push).
+
+## 2026-11-11 — 20: tapa y marco corregidos, cinemática recalibrada con video, inversa probada con cinta
+
+- **Tapa (`~/Imágenes/brazo/tapa.jpeg`, croquis del usuario):** el frente (ultrasonidos) es la parte **ancha**, 40 cm
+  en los 23 cm de adelante; atrás la **angosta**, 34 cm en 17 cm (recortes de 3 cm por lado, las ruedas). J1 a 9 cm del
+  borde de atrás y 9 del borde izquierdo angosto (12 de la línea del ancho), 31 del frente. **J1 a la izquierda, el
+  mástil a la derecha** (afuera del borde ancho, cerca del frente). `cinematica.py` tenía la T al revés (ancha atrás) y
+  el marco **espejado** (J1 a la derecha, 0 hacia +x): ahora x hacia la derecha del robot, J1 real 0 = −x (izquierda),
+  90° = frente; tapa: ancha x −120…+280, y +80…+310; angosta x −90…+250, y −90…+80; mástil (300, 240) a ojo (en el
+  croquis ~(330, 258), sin medir). Los puntos a la izquierda llevan x negativa (`p -500 30 300`).
+- **Video de calibración** (`VID_20261111_115425.mp4`, `~/Vídeos/brazo/`, fuera del repo; captura
+  `trayectoria_20261111_115727`, 18 poses con J1 en 3 + reposo, todas firmes, errores J2/J3 ≤ 0,16°, J1 0,23° corto).
+  Cámara de frente al robot, marcas amarillas en codo, muñeca, pinza y manivela (HSV 17–32, S ≥ 80, V ≥ 70), seguidas
+  a 10 Hz; video = captura − 22,8 s (correlación 0,99). **La cámara quedó inclinada ~8° hacia abajo**: corregida con el
+  punto de fuga de las verticales (puerta, pared, mástil; f supuesta 1450 px, 1300–1800 da lo mismo a ±1 mm); sin la
+  corrección el codo no queda a radio constante (±4 mm, con ella ±1,7). Hombro = centro del círculo de la manivela (el
+  del codo a 3,6 mm); escala por el codo a 350,22 mm. Scripts sueltos en el scratchpad (no versionados).
+- **El modelo del 05/11 (juego viejo) ubicaba la punta ~3 cm más afuera y ~1 cm más arriba** (media 30 mm, máx 50):
+  explica la muñeca "5 cm afuera" del 11/11 madrugada (no era el hombro corrido). Medidas nuevas: antebrazo 328,6 mm
+  (antes 334,8), pinza a (174, 31) mm de la muñeca (antes 178,8 / 29,4), ±2 mm entre poses; brazo
+  = 109,0 − 1,029·q2 − 0,093·q3 (residuos ≤ 1,3°). **Modelo nuevo** (`resultados/calibracion_punta_20261111_115727.csv`,
+  19 poses): error dejando cada pose afuera **10,4 mm de media, 25 máx**; zona medida q2 10–78, q3 5–75.
+- **Inversa con `punta.py` y cinta** (usuario): `p -500 30 300` (50 cm al costado, 30 sobre la tapa) bien;
+  `p 0 450 200` (`mv 86.10 40.99 43.33`, al frente, 14 cm delante del borde) **perfecto, alineado con J1**;
+  `p -400 400 200` (`mv 44.45 50.75 42.81`, 45°) bien → **la escala de J1 de `cinematica.py` (90° reales por 83,3 del
+  encoder) es la correcta**: J1 gira 8 % más que lo que cree el firmware (polea ~78, no 84; contar los dientes).
+  Medir lo de adelante desde la línea del borde de atrás o del frente (paralelos al eje x), no desde el eje de J1.
+- **La punta no llega sobre la tapa:** lo más cerca de J1 que queda es 36 cm (y bien alta, ~35 cm sobre la tapa), y
+  en el rango de J1 (hasta ~121° real) la tapa termina antes. Sobre la tapa solo pasan el brazo y el antebrazo.
+- La WROOM tiene la versión con `CAJA_J1_MIN` 53,5 (la captura dice "caja con J1 >= 54°"); la regla no se ejercitó.
+- Sin commitear a propósito: fotos de `12/CERO/`, `17/LIMITES/` y `20/20_20_24.mp4` (aparecen personas).
+- Commit: el de este cierre (sin push).
