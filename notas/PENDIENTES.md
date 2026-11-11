@@ -31,8 +31,12 @@
 - ~~Eje de J1~~ (10/11 noche: reemplazado, cero, recorrido y repetibilidad bien). ~~Borde de abajo de la franja~~ y
   ~~borde de arriba re-medido~~ (10/11 noche, tablas en `config.h`, probadas en placa).
 - **En orden:**
-  a. **Verificar con `cinematica.py` los caminos de las poses contra la caja** (lo primero: con la franja nueva J3
-     llega más alto; las poses solo se probaron en placa). Revisar también qué destinos nuevos abre la franja.
+  a. ~~Caminos de las poses contra la caja~~ (10/11 noche, con el modelo del 05/11 y el hombro a 165 mm: los de la
+     repetibilidad, la lista fija y la calibración quedan a ≥ 12 cm de la caja y ≥ 19 cm del piso). **Pero la franja
+     nueva abre destinos que chocan con la tapa:** J1 ≥ ~67° (brazo sobre la caja) con J2 ≥ ~66° y J3 ≥ ~68–76°
+     (1142 poses de la grilla, 96 % abiertas por la franja nueva). `mv` y el joystick no lo saben: **no mandar `mv` a
+     mano ahí** (usar `punta.py`, que revisa choques). Antes de ponerlo en el firmware, comprobar el borde real con el
+     joystick, despacio, con J1 en 90° (el modelo es del juego viejo y extrapola).
   b. Repetibilidad de 30 ciclos (`repetibilidad.py --ciclos 30 --calentar 3`); la de 10 dio 0,13 / 0,20 / 0,06°.
   c. **J2 es la peor (RP 0,20°):** ganancias, despegue y feedforward de J2 para los doble helicoidales (tarda ~0,4 s
      en despegar, se atrasa ~2°).
@@ -43,7 +47,7 @@
      `recolector_de_frutas/firmware/brazo` y volver a flashearlo en la WROOM.
 - **`20-brazo-coordinado`, lo anterior (revisar qué sigue valiendo con los engranajes nuevos):**
   0. ~~Verificar `tools/cinematica.py` con cinta~~ (05/11, hecho: ±1 cm salvo la pose estirada (600, 150), 2 cm
-     afuera; hombro 175 mm). `mx` hecho en Python: `tools/punta.py` (`p x y z`, esquiva la caja). Falta, si hace
+     afuera; hombro 175 mm, corregido a 165 el 10/11). `mx` hecho en Python: `tools/punta.py` (`p x y z`, esquiva la caja). Falta, si hace
      falta: la punta en recta (hoy va en recta en ángulos) y llevarlo al puente de la Pi.
   0a. **Cinemática de la punta, precisión.** Sin cambios mecánicos (decisión del usuario; J3 con ~25–30° de juego en el
      antebrazo). Camino recomendado: **calibrar directamente con las cámaras estéreo del robot** (marca amarilla en la
@@ -72,7 +76,7 @@
   9. Opcional, si J2/J3 vuelven a pasarse (una vez en cinco capturas, J2 0,5° y 13,8 s hasta firme): `VEL_APROX` de
      J2/J3 2 → 3 °/s o dither. Más velocidad (`MV_FACTOR_VEL`): solo al final, con video.
   10. **Zona prohibida (caja y mástil):** geometría medida a ojo (bitácora del 03/11: caja 40 × 40 × 23 cm, J1 a 9 cm
-     del borde derecho y 8,5 del de atrás, J2 a 17,5 cm sobre la tapa, brazo 34,5 cm, antebrazo 33 cm, mástil Ø 5 cm
+     del borde derecho y 8,5 del de atrás, J2 y J3 a 16,5 cm sobre la tapa (10/11; antes 17,5), brazo 34,5 cm, antebrazo 33 cm, mástil Ø 5 cm
      a ~38 cm de J1, a ~141° de J1). **Falta calibrar el cuatro barras** (la del 03/11 fue con la manivela de 80 mm) (ángulo del brazo y del antebrazo contra q2
      y q3): repetir `trayectoria.py h "mv 3 30 20" c "mv 3 50 45" c "mv 3 74 70" c "mv 3 74 55" c "mv 3 74 78" c
      "mv 3 80 75" c --espera 6` (J2 hasta 80° desde el 04/11; revisar las poses contra la franja nueva) grabando **desde el lado de los ultrasonidos** (como `vista_frontal.jpeg`, el brazo de

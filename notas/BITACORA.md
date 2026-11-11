@@ -980,3 +980,8 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   peor: ganancias de los engranajes viejos.
 - Sin commitear a propósito: lo mismo que a la tarde (fotos con personas y `20_20_24.mp4`).
 - Commit: el de este cierre.
+- **Después del cierre:** caminos contra la caja con `cinematica.py` (modelo del 05/11). El usuario corrigió la
+  altura de los ejes de J2 y J3 sobre la tapa: **165 mm** (`H_HOMBRO`, antes 175). Repetibilidad, lista fija y
+  calibración: ≥ 12 cm de la caja (lo más cerca, J2 74 / J3 70 con J1 20–60) y ≥ 19 cm del piso. Grilla de todos los
+  destinos que acepta la franja nueva: chocan con la tapa los de J1 ≥ ~67° con J2 ≥ ~66° y J3 ≥ ~68–76°, casi todos
+  abiertos por la franja nueva. Sin cambios en el firmware (ver pendientes).

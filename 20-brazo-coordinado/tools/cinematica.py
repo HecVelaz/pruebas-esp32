@@ -15,7 +15,7 @@ Marco del robot (mm), visto desde adelante (el frente es el de los ultrasonidos)
     x hacia la derecha, y hacia adelante, z hacia arriba
     q1 = 0 apunta a +x (a la derecha); q1 + gira hacia adelante (90° = hacia el frente, sobre la caja)
 Geometría de ~/Imágenes/brazo/medidas.jpeg (a ojo): caja 400 x 400 x 230 mm, J1 a 90 mm del borde derecho y 315 mm del
-frente; hombro (J2) 175 mm sobre la tapa (medido), sobre el eje de J1 y centrado; mástil Ø 50 a 300 mm a
+frente; hombro (ejes de J2 y J3) 165 mm sobre la tapa (medido, 10/11), sobre el eje de J1 y centrado; mástil Ø 50 a 300 mm a
 la izquierda y 240 mm adelante de J1.
 
 Uso:
@@ -33,7 +33,7 @@ CSV = Path(__file__).absolute().parent.parent / "resultados" / "calibracion_punt
 
 # Geometría (mm)
 L2 = 350.22            # hombro -> codo (escala del video)
-H_HOMBRO = 175.0       # eje de J2 sobre la tapa (medido por el usuario el 2026-11-05; antes 180 supuesto)
+H_HOMBRO = 165.0       # ejes de J2 y J3 sobre la tapa (usuario, 2026-11-10 noche; antes 175 (05/11) y 180 supuesto)
 CAJA_X = (-310.0, 90.0)    # la tapa, en x (izquierda, derecha) desde J1
 CAJA_Y = (-85.0, 315.0)    # en y (atrás, adelante)
 CAJA_ALTO = 230.0
