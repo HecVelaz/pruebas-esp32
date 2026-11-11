@@ -238,3 +238,17 @@ constexpr ConfigArticulacion CFG_J3 = {
     // tAnticipo 0 -> 0,045 s (2026-11-05, trayectoria_20261105_193535): subiendo a (30, 20) J3 cruzaba el objetivo a
     // 3,0-3,2 °/s y seguía 0,137° (velocidad × 0,042-0,058 s): las 4 llegadas en 20,13; la primera a (20, 14) en 14,13
     0.045f};
+
+// ---------- Servos de la pinza y de la muñeca (2026-11-11, valores de 23-servos-wroom = 21 y 22) ----------
+// LEDC canales 6 y 7 (timer 3, 50 Hz); los motores usan 0-5 (timers 0-2, 20 kHz). Rampa a SERVO_W_INICIAL °/s.
+constexpr int CANAL_SERVO_PINZA = 6;
+constexpr int CANAL_SERVO_GIRO = 7;
+constexpr float SERVO_W_INICIAL = 45.0f;
+// Pinza (MG996R, 21): cero 1500 us, abierto 500 us (fijo), cerrado 1250 us (limón de 51 mm); franja [500, 2000]
+constexpr uint16_t PINZA_CERO_US = 1500, PINZA_ABIERTO_US = 500, PINZA_CERRADO_US = 1250;
+constexpr uint16_t PINZA_MIN_US = 500, PINZA_MAX_US = 2000;
+constexpr float PINZA_US_POR_GRADO = 2000.0f / 180.0f;
+// Muñeca (22): cero 1500 us, 90° horario 860 us, 90° antihorario 2150 us; franja [860, 2150]
+constexpr uint16_t MUNECA_CERO_US = 1500, MUNECA_A_US = 860, MUNECA_B_US = 2150;
+constexpr uint16_t MUNECA_MIN_US = 860, MUNECA_MAX_US = 2150;
+constexpr float MUNECA_US_POR_GRADO = (2150.0f - 860.0f) / 180.0f;

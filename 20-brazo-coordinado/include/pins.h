@@ -31,7 +31,7 @@ constexpr int PIN_J3_LPWM = 17;
 constexpr int PIN_J3_ENC_A = 18;  // negro (pull-up de su placa + interno)
 constexpr int PIN_J3_ENC_B = 19;  // rojo
 
-// Pinza (no se usa en estas pruebas): señal a 3,3 V, alimentación de 6 V aparte (buck 3)
+// Servos de la pinza (apertura) y de la muñeca (giro), como en 23: señal a 3,3 V, 6 V aparte (buck 3), GND común
 constexpr int PIN_SERVO_PINZA = 4;
 constexpr int PIN_SERVO_GIRO = 14;
 

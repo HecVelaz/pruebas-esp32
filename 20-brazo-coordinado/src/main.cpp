@@ -12,6 +12,7 @@
 #include "Articulacion.h"
 #include "config.h"
 #include "pins.h"
+#include "servos.h"
 
 namespace {
 
@@ -738,6 +739,9 @@ void ayuda() {
   msg("  ff <n> <desp+> <marcha+> <desp-> <marcha->  feedforward de una articulación (%%)");
   msg("  zq <q1> <q2> <q3>  el brazo está en estos ángulos (cero estimado, para bajarlo sin cero; después \"h\")");
   msg("  x            rueda libre de las TRES (el brazo cae; mano debajo)");
+  msg("  pz a|c|0|s|e|<us>|w <°/s>  pinza: abrir (500 us) / cerrar (1250) / cero (1500) / soltar / estado / pulso / rampa");
+  msg("  mn a|b|0|s|e|<us>|w <°/s>  muñeca: 90° horario (860 us) / antihorario (2150) / cero (1500) / ...");
+  msg("               pz y mn no cortan un mv; arrancan sueltos (el primero salta directo); SERVO_LLEGO al llegar");
   msg("  ?            esta ayuda");
 }
 
@@ -1225,7 +1229,9 @@ void leerSerial() {
       Linea l;
       strncpy(l.t, linea, sizeof(l.t));
       l.t[sizeof(l.t) - 1] = '\0';
-      if (lineaLen) {
+      if (lineaLen && servosComando(l.t)) {
+        // pinza y muñeca: se atienden acá (loop), no pasan por la tarea de control ni cortan un mv
+      } else if (lineaLen) {
         // "x": el EN se baja acá mismo (no depende de la cola); la tarea después las pone sueltas
         if (strcmp(l.t, "x") == 0) {
           digitalWrite(PIN_BRAZO_EN, LOW);
@@ -1271,6 +1277,7 @@ void setup() {
   for (const PuntoFranjaAbajo &p : FRANJA_ABAJO) Serial.printf(" %.0f->%.1f", p.q2, p.q3Min);
   Serial.printf(". J1 0-%.0f° (PROVISORIO: estirado choca antes), J2 0-%.0f°, J3 0-%.1f°.\n", CFG_J1.limPos,
                 CFG_J2.limPos, CFG_J3.limPos);
+  if (!servosIniciar()) Serial.println("ERROR: no se pudo configurar el LEDC de la pinza o de la muñeca.");
   if (!hwOk) Serial.println("ERROR: no se pudo configurar algún PWM o encoder.");
   Serial.println("Las tres sueltas (EN en bajo) hasta \"h\", \"s\" o \"z\". Para el cero: \"h\".");
   while (Serial.available()) Serial.read();  // basura del CH340 al abrir el puerto
@@ -1281,6 +1288,7 @@ void setup() {
 
 void loop() {
   leerSerial();
+  servosActualizar();
   Mensaje m;
   while (xQueueReceive(colaMensajes, &m, 0) == pdTRUE) Serial.println(m.t);
   Muestra x;
