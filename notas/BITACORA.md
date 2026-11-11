@@ -1048,3 +1048,34 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
 - La WROOM tiene la versión con `CAJA_J1_MIN` 53,5 (la captura dice "caja con J1 >= 54°"); la regla no se ejercitó.
 - Sin commitear a propósito: fotos de `12/CERO/`, `17/LIMITES/` y `20/20_20_24.mp4` (aparecen personas).
 - Commit: el de este cierre (sin push).
+
+## 2026-11-11 (tarde) — 20: pinza y muñeca en el firmware, agarre de frente y tarea automática, velocidad de los mv
+
+- **Dónde dejar el limón** (discusión): la punta no llega sobre la tapa ni abriendo la franja (a 10–20 cm de altura,
+  lo más cerca de J1 es 43 cm; +3° de franja, 40,5; el frente está a 31 cm; el borde de arriba desde J2 60 es la
+  traba − 2°). Propuesta: boca en voladizo adelante a la derecha (p. ej. (100, 430, 120) o (150, 420, 120), planes
+  OK desde el reposo), rampa hacia atrás a un depósito sobre la tapa; nada por debajo del nivel de la tapa (HC-SR04 del
+  frente ~5 cm bajo la tapa, bumpers abajo). Sin decidir: el usuario quiere probar primero el agarre.
+- **Servos en 20** (`src/servos.cpp`, `include/servos.h`; `pz` / `mn` con los valores de 23; LEDC 6/7 a 50 Hz,
+  timer 3; se atienden en `loop()`, no cortan un mv). La pinza no se movía ni con 23: cableado (después anduvo). La
+  WROOM volvió como `ttyUSB1`: **23 con el puerto by-id**.
+- **Homing cortado por J3 "sin cuentas"** (quedaba en +0,00° después de soltar el final de carrera): **3V3 del encoder
+  de J3 suelto** (se movió al intercambiar los conectores de los servos). Reconectado: homing bien.
+- **`punta.py`:** `ap x y z [d]` (entrar de frente: J2/J3 a la pose del punto previo con J1 donde está, con la punta a
+  ≤ r previo + 2 cm; J1 sola; un mv horizontal hacia afuera con J1 quieta), `ret [d] [dz]` (salir de frente,
+  horizontal, dz 0 por pedido del usuario), `tarea [A B]` (planea todo, Enter, recoge, `pz a`, entra a A, `pz 1250`,
+  `mn a`, sale, igual a B, `pz a`, sale, `mn 0`, reposo; tiempos por tramo; un reintento si un mv corta por "no quedan
+  firmes"). El primer plan barría de costado junto al limón (giraba J1 con el brazo estirado): corregido. Cada mv
+  llega desde 2° abajo: la punta sube hasta ~1,3 cm en el medio de la entrada / salida.
+- **Primer agarre:** con `pz c` (1250 us) J2 no llegó en la salida de A (quedó 1,15° antes, `MV_ERROR,no quedan
+  firmes`); con `pz 1150` el mismo mv llegó (no concluyente: arrancaba más cerca). El usuario quiere el agarre firme:
+  `tarea` con 1250 y el reintento. **Ciclo completo OK** con un limón de juguete en un soporte de aro de luz
+  (`VID_20261111_142958`, a mano, fuera del repo): limón centrado y profundo entre los dedos, entrada y salida de
+  frente, giro de la muñeca con el limón en el soporte (como desprenderlo).
+- **Velocidad** (`vel <factor> [aprox J2/J3] [asentamiento s]` en vivo, sin flashear; tiempos de `tarea`):
+  `vel 0.5 2 2` (lo de `config.h`) **96,4 s**; `vel 0.75 4 0.5` **79,9 s** pero el reposo pasó de 15,9 a 21,3 s;
+  `vel 0.75 2 0.5` **76,4 s** (reposo 10,5 s). Telemetría B → reposo (`trayectoria_20261111_150246`): con
+  aproximación a 4 °/s J3 se pasa 0,2–0,3° por encima en 4°, queda fuera de su tolerancia (0,20) y bajando con poco
+  duty se traba: el integrador tarda ~11 s en despegarla. A 2 °/s no. Queda **"ir frente a A" en 30 s** (esperable
+  ~16): sin diagnosticar.
+- Commits: `6901545` (servos, ap / ret / tarea) y el de este cierre (`vel` y tiempos de `tarea`). Sin push.

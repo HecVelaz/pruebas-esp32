@@ -31,13 +31,20 @@
 - ~~Eje de J1~~ (10/11 noche: reemplazado, cero, recorrido y repetibilidad bien). ~~Borde de abajo de la franja~~ y
   ~~borde de arriba re-medido~~ (10/11 noche, tablas en `config.h`, probadas en placa).
 - **En orden:**
+  a-1. **Tiempo de la tarea:** correr `trayectoria.py h "vel 0.75 2 0.5" "mv 3 10 5" "mv 3 59.75 65.26" "mv 12.34
+     59.75 65.26"` y ver por qué "ir frente a A" tarda 30 s (esperable ~16; sospecha: J3 o J1 sin quedar firmes).
+     Después fijar en `config.h` lo que sirva (`MV_FACTOR_VEL` 0,75, asentamiento 0,5 s; la aproximación de J2/J3 a
+     4 °/s hace que J3 se pase y se trabe en 4°). En una tarea repetida, no volver al reposo entre limones.
+  a-2. **Agarre:** grabar la telemetría en cada `tarea` (CSV en `resultados/`); cerrar a 1250 y aflojar a ~1200 fuera
+     del soporte (el servo forzando consume de los 12 V); con trípode, de costado, A y B a la vista.
   a. **Probar la caja desde J1 53,5** (flasheada, sin probar): joystick con la franja, J2 70 /
      J3 60, J1 a 40, J3 a ~72, girar J1 al frente → tiene que frenar en 53; J1 55, subir J3 → frena en ~65,2 (medir la
      muñeca). Si frena bien, repetibilidad con las poses nuevas (J3 68). Si la muñeca entra sobre la tapa antes de 53,
      bajar `CAJA_J1_MIN`. (Caminos de las listas contra la caja: hecho el 10/11, ≥ 11 cm.)
-  a0. **Cajita de los limones sobre la tapa:** el usuario pasa posición (desde el borde de atrás y el izquierdo) y
-     medidas; agregarla como obstáculo en `cinematica.py` (`choques`) y ver desde dónde la pinza puede soltar el limón
-     (la punta no llega sobre la tapa: mínimo 36 cm de J1). Después, prueba completa con `punta.py`: agarre → cajita.
+  a0. **Dónde dejar el limón:** la punta no llega sobre la tapa (a 10–20 cm de altura, mínimo 43 cm de J1; el frente
+     a 31). Propuesta: boca en voladizo adelante a la derecha (~(100, 430, 120)), rampa hacia atrás a un depósito sobre
+     la tapa, nada bajo el nivel de la tapa (HC-SR04 y bumpers). Falta del usuario: altura y salida de los bumpers,
+     posición de los HC-SR04, espacio sobre la tapa. Después, obstáculo en `cinematica.py` y prueba con `punta.py`.
   a1. ~~Muñeca ~5 cm afuera~~ (11/11: era el modelo del 05/11; recalibrado con video).
   a2. **Escala de J1:** confirmada con cinta (11/11, 0°/45°/90°): 90° reales por 83,3 del encoder (en `cinematica.py`).
      Contar los dientes de la polea grande (~78 esperado) y decidir si se cambia la escala en el firmware (y entonces

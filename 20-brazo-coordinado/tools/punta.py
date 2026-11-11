@@ -404,17 +404,25 @@ def servo(placa, cmd, timeout=8.0):
 
 
 def correr_tarea(placa, pasos, timeout):
+    t0 = time.time()
+    tiempos = []
     for nombre, cosa in pasos:
+        t = time.time()
         if nombre == "servo":
             if not servo(placa, cosa):
                 placa.mandar("s")
                 return False
+            tiempos.append((cosa, time.time() - t))
             continue
         print(f"== {nombre}")
         if not ejecutar(placa, cosa, timeout):
             print(f"[tarea cortada en: {nombre}]")
             return False
-    print("== tarea terminada")
+        tiempos.append((f"{nombre} ({len(cosa)} mv)", time.time() - t))
+    print("== tarea terminada. Tiempos:")
+    for n, d in tiempos:
+        print(f"   {d:5.1f} s  {n}")
+    print(f"   {time.time() - t0:5.1f} s  TOTAL")
     return True
 
 

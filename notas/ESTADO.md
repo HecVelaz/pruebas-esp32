@@ -6,16 +6,17 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
 ## Brazo: lo próximo
 
 - **`20-brazo-coordinado` (lo actual):** J1, J2 y J3 con el mismo controlador (`lib/Articulacion`), lazo no
-  bloqueante a 100 Hz, 20 kHz, sin el resorte de la pinza. **Flasheado: el de la caja desde J1 53,5** (la captura
-  del 11/11 lo confirma), con la regla de la caja **sin probar** todavía.
+  bloqueante a 100 Hz, 20 kHz. **Flasheado (11/11 tarde): caja desde J1 53,5 (sin probar), pinza y muñeca (`pz`,
+  `mn`) y `vel <factor> [aprox] [asentamiento s]`** (en vivo; al reiniciar vuelve a 0,5 / 2 / 2 de `config.h`).
+  - **Agarre automático** (`punta.py`: `ap`, `ret`, `tarea`): ciclo completo OK con un limón de juguete (A =
+    (−550, 100, 100), B = (−450, 350, 100)): entra y sale de frente y horizontal con J1 quieta, `pz 1250`, `mn a`. Con
+    `vel 0.75 2 0.5`: **76 s** (con la de `config.h`, 96); "ir frente a A" tarda 30 s (sin diagnosticar). J2 a veces
+    no llega al salir con el limón (un reintento).
   - **Mecánica (10/11):** J2 y J3 con **doble helicoidales** 15 → 75, en seco. J3 con manivela de 95 mm. **Eje de J1
     reemplazado** (misma pieza) el 10/11 a la noche: cero, recorrido 3–115° y repetibilidad bien.
-  - **Franja (10/11 noche, medida entera con el joystick):** borde de arriba, tabla `FRANJA_ARRIBA` (0 → 0,5 est. ·
-    3,4 → 1,05 · 5,8 → 8,1 · 10,6 → 10,3 · 15,1 → 15,4 · 21,0 → 20,3 · 30,4 → 32,4 · 45,2 → 51,9 · 60,1 → 70,8 ·
-    74,6 → 83,3 · 79,8 → 88,1; hasta 21 lo alcanzado sin nada, 30–45 arrastre, desde 60 traba − 2°). Borde de abajo:
-    rectas `q2 − 49` (camino) / `q2 − 25` (destinos) **y** tabla `FRANJA_ABAJO` (50 → 1,0 · 55,1 → 22,5 ·
-    60,9 → 40,3 · 65,2 → 44,2 · 70,0 → 45,2 · 74,7 → 47,8 · 80,0 → 57,5, arrastre sin margen). Probada en placa
-    (frena en ~45 y en 82,3). Margen 1° al destino y al camino, 3° a los límites. `fr 0` / `fr 1` apaga / prende.
+  - **Franja (10/11 noche, medida entera con el joystick):** tablas `FRANJA_ARRIBA` (desde J2 60, traba − 2°) y
+    `FRANJA_ABAJO` más las rectas `q2 − 49` (camino) / `q2 − 25` (destinos), en `config.h` (valores en la bitácora
+    del 10/11). Probada en placa. Margen 1° al destino y al camino, 3° a los límites. `fr 0` / `fr 1`.
   - **Homing `h`:** termina en **J1 3°, J2 6°, J3 3°** (se leen 2,8 / 6,0 / 3,2). J2 con cero busca a 5 °/s hasta 4°
     del cero anterior (flanco a 1,5). J3 espera en su flanco hasta que J2 pasa 5° subiendo. `zq` para bajar sin cero.
     Reposo de los scripts: **`mv 3 17 4`**.
@@ -25,7 +26,6 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
     70 → 66,2 · 74 → 69,5 · 80 → 74,2; muñeca a ≥ 3 cm de la tapa). `mv` revisa con la J1 más alta del camino; con
     J3 alta J1 no entra; protección `>> CAJA`. Desde J1 64: frenó en 65,2 con la muñeca a 4 cm, pero con J1 63,5 la
     muñeca llegó a 1 cm de la tapa → **53,5** (flasheado, sin probar). Activa también con `fr 0`.
-  - **Poses de repetibilidad:** `20 20 6`, `40 30 14`, `40 74 68`, `60 74 68`, `20 74 68` (J3 70 → 68 por la caja).
   - **Repetibilidad** (`repetibilidad_20261110_224409`, 10 ciclos, con J3 70): RP **J1 0,13°, J2 0,20°, J3 0,06°**; 5 ciclos con
     la franja completa (`_230137`): 0,06 / 0,20 / 0,08. J2 la peor (ganancias y feedforward de los engranajes
     viejos; tarda ~0,4 s en despegar).

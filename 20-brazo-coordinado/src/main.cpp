@@ -408,6 +408,11 @@ struct {
 
 // Duración del perfil quíntico para que ninguna pase su velocidad ni su aceleración (con el factor de "mv"):
 // pico de velocidad 1,875·D/T, pico de aceleración 5,774·D/T²
+// "vel <factor> [aprox]" (2026-11-11): velocidad de los mv en vivo, para medir el tiempo del ciclo sin reflashear
+float mvFactorVel = MV_FACTOR_VEL;
+float velAproxJ23 = VEL_APROX[1];
+uint32_t asentamientoMs = ASENTAMIENTO_MS;
+
 float duracion(const float d[N], float factorVel, float velFija) {
   float T = 0.0f;
   for (int i = 0; i < N; i++) {
@@ -441,14 +446,14 @@ void mvEtapa(int etapa) {
     // Las de duración propia, cada una con la suya; las demás juntas (la más lenta manda)
     float dj[N];
     for (int i = 0; i < N; i++) dj[i] = MV_DURACION_PROPIA[i] ? 0.0f : d[i];
-    const float Tj = fmaxf(duracion(dj, MV_FACTOR_VEL, 0.0f), MV_T_MIN);
+    const float Tj = fmaxf(duracion(dj, mvFactorVel, 0.0f), MV_T_MIN);
     mv.T = Tj;
     for (int i = 0; i < N; i++) {
       mv.Ti[i] = Tj;
       if (!MV_DURACION_PROPIA[i] || !mv.mueve[i]) continue;
       float di[N] = {0.0f, 0.0f, 0.0f};
       di[i] = d[i];
-      mv.Ti[i] = fmaxf(duracion(di, MV_FACTOR_VEL, 0.0f), MV_T_MIN);
+      mv.Ti[i] = fmaxf(duracion(di, mvFactorVel, 0.0f), MV_T_MIN);
       mv.T = fmaxf(mv.T, mv.Ti[i]);
     }
   } else if (etapa == 2) {
@@ -456,7 +461,7 @@ void mvEtapa(int etapa) {
     for (int i = 0; i < N; i++) {
       float di[N] = {0.0f, 0.0f, 0.0f};
       di[i] = d[i];
-      mv.Ti[i] = duracion(di, 1.0f, VEL_APROX[i]);
+      mv.Ti[i] = duracion(di, 1.0f, i == 0 ? VEL_APROX[0] : velAproxJ23);
       mv.T = fmaxf(mv.T, mv.Ti[i]);
     }
   } else {
@@ -603,7 +608,7 @@ void mvPaso() {
     mv.etapa = 3;
     return;
   }
-  if (millis() - mv.tFirme < ASENTAMIENTO_MS) return;
+  if (millis() - mv.tFirme < asentamientoMs) return;
   mv.activo = false;
   float q[N];
   for (int i = 0; i < N; i++) q[i] = art[i].q();
@@ -739,6 +744,8 @@ void ayuda() {
   msg("  ff <n> <desp+> <marcha+> <desp-> <marcha->  feedforward de una articulación (%%)");
   msg("  zq <q1> <q2> <q3>  el brazo está en estos ángulos (cero estimado, para bajarlo sin cero; después \"h\")");
   msg("  x            rueda libre de las TRES (el brazo cae; mano debajo)");
+  msg("  vel <f> [va] [as]  mv: fracción de vMax/aMax (def. %.2f), aproximación de J2/J3 (def. %.1f °/s), asentamiento (def. %.1f s)",
+      MV_FACTOR_VEL, VEL_APROX[1], ASENTAMIENTO_MS / 1000.0f);
   msg("  pz a|c|0|s|e|<us>|w <°/s>  pinza: abrir (500 us) / cerrar (1250) / cero (1500) / soltar / estado / pulso / rampa");
   msg("  mn a|b|0|s|e|<us>|w <°/s>  muñeca: 90° horario (860 us) / antihorario (2150) / cero (1500) / ...");
   msg("               pz y mn no cortan un mv; arrancan sueltos (el primero salta directo); SERVO_LLEGO al llegar");
@@ -1112,6 +1119,20 @@ void ejecutar(char *l) {
     comandoZq(l + 3);
   } else if (strncmp(l, "ff ", 3) == 0) {
     comandoFF(l + 3);
+  } else if (strncmp(l, "vel", 3) == 0 && (l[3] == ' ' || l[3] == '\0')) {
+    float f = mvFactorVel, va = velAproxJ23, as = asentamientoMs / 1000.0f;
+    const int n = sscanf(l + 3, "%f %f %f", &f, &va, &as);
+    if (n >= 1 && (f < 0.2f || f > 1.0f || (n >= 2 && (va < 1.0f || va > 6.0f)) || (n == 3 && (as < 0.0f || as > 5.0f)))) {
+      msg("Uso: vel <factor 0.2-1.0> [aprox J2/J3 1-6 °/s] [asentamiento 0-5 s]");
+    } else {
+      mvFactorVel = f;
+      velAproxJ23 = va;
+      asentamientoMs = (uint32_t)(as * 1000.0f + 0.5f);
+      msg(">> mv a %.2f de vMax/aMax (J2/J3 %.0f °/s, J1 %.0f °/s); aproximación de J2/J3 a %.1f °/s; asentamiento "
+          "%.1f s. Se pierde al reiniciar (config.h: %.2f, %.1f, %.1f).", mvFactorVel, mvFactorVel * CFG_J2.vMax,
+          mvFactorVel * CFG_J1.vMax, velAproxJ23, asentamientoMs / 1000.0f, MV_FACTOR_VEL, VEL_APROX[1],
+          ASENTAMIENTO_MS / 1000.0f);
+    }
   } else {
     msg("Comando desconocido: \"%s\" (? para la ayuda)", l);
   }

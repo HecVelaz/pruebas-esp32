@@ -94,3 +94,8 @@
 - **Calibración de la punta con video de frente (2026-11-11):** con la cámara inclinada se rectifica la imagen con el
   punto de fuga de las verticales antes de medir; escala por el codo (350,22 mm) y hombro por el círculo de la
   manivela. El modelo empírico (ángulos en q2, q3) se rehace con cada cambio mecánico de J2/J3.
+- **Agarre de frente (2026-11-11, pedido del usuario):** la pinza llega y sale siempre de frente y horizontal: primero
+  J2/J3 a la pose del punto previo (10 cm antes, misma altura) con J1 donde está y la punta no más lejos que ese punto;
+  después J1 sola; al final un mv hacia afuera con J1 quieta. Nunca girar J1 con el brazo estirado cerca del objeto.
+- **Velocidad de los mv (2026-11-11):** la aproximación final de J2/J3 se queda en 2 °/s (a 4 °/s J3 se pasa y se
+  traba al corregir bajando); lo que se acelera es el recorrido (`vel 0.75`) y el asentamiento (0,5 s).
