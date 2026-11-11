@@ -86,6 +86,29 @@ float q2MinFranja(float q3) {
   return INFINITY;
 }
 
+// Borde de abajo medido (2026-11-10 noche): q3 mínimo con J2 en q2 (tabla interpolada). -inf abajo del primer punto
+constexpr int N_FRANJA_ABAJO = sizeof(FRANJA_ABAJO) / sizeof(FRANJA_ABAJO[0]);
+float q3MinTabla(float q2) {
+  if (q2 < FRANJA_ABAJO[0].q2) return -INFINITY;
+  for (int k = 1; k < N_FRANJA_ABAJO; k++) {
+    const PuntoFranjaAbajo &a = FRANJA_ABAJO[k - 1], &b = FRANJA_ABAJO[k];
+    if (q2 <= b.q2) return a.q3Min + (b.q3Min - a.q3Min) * (q2 - a.q2) / (b.q2 - a.q2);
+  }
+  return FRANJA_ABAJO[N_FRANJA_ABAJO - 1].q3Min;
+}
+// Al revés: el q2 máximo para que q3 quede arriba de la tabla (la tabla crece). +inf si cualquier q2 sirve
+float q2MaxTabla(float q3) {
+  if (q3 < FRANJA_ABAJO[0].q3Min) return FRANJA_ABAJO[0].q2;
+  for (int k = 1; k < N_FRANJA_ABAJO; k++) {
+    const PuntoFranjaAbajo &a = FRANJA_ABAJO[k - 1], &b = FRANJA_ABAJO[k];
+    if (q3 <= b.q3Min) return a.q2 + (b.q2 - a.q2) * (q3 - a.q3Min) / (b.q3Min - a.q3Min);
+  }
+  return INFINITY;
+}
+// Borde de abajo del camino / freno (recta Q2_MENOS_Q3_MAX y tabla) y de los destinos (recta Q2_MENOS_Q3_DESTINO y tabla)
+float q3MinCamino(float q2) { return fmaxf(q2 - Q2_MENOS_Q3_MAX, q3MinTabla(q2)); }
+float q3MinDestino(float q2) { return fmaxf(q2 - Q2_MENOS_Q3_DESTINO, q3MinTabla(q2)); }
+
 // Cuánto sale (q3, en °) de la franja: <= 0 adentro. lado: +1 el codo demasiado estirado (q3 sobre el borde de
 // arriba), -1 el hombro demasiado arriba (q3 bajo q2 - Q2_MENOS_Q3_MAX)
 // "fr 0" (2026-11-10): franja APAGADA para volver a medirla con el joystick (doble helicoidales). Solo quedan los
@@ -98,13 +121,13 @@ float excesoFranja(float q2, float q3, int *lado = nullptr) {
     return -1000.0f;
   }
   const float arriba = q3 - q3MaxFranja(q2);
-  const float abajo = (q2 - Q2_MENOS_Q3_MAX) - q3;
+  const float abajo = q3MinCamino(q2) - q3;
   if (lado) *lado = arriba >= abajo ? 1 : -1;
   return fmaxf(arriba, abajo);
 }
 float excesoFranjaAhora(int *lado = nullptr) { return excesoFranja(art[I2].q(), art[I3].q(), lado); }
 // Lo mismo para un destino (donde J2/J3 quedan sostenidas): el borde de abajo es Q2_MENOS_Q3_DESTINO (firmeza de J3)
-float excesoDestino(float q2, float q3) { return !franjaActiva ? -1000.0f : fmaxf(q3 - q3MaxFranja(q2), (q2 - Q2_MENOS_Q3_DESTINO) - q3); }
+float excesoDestino(float q2, float q3) { return !franjaActiva ? -1000.0f : fmaxf(q3 - q3MaxFranja(q2), q3MinDestino(q2) - q3); }
 
 // El exceso más grande sobre la recta de (a2, a3) a (b2, b3), mirando cada "paso" grados
 float excesoTramo(float a2, float a3, float b2, float b3, float paso = 0.25f) {
@@ -146,6 +169,8 @@ struct {
   bool preSubida = false;        // J2 sube antes de empezar (J3 arrancó con su final de carrera apretado)
   uint32_t tPre = 0;
   uint32_t tEtapa[N] = {};       // millis() al empezar el retroceso
+  uint32_t tFlancoJ3 = 0;        // millis() cuando J3 llegó a su flanco (para medir la espera)
+  bool j3Solto = false;          // J3 ya soltó su final de carrera al retroceder
   bool conCero[N] = {};
   float delta[N] = {NAN, NAN, NAN};
 } hm;
@@ -217,6 +242,18 @@ void homingIniciar() {
       CFG_J2.homingVelBuscar, CFG_J1.homingVelBuscar);
 }
 
+// 2026-11-10 noche: J3 retrocede apenas J2 subió a HOMING_RETROCESO_J2 - 1° (antes esperaba a que J2 quedara FIRME:
+// a veces J2 tardaba en asentarse y J3 quedaba apretando su final de carrera muchos segundos). Con J2 en 5° el borde de
+// arriba está en ~6,5°: J3 tiene lugar para ir a 3°
+bool j2DejaLugarAJ3() {
+  return hm.etapa[I2] == 3 || (hm.etapa[I2] == 2 && art[I2].q() >= HOMING_RETROCESO_J2 - 1.0f);
+}
+void j3Retrocede() {
+  msg("   J3 retrocede (esperó %.1f s en su final de carrera; J2 en %+.2f°).", (millis() - hm.tFlancoJ3) / 1000.0f,
+      art[I2].q());
+  hm.j3Solto = false;
+}
+
 // Un paso del homing de una articulación: false si cortó (ya llamó a homingCortar)
 bool homingPasoArt(int i) {
   Articulacion &a = art[i];
@@ -235,15 +272,17 @@ bool homingPasoArt(int i) {
     hm.delta[i] = a.flancoGrados();
     a.ceroEnFlanco();
     cero[i] = true;
-    // 2026-11-10: J3 no retrocede hasta que J2 terminó. Con los doble helicoidales (casi sin juego) J3 subiendo a 3°
+    // 2026-11-10: J3 no retrocede hasta que J2 terminó (desde la noche: hasta que J2 pasa HOMING_RETROCESO_J2 - 1°). Con los doble helicoidales (casi sin juego) J3 subiendo a 3°
     // mientras J2 baja a su final de carrera se empujan por el cuatro barras (q3 <= ~3° con J2 en 0) y se traban las
     // dos (trayectoria_20261110_135031_cortado: J3 +69 % y J2 -65 % sin avanzar). Queda sostenida en su flanco
-    if (i == I3 && hm.etapa[I2] != 3) {
+    if (i == I3) hm.tFlancoJ3 = millis();
+    if (i == I3 && !j2DejaLugarAJ3()) {
       hm.etapa[i] = 4;
       msg("   J3 en su final de carrera: espera a J2 para retroceder.");
       return true;
     }
-    a.sostener(i == I2 ? HOMING_RETROCESO_J2 : HOMING_RETROCESO);
+    if (i == I3) j3Retrocede();
+    a.sostener(i == I2 ? HOMING_RETROCESO_J2 : i == I3 ? HOMING_RETROCESO_J3 : HOMING_RETROCESO);
     hm.etapa[i] = 2;
     hm.tEtapa[i] = millis();
     return true;
@@ -254,8 +293,9 @@ bool homingPasoArt(int i) {
       homingCortar(a.error());
       return false;
     }
-    if (hm.etapa[I2] != 3) return true;
-    a.sostener(i == I2 ? HOMING_RETROCESO_J2 : HOMING_RETROCESO);
+    if (!j2DejaLugarAJ3()) return true;
+    j3Retrocede();
+    a.sostener(i == I2 ? HOMING_RETROCESO_J2 : i == I3 ? HOMING_RETROCESO_J3 : HOMING_RETROCESO);
     hm.etapa[i] = 2;
     hm.tEtapa[i] = millis();
     return true;
@@ -264,6 +304,10 @@ bool homingPasoArt(int i) {
   if (a.error()) {
     homingCortar(a.error());
     return false;
+  }
+  if (i == I3 && !hm.j3Solto && !a.fc()) {
+    hm.j3Solto = true;
+    msg("   J3 soltó su final de carrera (%.1f s después de empezar a retroceder).", (millis() - hm.tEtapa[i]) / 1000.0f);
   }
   if (!a.firme()) {
     if (millis() - hm.tEtapa[i] > 15000) {
@@ -308,7 +352,8 @@ void homingPaso() {
   for (int i = 0; i < N; i++)
     if (hm.etapa[i] != 3) return;
   hm.activo = false;
-  msg(">> Homing listo: cero en los flancos, J1 y J3 en %+.1f°, J2 en %+.1f°.", HOMING_RETROCESO, HOMING_RETROCESO_J2);
+  msg(">> Homing listo: cero en los flancos, J1 en %+.1f°, J2 en %+.1f°, J3 en %+.1f°.", HOMING_RETROCESO,
+      HOMING_RETROCESO_J2, HOMING_RETROCESO_J3);
   msg("HOMING,%lu,%.3f,%.3f,%.3f,%d%d%d", (unsigned long)millis(), hm.delta[I1], hm.delta[I2], hm.delta[I3],
       hm.conCero[I1] ? 1 : 0, hm.conCero[I2] ? 1 : 0, hm.conCero[I3] ? 1 : 0);
 }
@@ -602,7 +647,7 @@ void comandoMv(const char *args) {
   }
   if (excesoDestino(obj[I2], obj[I3]) > -MARGEN_FRANJA) {
     msg("Fuera de la franja: con J2 en %+.1f°, J3 entre %+.1f° y %+.1f° (con margen; abajo, J3 firme).", obj[I2],
-        obj[I2] - Q2_MENOS_Q3_DESTINO + MARGEN_FRANJA, q3MaxFranja(obj[I2]) - MARGEN_FRANJA);
+        q3MinDestino(obj[I2]) + MARGEN_FRANJA, q3MaxFranja(obj[I2]) - MARGEN_FRANJA);
     return;
   }
   if (fueraFranjaAhora()) {
@@ -662,8 +707,8 @@ void estado() {
   }
   if (cerosJ2J3())
     msg("   franja: con J2 en %+.2f°, J3 entre %+.1f° y %+.1f° (%+.2f° del borde); destinos desde %+.1f°", art[I2].q(),
-        art[I2].q() - Q2_MENOS_Q3_MAX, q3MaxFranja(art[I2].q()), -excesoFranjaAhora(),
-        art[I2].q() - Q2_MENOS_Q3_DESTINO + MARGEN_FRANJA);
+        q3MinCamino(art[I2].q()), q3MaxFranja(art[I2].q()), -excesoFranjaAhora(),
+        q3MinDestino(art[I2].q()) + MARGEN_FRANJA);
 }
 
 // Rango permitido para la articulación i con las otras donde están (o yendo a): límites propios con MARGEN_LIMITE y
@@ -682,9 +727,9 @@ bool rango(int i, float &mn, float &mx) {
     // (la tabla del borde de arriba crece: el peor caso de la otra es su valor más alto o más bajo)
     if (i == I2) {  // q2 entre q2MinFranja(q3) y q3 + Q2_MENOS_Q3_DESTINO
       mn = fmaxf(mn, q2MinFranja(hi + MARGEN_FRANJA));
-      mx = fminf(mx, lo + Q2_MENOS_Q3_DESTINO - MARGEN_FRANJA);
+      mx = fminf(mx, fminf(lo + Q2_MENOS_Q3_DESTINO, q2MaxTabla(lo)) - MARGEN_FRANJA);
     } else {        // q3 entre q2 - Q2_MENOS_Q3_DESTINO y q3MaxFranja(q2)
-      mn = fmaxf(mn, hi - Q2_MENOS_Q3_DESTINO + MARGEN_FRANJA);
+      mn = fmaxf(mn, q3MinDestino(hi) + MARGEN_FRANJA);
       mx = fminf(mx, q3MaxFranja(lo) - MARGEN_FRANJA);
     }
   }
@@ -1128,6 +1173,8 @@ void setup() {
   Serial.printf("Franja (manivela de 95 mm): q2 - %.1f° <= q3 <= tabla (destinos desde q2 - %.1f°):", Q2_MENOS_Q3_MAX,
                 Q2_MENOS_Q3_DESTINO);
   for (const PuntoFranja &p : FRANJA_ARRIBA) Serial.printf(" %.0f->%.1f", p.q2, p.q3Max);
+  Serial.printf("; abajo, además, tabla:");
+  for (const PuntoFranjaAbajo &p : FRANJA_ABAJO) Serial.printf(" %.0f->%.1f", p.q2, p.q3Min);
   Serial.printf(". J1 0-%.0f° (PROVISORIO: estirado choca antes), J2 0-%.0f°, J3 0-%.1f°.\n", CFG_J1.limPos,
                 CFG_J2.limPos, CFG_J3.limPos);
   if (!hwOk) Serial.println("ERROR: no se pudo configurar algún PWM o encoder.");

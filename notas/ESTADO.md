@@ -1,39 +1,36 @@
-# Estado de pruebas-esp32 (al 2026-11-10)
+# Estado de pruebas-esp32 (al 2026-11-10, noche)
 
 Foto de hoy. La historia, las mediciones completas y los nombres de los CSV están en `BITACORA.md`; lo que sigue, en
 `PENDIENTES.md`; los pines de la S3, en `PINES_S3.md`.
 
 ## Brazo: lo próximo
 
-- **PARADO: el 10/11 se rompió el eje de J1** durante la medición del borde de abajo de la franja; el usuario lo está
-  arreglando. Al volver: `h`, revisar el cero y el límite de J1 y seguir con esa medición (`PENDIENTES.md`).
 - **`20-brazo-coordinado` (lo actual):** J1, J2 y J3 con el mismo controlador (`lib/Articulacion`), lazo no
-  bloqueante a 100 Hz, 20 kHz, sin el resorte de la pinza. **Flasheado: el del 10/11** (homing y franja nuevos).
-  - **Mecánica (10/11):** J2 y J3 con **doble helicoidales** 15 → 75 (misma relación), en seco: mucho menos juego y
-    sin ruido. J3 con manivela de 95 mm. Con menos juego J3 arrastra a J2 mucho antes: la franja se achicó.
-  - **Franja:** `q2 − 49° ≤ q3 ≤ tabla(q2)`, tabla del 10/11 (0 → 0,5 estimado · 9,9 → 3,0 · 15,1 → 4,0 ·
-    30,1 → 16,1 · 45,1 → 31,3 · 60,2 → 52,0 · 74,6 → 75,1 · 80,1 → 83,4; todos por arrastre, sin margen);
-    **destinos** además q3 − q2 ≥ −24°. **El borde de abajo (−49 / −25) es el de los engranajes viejos:** medido a
-    medias (ver pendientes). Margen 1° al destino y al camino, 3° a los límites. J2 0–83° (destinos hasta 80°), J3
-    0–101,5°. `fr 0` / `fr 1` apaga / prende la franja para medir (`joystick.py --sin-franja`); al reiniciar, prendida.
-  - **Homing `h` (10/11):** J2 sube 8° antes si J3 arranca en su final de carrera; J3 llega a su flanco y **espera a
-    J2** para retroceder (antes se empujaban por el cuatro barras); queda en J1 y J3 +3°, **J2 +20°**. `zq` para bajar
-    rápido sin cero. Reposo de los scripts: **`mv 3 20 5`**.
+  bloqueante a 100 Hz, 20 kHz, sin el resorte de la pinza. **Flasheado: el del 10/11 noche** (franja completa).
+  - **Mecánica (10/11):** J2 y J3 con **doble helicoidales** 15 → 75, en seco. J3 con manivela de 95 mm. **Eje de J1
+    reemplazado** (misma pieza) el 10/11 a la noche: cero, recorrido 3–115° y repetibilidad bien.
+  - **Franja (10/11 noche, medida entera con el joystick):** borde de arriba, tabla `FRANJA_ARRIBA` (0 → 0,5 est. ·
+    3,4 → 1,05 · 5,8 → 8,1 · 10,6 → 10,3 · 15,1 → 15,4 · 21,0 → 20,3 · 30,4 → 32,4 · 45,2 → 51,9 · 60,1 → 70,8 ·
+    74,6 → 83,3 · 79,8 → 88,1; hasta 21 lo alcanzado sin nada, 30–45 arrastre, desde 60 traba − 2°). Borde de abajo:
+    rectas `q2 − 49` (camino) / `q2 − 25` (destinos) **y** tabla `FRANJA_ABAJO` (50 → 1,0 · 55,1 → 22,5 ·
+    60,9 → 40,3 · 65,2 → 44,2 · 70,0 → 45,2 · 74,7 → 47,8 · 80,0 → 57,5, arrastre sin margen). Probada en placa
+    (frena en ~45 y en 82,3). Margen 1° al destino y al camino, 3° a los límites. `fr 0` / `fr 1` apaga / prende.
+  - **Homing `h`:** termina en **J1 3°, J2 6°, J3 3°** (se leen 2,8 / 6,0 / 3,2). J2 con cero busca a 5 °/s hasta 4°
+    del cero anterior (flanco a 1,5). J3 espera en su flanco hasta que J2 pasa 5° subiendo. `zq` para bajar sin cero.
+    Reposo de los scripts: **`mv 3 17 4`**.
   - `mv`: quíntico, J2/J3 terminan juntas, J1 con su duración; si la recta sale de la franja, por un intermedio.
-    Llegada desde abajo; `tolLlegada` 0,15° y freno anticipado (J1 0,03 s, J2 0,055 s, J3 0,045 s; J2 con 0,01 s
-    probado el 10/11: peor).
-  - **Repetibilidad** (`repetibilidad_20261110_151950`, 10 ciclos, poses nuevas): RP **J1 0,18°, J2 0,13°, J3
-    0,07°** (05/11, engranajes viejos, 30 ciclos: 0,18 / 0,05 / 0,12). J2 tarda ~0,4 s en despegar y se atrasa hasta
-    ~2° en el recorrido: ganancias y feedforward son los de los engranajes viejos.
-  - **Cinemática: DESACTUALIZADA** (modelo del 05/11, con el juego viejo: J2 × 1,170, ~9 mm de error medio).
-    `tools/cinematica.py` y `tools/punta.py` tienen la tabla nueva de la franja pero no la geometría recalibrada.
-  - `tools/trayectoria.py`: si un `mv` se corta, vuelve solo al reposo y hace `h` (`--sin-rescate`); acepta `zq` primero.
-  - Joystick `jv` (`17/tools/joystick.py --placa 20`, probado el 10/11; botones Homing y Anotar). J1 0–118°
+    Llegada desde abajo; `tolLlegada` 0,15° y freno anticipado (J1 0,03 s, J2 0,055 s, J3 0,045 s).
+  - **Repetibilidad** (`repetibilidad_20261110_224409`, 10 ciclos): RP **J1 0,13°, J2 0,20°, J3 0,06°**; 5 ciclos con
+    la franja completa (`_230137`): 0,06 / 0,20 / 0,08. J2 la peor (ganancias y feedforward de los engranajes
+    viejos; tarda ~0,4 s en despegar).
+  - **Cinemática: DESACTUALIZADA** (modelo del 05/11, con el juego viejo). Con la franja nueva J3 llega más alto:
+    **caminos de las poses sin revisar contra la caja** (lo primero de la próxima sesión).
+  - Joystick `jv` (`17/tools/joystick.py --placa 20 [--sin-franja]`; botones Homing y Anotar). J1 0–118°
     PROVISORIO. La caja no está en el firmware.
 - **Cero del brazo:** la pose con los tres finales de carrera apretados (foto del 30/10); + = alejarse de cada uno.
-  Límites: J1 0–118° (brazo recogido), J2 0–83°, J3 0–101,5°; franja con tabla (04/11, ver arriba). Finales de carrera:
-  J1 32, J2 27, J3 33. **Tienen un solo punto de apoyo y el golpe los gira** (el 31/10 el cero se corrió ~9° en J3 y
-  ~30° en J2 con pulsos de 25 %): llegar despacio (`h`) y fijarlos mejor (pendiente).
+  Límites: J1 0–118° (brazo recogido), J2 0–83°, J3 0–101,5°; franja con tablas (ver arriba). Finales de carrera:
+  J1 32, J2 27, J3 33. **Tienen un solo punto de apoyo y el golpe los gira**: llegar despacio (`h`) y fijarlos
+  mejor (pendiente).
 - **20 kHz en J2 y J3** (decisión del 31/10, sin pitido): más duty por la misma fuerza (J2 arranca subiendo con 35 %);
   J3 sostiene con compensación de fricción 15 %. A 20 kHz la fricción sostiene el brazo en un rango ancho de duty: el
   mapa de gravedad (`19/resultados/mapa_gravedad_20261031_135400.*`) no sirve como modelo (`gm` apagado).

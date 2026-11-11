@@ -1,4 +1,4 @@
-# Pendientes de pruebas-esp32 (al 2026-11-10)
+# Pendientes de pruebas-esp32 (al 2026-11-10, noche)
 
 <!-- Movido desde CLAUDE.md (2026-10-22). Los bloques "Pendiente GPS", "Pendiente" de 08 y "Falta" se movieron
      tal cual; el resto se copió de los "Pendiente:" que siguen dentro de cada entrada de BITACORA.md. -->
@@ -28,19 +28,19 @@
 
 ## Brazo (20, lo próximo)
 
-- **Antes de todo: arreglar el eje de J1** (se rompió el 10/11, lo hace el usuario). Al volver: `h`, comprobar el
-  cero y el límite de J1 (118° PROVISORIO) y una repetibilidad corta por si cambió algo.
-- **Doble helicoidales (10/11), en orden:**
-  a. **Terminar el borde de abajo de la franja** con `joystick.py --placa 20 --sin-franja` (Homing primero): J2
-     quieta en 55, 60, 65, 70, 75 y 80°, arrancar J3 unos 20° por debajo de J2 y bajar el número de J3 despacio;
-     Anotar con `abajo <J2> T` (traba) / `A` (J2 se corre sola > 0,3°) / `L` (llega a ~3° sin nada). Hecho: 45 → L,
-     50 → J3 llega cerca de su final de carrera. Con eso, `Q2_MENOS_Q3_MAX` (hoy 49; provisional ~45 = mínimo
-     medido − 2°) y, si hace falta, `Q2_MENOS_Q3_DESTINO` (25) en `config.h`, `trayectoria.py` y `cinematica.py`.
-  b. Repetibilidad de 30 ciclos con las poses nuevas (`repetibilidad.py --ciclos 30 --calentar 3`).
-  c. Verificar con `cinematica.py` los caminos de las poses nuevas contra la caja (hoy solo probados en placa).
+- ~~Eje de J1~~ (10/11 noche: reemplazado, cero, recorrido y repetibilidad bien). ~~Borde de abajo de la franja~~ y
+  ~~borde de arriba re-medido~~ (10/11 noche, tablas en `config.h`, probadas en placa).
+- **En orden:**
+  a. **Verificar con `cinematica.py` los caminos de las poses contra la caja** (lo primero: con la franja nueva J3
+     llega más alto; las poses solo se probaron en placa). Revisar también qué destinos nuevos abre la franja.
+  b. Repetibilidad de 30 ciclos (`repetibilidad.py --ciclos 30 --calentar 3`); la de 10 dio 0,13 / 0,20 / 0,06°.
+  c. **J2 es la peor (RP 0,20°):** ganancias, despegue y feedforward de J2 para los doble helicoidales (tarda ~0,4 s
+     en despegar, se atrasa ~2°).
   d. **Recalibrar la cinemática de la punta** con video (el modelo del 05/11 es con el juego viejo).
-  e. Opcional: despegue y feedforward de J2 (tarda ~0,4 s en despegar, se atrasa ~2°).
-  f. Pasar franja, homing y reposo nuevos a `recolector_de_frutas/firmware/brazo` y volver a flashearlo en la WROOM.
+  e. Opcional: el borde de arriba entre 0 y 21° es "hasta donde se llegó sin nada" (L), no el borde real; el de abajo
+     en J2 = 50–55 es inconsistente (55: A en 22,5 una vez, 19,8 sin nada otra). Re-medir solo si hace falta lugar.
+  f. Pasar franja (las dos tablas), homing (3 / 6 / 3, J3 espera a J2 > 5°, J2 rápida con cero) y reposo nuevos a
+     `recolector_de_frutas/firmware/brazo` y volver a flashearlo en la WROOM.
 - **`20-brazo-coordinado`, lo anterior (revisar qué sigue valiendo con los engranajes nuevos):**
   0. ~~Verificar `tools/cinematica.py` con cinta~~ (05/11, hecho: ±1 cm salvo la pose estirada (600, 150), 2 cm
      afuera; hombro 175 mm). `mx` hecho en Python: `tools/punta.py` (`p x y z`, esquiva la caja). Falta, si hace

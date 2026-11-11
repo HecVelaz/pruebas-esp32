@@ -75,3 +75,10 @@
   punta; el script revisa los choques en todo el camino (para cualquier J1 entre la de partida y la de llegada) y
   manda `mv`. Sin flashear, la repetibilidad medida sigue valiendo, y es lo que va a usar el puente de la Pi con las
   cámaras. Pasarlo al firmware solo si hace falta la punta en recta. Con `mv` a mano no hay protección contra la caja.
+- **Franja cargada desde las anotaciones del joystick (2026-11-10 noche):** **A** (J2 se corre sola) sin margen, **T**
+  (traba mecánica) con medido − 2°, **L** (llegó sin nada) con lo alcanzado, que es seguro aunque el borde esté más
+  arriba. Las tablas tienen que crecer con q2 (el firmware las invierte para el joystick y `j`): si una medición nueva
+  contradice una vieja, se descarta la vieja en vez de mezclarlas. El borde de abajo es tabla **más** las rectas
+  (`q2 − 49` camino, `q2 − 25` destinos): manda la más alta.
+- **Pose del homing en 3 / 6 / 3 (pedido del usuario, 10/11 noche):** J2 lo más recogida posible con J3 en 3°. J3
+  retrocede cuando J2 pasa 5° subiendo, no cuando J2 queda firme (la espera de "firme" era la que tardaba).

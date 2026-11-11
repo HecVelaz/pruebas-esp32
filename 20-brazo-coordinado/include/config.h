@@ -19,6 +19,19 @@ constexpr float Q2_MENOS_Q3_MAX = 49.0f;
 // >= -25 firme en <= 1,1 s). El camino de un mv y el freno de seguridad siguen con Q2_MENOS_Q3_MAX (el límite
 // mecánico): pasar por ahí moviéndose no es problema y así no aparecen cortes nuevos a mitad de camino
 constexpr float Q2_MENOS_Q3_DESTINO = 25.0f;
+// 2026-11-10 noche (doble helicoidales): borde de abajo medido con el joystick y "fr 0" (resultados/
+// limites_20261110_214813.csv). Bajando J3 con J2 quieta, J2 se corre sola (A) mucho antes que q2 - 49: q2 - q3 de
+// 20 a 27° desde J2 = 60. Una tabla (q2, q3 mínimo), sin margen, que se suma a las rectas de arriba (manda la más
+// alta). J2 = 50 sin borde propio (esta tarde J3 llegó a 7,4; esta noche a 20,2 sin nada): (50, 1,0) es la recta
+// q2 - 49 ahí, para que no haya salto. 55 -> 22,5 (A; otra vez llegó a 19,8 sin A). Fuera de la tabla: abajo de
+// 50, solo las rectas; arriba de 80, el último valor
+struct PuntoFranjaAbajo {
+  float q2, q3Min;
+};
+constexpr PuntoFranjaAbajo FRANJA_ABAJO[] = {
+    {50.0f, 1.0f},  {55.1f, 22.5f}, {60.9f, 40.3f}, {65.2f, 44.2f},
+    {70.0f, 45.2f}, {74.7f, 47.8f}, {80.0f, 57.5f},
+};
 // Borde de arriba (el codo estira): no es una recta, una tabla (q2, q3 máximo) interpolada; fuera de la tabla, el
 // valor del extremo. Con J2 en 0-30° J3 empezaba a ARRASTRAR a J2 (A: no es una traba, J2 se sostiene con su lazo):
 // medidos, sin margen (si no, la pose de reposo (3, 3) quedaba afuera). Desde 45° J3 se TRABA (T): medido - 2°.
@@ -32,9 +45,16 @@ struct PuntoFranja {
 // 105 -> 101,6). Medido de nuevo con el joystick y "fr 0" desde el cero del homing (resultados/
 // limites_20261110_145545.csv): en todos J3 empezaba a ARRASTRAR a J2 (sin margen, como antes). El punto de 0° no
 // se midió: estimado (en el homing, con J2 en 3,4° J3 se trabó en 1,05°). El borde de abajo no se volvió a medir
+// 2026-11-10 noche: medido de nuevo hasta J2 = 45 (resultados/limites_20261110_214813.csv y _222525.csv). J3 sube
+// mucho más que lo de la tarde (9,9 -> 3,0 · 15,1 -> 4,0 · 30,1 -> 16,1 · 45,1 -> 31,3, descartados): 5,8 -> 8,1 ·
+// 10,6 -> 10,3 · 15,1 -> 15,4 · 21,0 -> 20,3 llegaron sin nada (L: el borde está más arriba, se usa lo alcanzado);
+// 30,4 -> 32,4 y 45,2 -> 51,9 con arrastre (A). Quedan (0, 0,5) estimado y (3,4, 1,05) (J3 trabado en el homing de la
+// tarde, trayectoria_20261110_144239_cortado). Desde 60, J3 se TRABA (T, limites_20261110_224610.csv): 60,1 -> 72,8 ·
+// 74,6 -> 85,3 · 79,8 -> 90,1 (como con los engranajes viejos: es la traba del cuatro barras), cargados con medido - 2°
+// como antes. Los de la tarde (60,2 -> 52,0 · 74,6 -> 75,1 · 80,1 -> 83,4) quedan descartados
 constexpr PuntoFranja FRANJA_ARRIBA[] = {
-    {0.0f, 0.5f},   {9.9f, 3.0f},   {15.1f, 4.0f},  {30.1f, 16.1f},
-    {45.1f, 31.3f}, {60.2f, 52.0f}, {74.6f, 75.1f}, {80.1f, 83.4f},
+    {0.0f, 0.5f},   {3.4f, 1.05f},  {5.8f, 8.1f},   {10.6f, 10.3f}, {15.1f, 15.4f}, {21.0f, 20.3f},
+    {30.4f, 32.4f}, {45.2f, 51.9f}, {60.1f, 70.8f}, {74.6f, 83.3f}, {79.8f, 88.1f},
 };
 constexpr float FRANJA_HOLGURA = 0.5f;  // el control frena todo si la medición sale de la franja más que esto
 // Margen a la franja para los destinos de "j", "mv" y el joystick (el de los límites propios es MARGEN_LIMITE). Con
@@ -52,7 +72,13 @@ constexpr float HOMING_RETROCESO = 3.0f;   // ° donde queda cada una después d
 // el borde de arriba de la franja bajó. J2 queda más alta que J3 después del homing (como el reposo, mv 3 10 5)
 // 10 -> 20° con la franja medida el mismo día: con J2 en 10° el borde de J3 es 3,0° (el retroceso de J3 quedaba justo
 // en el borde); en 20° es ~8°. Reposo nuevo: mv 3 20 5
-constexpr float HOMING_RETROCESO_J2 = 20.0f;
+// 2026-11-10 (noche, pedido del usuario: J2 más recogida): 20 -> 17°. El borde de J3 ahí es ~5,5° (J3 queda en ~3,2°:
+// ~2,3° de aire); con 15° quedaba a 0,8°, menos que MARGEN_FRANJA. Reposo: mv 3 17 4
+// Más tarde, mismo día (pedido del usuario: la pose que ve en el joystick, J1 2,8 · J2 6,0 · J3 3,2 leídos): J2 6°,
+// J1 y J3 3° (llegan a ~2,8 y ~3,2 como en los homing anteriores). Para que la franja no la corte se agregó el punto
+// (6,0, 3,2) a FRANJA_ARRIBA. El reposo de los scripts sigue en mv 3 17 4
+constexpr float HOMING_RETROCESO_J2 = 6.0f;
+constexpr float HOMING_RETROCESO_J3 = 3.0f;
 constexpr float HOMING_PRE_SUBIDA_J2 = 8.0f;  // ° que sube J2 antes del homing si J3 arranca con su final de carrera apretado (2026-11-10)
 constexpr float HOMING_Q2_MAX_ARRANQUE = 25.0f;  // con el cero conocido, J2 más alta: el codo no llega a su final
 // Sin cero, recorrido máximo buscando el final de carrera. 2026-11-03: 15° (arrancó estirado, J3 subió 28° y se trabó
@@ -151,7 +177,9 @@ constexpr ConfigArticulacion CFG_J2 = {
     3.0f, 8.0f, 0.0f, 0.2f,               // sin compensación de fricción (19: llega sin ella)
     // homing a 1,5 °/s (2026-11-03: 0,5 tardaba 6,3 s en 3°, 1 tardaba 3,4 s; 19: flanco ~0,07° a 0,5). Duty máximo 65 % (PROVISORIO): con 50 % no la levantaba desde el final
     // de carrera (2026-10-31: subió 1,5° y se trabó; sostenerla abajo pide ~25 % más el despegue)
-    1.5f, 2.0f, 2.0f, 65.0f, 120.0f, 1500, 2.0f, 1.5f,  // con cero: 2 °/s hasta 1,5° del cero anterior
+    // 2026-11-10 (noche, pedido del usuario: J2 busca más rápido): con cero 2 -> 5 °/s hasta 4° del cero anterior
+    // (antes 1,5°: más lugar para frenar); el flanco se sigue tomando a 1,5 °/s. Sin cero no cambia (no sabe dónde está)
+    1.5f, 2.0f, 2.0f, 65.0f, 120.0f, 1500, 5.0f, 4.0f,
     // arranquePct ("sin cuentas") 45 -> 60 % (2026-11-04, trayectoria_20261104_234152: pegada, J2 despega con 44-48 % y
     // J3 con hasta 37 %; con 45 % se cortaba a veces, en la repetibilidad _233423_cortado). Igual que el atasco (60 %)
     2.0f, 60.0f, 300, 60.0f, 150, 5.0f, 100, 30.0f,

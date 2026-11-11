@@ -941,3 +941,42 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   (aparecen personas). Se borraron tres archivos vacíos creados por error en `20/` (`15%`, `Sosteniendo`, `Telemetría`).
 - `/verificar` antes del cierre: `pio run` de `20` limpio, sin warnings (RAM 7,1 %, flash 25,7 %).
 - Commit: el de este cierre.
+
+## 2026-11-10 (noche) — J1 con el eje nuevo; homing en (3, 6, 3); franja medida entera de nuevo (20)
+
+- **J1:** el usuario reemplazó el eje roto por la misma pieza (sin cambios en polea, correa ni final de carrera).
+  `h` × 2: flancos J1 +0,000°, J2 −0,089°, J3 −0,097° del cero anterior. `j 1 30 / 60 / 90 / 115 / 3` sin problemas
+  (volvió a +3,11°). Repetibilidad corta (`repetibilidad_20261110_212539`, 5 ciclos, J2 todavía en el homing de 17°):
+  J1 0,00° (las cinco a la misma cuenta), J2 0,07°, J3 0,17°.
+- **Homing, a pedido del usuario** (en `20/include/config.h` y `src/main.cpp`):
+  - `HOMING_RETROCESO_J2` 20 → 17 → **6°**, con `HOMING_RETROCESO_J3` nuevo (3°). Queda en **2,8 / 6,0 / 3,2**
+    leídos (la pose que el usuario veía en el joystick). Se probó antes J3 en 1°, descartado. El reposo de los
+    scripts (`trayectoria.py` `VOLVER`) pasó de `mv 3 20 5` a **`mv 3 17 4`** (sigue ahí).
+  - **J2 busca más rápido con cero:** `homingVelRapida` 2 → 5 °/s, `homingZonaLenta` 1,5 → 4° (el flanco sigue a
+    1,5 °/s; sin cero no cambia). El usuario pidió también J3 en 18,5–21,7° con J2 en ~20°: fuera de la franja de
+    la tarde (que después resultó baja); se quedó en 3°.
+  - **J3 ya no espera a que J2 quede firme** para retroceder: arranca cuando J2 pasa `HOMING_RETROCESO_J2 − 1°`
+    (`j2DejaLugarAJ3()`). Antes, a veces J2 tardaba en asentarse en 6° y J3 se quedaba muchos segundos apretando su
+    final de carrera. Mensajes nuevos: `J3 retrocede (esperó X s ...)` y `J3 soltó su final de carrera (Z s ...)`.
+    Tres `h` seguidos, bien (según el usuario).
+- **Franja re-medida entera** con `17/tools/joystick.py --placa 20 --sin-franja` (notas `arriba|abajo <J2> T/A/L`):
+  - **Borde de arriba** (`limites_20261110_214813`, `_222525`, `_224610`): 5,8 → 8,1 L · 10,6 → 10,3 L ·
+    15,1 → 15,4 L · 21,0 → 20,3 L · 30,4 → 32,4 A · 45,2 → 51,9 A · 60,1 → 72,8 **T** · 74,6 → 85,3 T · 79,8 → 90,1 T.
+    **Todo lo de la tarde quedó bajo** (p. ej. 15,1 → 4,0, 60,2 → 52,0) y se descartó; arriba de 60 coincide con la
+    traba de los engranajes viejos (04/11: 60 → 74,2, 75 → 84,7). Cargado: L con lo alcanzado, A sin margen, T con
+    medido − 2°; se dejaron (0; 0,5) estimado y (3,4; 1,05) (traba del homing de la tarde).
+  - **Borde de abajo** (`limites_20261110_214813`): J2 se corre sola (A) con J2 − J3 de 20 a 27° desde J2 = 60:
+    55,1 → 22,5 · 60,9 → 40,3 · 65,2 → 44,2 · 70,0 → 45,2 · 74,7 → 47,8 · 80,0 → 57,5. J2 = 50 y 55 repetidas: J3
+    bajó a 20,2 / 19,8 sin nada (el usuario paró por precaución). **Tabla nueva `FRANJA_ABAJO`** (q2 → q3 mínimo)
+    que se suma a las rectas `q2 − 49` (camino) y `q2 − 25` (destinos); (50; 1,0) es la recta, para que no haya
+    salto. En el CSV se corrigieron dos notas a pedido: `abajo 55 T` → A y `abajo70A` (J2 en 74,65) → 75.
+    Las filas 21:49–21:52 (sin texto) son un primer intento; `limites_20261110_212947` es una foto después del homing.
+  - Probado con la franja prendida: J2 65 bajando J3 frena en ~45; J2 74 subiendo J3 frena en **82,3** (traba 85,3).
+  - Las dos tablas también en `tools/trayectoria.py` (dibujo), `tools/cinematica.py` (`q3_min_tabla`) y
+    `tools/punta.py`.
+- **Repetibilidad con todo lo nuevo:** `repetibilidad_20261110_224409` (10 ciclos, franja de abajo nueva, la de
+  arriba a medias): J1 **0,13°**, J2 **0,20°** (en 74°), J3 **0,06°**. `repetibilidad_20261110_230137` (5 ciclos,
+  franja completa): J1 0,06°, J2 0,20° (ahora en (20, 20)), J3 0,08°. Error fijo 0,05–0,17°, siempre cortas. J2 es la
+  peor: ganancias de los engranajes viejos.
+- Sin commitear a propósito: lo mismo que a la tarde (fotos con personas y `20_20_24.mp4`).
+- Commit: el de este cierre.

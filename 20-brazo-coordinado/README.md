@@ -14,12 +14,15 @@ bloqueante a 100 Hz**. `19` queda como banco de pruebas de una articulación por
   (`HOMING_RECORRIDO_SIN_CERO`, 2026-11-03: arrancó estirado, J3 subió 28° y se trabó contra la franja). Cada una llega a su final de carrera **despacio** (las tres a 1,5 °/s desde el 03/11; antes J2 0,5 y
   J3/J1 1 °/s: el golpe giraba los finales de carrera), cero en el flanco, retrocede 3° y queda sostenida. Informa cuánto se corrió cada flanco
   (`HOMING,t,d1,d2,d3,con_cero`).
-- **Desde el 2026-11-10 (J2 y J3 con doble helicoidales, mucho menos juego):** borde de arriba nuevo, todo por
-  arrastre y sin margen (`resultados/limites_20261110_145545.csv`): 0 → 0,5 (estimado) · 9,9 → 3,0 · 15,1 → 4,0 ·
-  30,1 → 16,1 · 45,1 → 31,3 · 60,2 → 52,0 · 74,6 → 75,1 · 80,1 → 83,4. El borde de abajo (−49° / −25°) sigue siendo
-  el viejo: medición a medias. Homing: J3 espera a J2 en su flanco y J2 retrocede a +20° (J1 y J3 a +3°). Reposo de
-  los scripts: `mv 3 20 5`. `fr 0` / `fr 1` apaga / prende la franja para medirla (`joystick.py --sin-franja`). Lo
-  que sigue en este punto es la historia con los engranajes simples.
+- **Desde el 2026-11-10 noche (J2 y J3 con doble helicoidales, franja medida entera de nuevo):** borde de arriba,
+  tabla `FRANJA_ARRIBA` (0 → 0,5 est. · 3,4 → 1,05 · 5,8 → 8,1 · 10,6 → 10,3 · 15,1 → 15,4 · 21,0 → 20,3 ·
+  30,4 → 32,4 · 45,2 → 51,9 · 60,1 → 70,8 · 74,6 → 83,3 · 79,8 → 88,1); borde de abajo, las rectas `q2 − 49`
+  (camino) / `q2 − 25` (destinos) **y** la tabla `FRANJA_ABAJO` (50 → 1,0 · 55,1 → 22,5 · 60,9 → 40,3 · 65,2 → 44,2 ·
+  70,0 → 45,2 · 74,7 → 47,8 · 80,0 → 57,5). Mediciones en `resultados/limites_20261110_214813.csv`, `_222525` y
+  `_224610`; el detalle, en `notas/BITACORA.md`. Homing: termina en J1 3°, J2 6°, J3 3° (se leen 2,8 / 6,0 / 3,2);
+  J3 espera en su flanco hasta que J2 pasa 5° subiendo; con cero, J2 busca a 5 °/s hasta 4° del cero anterior.
+  Reposo de los scripts: `mv 3 17 4`. `fr 0` / `fr 1` apaga / prende la franja para medirla
+  (`joystick.py --sin-franja`). Lo que sigue en este punto es la historia con los engranajes simples.
 - **Franja del cuatro barras** (desde el 2026-11-04, manivela de J3 de 95 mm): `q2 − 49° ≤ q3 ≤ borde de arriba`,
   donde el borde de arriba es una **tabla** (J2 → J3 máx: 0 → 3,2 · 15 → 10,8 · 30 → 27,9 · 45 → 54,2 · 60 → 72,2 ·
   75 → 82,7 · 90 → 91,9 · 105 → 101,6, interpolada; `FRANJA_ARRIBA` en `config.h`). Medida con `17 -e explorar`

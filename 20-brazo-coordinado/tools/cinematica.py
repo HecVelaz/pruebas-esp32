@@ -46,7 +46,8 @@ Q2_LIM = (3.0, 80.0)
 Q3_LIM = (3.0, 98.5)
 Q3_MENOS_Q2_MIN = -25.0     # más abajo J3 no queda firme (punto muerto del cuatro barras, 05/11)
 # 2026-11-10 (doble helicoidales): medida de nuevo, resultados/limites_20261110_145545.csv
-FRANJA_ARRIBA = [(0, 0.5), (9.9, 3.0), (15.1, 4.0), (30.1, 16.1), (45.1, 31.3), (60.2, 52.0), (74.6, 75.1), (80.1, 83.4)]
+FRANJA_ARRIBA = [(0, 0.5), (3.4, 1.05), (5.8, 8.1), (10.6, 10.3), (15.1, 15.4), (21.0, 20.3), (30.4, 32.4), (45.2, 51.9),
+                 (60.1, 70.8), (74.6, 83.3), (79.8, 88.1)]  # 2026-11-10 noche, como config.h
 MARGEN_FRANJA = 1.0
 ZONA_MEDIDA = ((19.0, 79.0), (4.0, 82.0))   # q2, q3 de las poses de calibración
 
@@ -105,6 +106,17 @@ def directa(q1, q2, q3):
     return al_robot(q1, p), [al_robot(q1, (0.0, 0.0)), al_robot(q1, codo), al_robot(q1, muneca), al_robot(q1, p)]
 
 
+# 2026-11-10 noche: borde de abajo medido (J2 se corre sola), además de la recta; como FRANJA_ABAJO del firmware
+FRANJA_ABAJO = [(50.0, 1.0), (55.1, 22.5), (60.9, 40.3), (65.2, 44.2), (70.0, 45.2), (74.7, 47.8), (80.0, 57.5)]
+
+
+def q3_min_tabla(q2):
+    """q3 mínimo de la tabla del borde de abajo (-inf abajo de su primer punto)."""
+    if q2 < FRANJA_ABAJO[0][0]:
+        return -np.inf
+    return float(np.interp(q2, [a for a, _ in FRANJA_ABAJO], [b for _, b in FRANJA_ABAJO]))
+
+
 def q3_max_franja(q2):
     return float(np.interp(q2, [a for a, _ in FRANJA_ARRIBA], [b for _, b in FRANJA_ARRIBA]))
 
@@ -119,6 +131,8 @@ def problemas(q1, q2, q3):
         m.append(f"franja: con J2 en {q2:.1f}°, J3 hasta {q3_max_franja(q2) - MARGEN_FRANJA:.1f}°")
     if q3 - q2 < Q3_MENOS_Q2_MIN + MARGEN_FRANJA:   # como el firmware (Q2_MENOS_Q3_DESTINO con MARGEN_FRANJA)
         m.append(f"q3 - q2 = {q3 - q2:.1f}° < {Q3_MENOS_Q2_MIN + MARGEN_FRANJA:.0f}° (J3 no queda firme)")
+    if q3 < q3_min_tabla(q2) + MARGEN_FRANJA:
+        m.append(f"franja: con J2 en {q2:.1f}°, J3 desde {q3_min_tabla(q2) + MARGEN_FRANJA:.1f}° (borde de abajo medido)")
     m += choques(directa(q1, q2, q3)[1])
     return m
 

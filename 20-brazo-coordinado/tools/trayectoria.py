@@ -25,7 +25,7 @@ Lista fija para comparar: h "mv 20 20 14" "mv 40 30 20" "mv 20 20 14" "mv 3 10 5
 Opciones: --comparar CSV_BASE (totales lado a lado), --solo-resumen (con --archivo, sin gráfico), --sin-volver, --cola (s de captura después del último comando, def. 3), --espera (s para comandos sin final, def. 2),
 --puerto, --sin-ventana, --todo (graficar también el homing; por defecto arranca en el primer mv).
 Ctrl+C manda "s" (las tres se sostienen donde están) y guarda lo capturado (archivo ..._cortado).
-Si un "mv" se corta, vuelve solo a "mv 3 10 5" y hace "h" (rescate; --sin-rescate para dejarlo donde quedó).
+Si un "mv" se corta, vuelve solo al reposo (VOLVER) y hace "h" (rescate; --sin-rescate para dejarlo donde quedó).
 """
 import argparse
 import csv
@@ -40,13 +40,15 @@ PUERTO = "/dev/serial/by-id/usb-1a86_USB_Serial-if00-port0"
 #   q2 - Q2_MENOS_Q3_MAX <= q3 <= borde de arriba (tabla FRANJA_ARRIBA (q2, q3 máx), interpolada)
 Q2_MENOS_Q3_MAX = 49.0
 # 2026-11-10 (doble helicoidales): medida de nuevo, resultados/limites_20261110_145545.csv
-FRANJA_ARRIBA = [(0.0, 0.5), (9.9, 3.0), (15.1, 4.0), (30.1, 16.1), (45.1, 31.3), (60.2, 52.0), (74.6, 75.1),
-                 (80.1, 83.4)]
+FRANJA_ARRIBA = [(0.0, 0.5), (3.4, 1.05), (5.8, 8.1), (10.6, 10.3), (15.1, 15.4), (21.0, 20.3), (30.4, 32.4),
+                 (45.2, 51.9), (60.1, 70.8), (74.6, 83.3), (79.8, 88.1)]  # 2026-11-10 noche, como config.h
+# 2026-11-10 noche: borde de abajo medido, además de la recta (limites_20261110_214813.csv; FRANJA_ABAJO del firmware)
+FRANJA_ABAJO = [(50.0, 1.0), (55.1, 22.5), (60.9, 40.3), (65.2, 44.2), (70.0, 45.2), (74.7, 47.8), (80.0, 57.5)]
 NOMBRES = ("J1", "J2", "J3")
 # Al final de cada serie (salvo --sin-volver): cerca del cero, listo para el próximo homing. 2026-11-04: 3 3 3 -> 3 10 5
 # (el punto intermedio de las salidas): en (3, 3) J2/J3 llegaban sin la aproximación desde abajo (el punto previo
 # quedaba a 1° del final de carrera) y J3 oscilaba ±0,3° hasta "no quedan firmes" (trayectoria_20261104_230336_cortado)
-VOLVER = "mv 3 20 5"  # 2026-11-10: (10, 5) quedó fuera de la franja nueva
+VOLVER = "mv 3 17 4"  # 2026-11-10: (10, 5) quedó fuera de la franja nueva; noche: (20, 5) -> (17, 4), como el homing
 COLUMNAS = ["t_ms", "etapa"] + [f"{c}{i}" for i in (1, 2, 3) for c in ("q", "r", "u", "w", "s")]
 ESTADOS = {0: "suelta", 1: "yendo", 2: "llegó", 3: "firme", 4: "frenada", 5: "siguiendo", 6: "homing"}
 ETAPAS = {0: "", 1: "recorrido", 2: "aproximación", 3: "llegada", 4: "asentamiento", 8: "joystick", 9: "homing"}
@@ -428,9 +430,10 @@ def graficar(archivo, sin_ventana, todo=False, base=None, solo_resumen=False):
     lim = [min(q2.min(), r2.min()) - 5, max(q2.max(), r2.max()) + 5]
     x = np.linspace(lim[0], lim[1], 200)
     arriba = np.interp(x, [p[0] for p in FRANJA_ARRIBA], [p[1] for p in FRANJA_ARRIBA])
-    ax_c.fill_between(x, x - Q2_MENOS_Q3_MAX, arriba, color="tab:green", alpha=0.08,
-                      label="franja del cuatro barras")
-    ax_c.plot(x, x - Q2_MENOS_Q3_MAX, color="tab:green", lw=0.8)
+    abajo = np.maximum(x - Q2_MENOS_Q3_MAX, np.where(x < FRANJA_ABAJO[0][0], -np.inf, np.interp(
+        x, [p[0] for p in FRANJA_ABAJO], [p[1] for p in FRANJA_ABAJO])))
+    ax_c.fill_between(x, abajo, arriba, color="tab:green", alpha=0.08, label="franja del cuatro barras")
+    ax_c.plot(x, abajo, color="tab:green", lw=0.8)
     ax_c.plot(x, arriba, color="tab:green", lw=0.8)
     ax_c.plot(r2, r3, "--", color="tab:gray", lw=1, label="referencia")
     ax_c.plot(q2, q3, color="tab:blue", lw=1, label="medido")

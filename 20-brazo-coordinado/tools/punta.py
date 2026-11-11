@@ -54,7 +54,7 @@ PASO_INTERMEDIO = 5.0      # grilla de puntos intermedios (como el firmware)
 
 def exceso(q2, q3):
     """Cuánto sale (°) de la franja del firmware: <= 0 adentro."""
-    return max(q3 - k.q3_max_franja(q2), (q2 - Q2_MENOS_Q3_MAX) - q3)
+    return max(q3 - k.q3_max_franja(q2), max(q2 - Q2_MENOS_Q3_MAX, k.q3_min_tabla(q2)) - q3)
 
 
 def tramos(s, o):

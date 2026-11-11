@@ -2,7 +2,7 @@
 """Fase 6: repetibilidad articular estilo ISO 9283 (5 poses, N ciclos, siempre por el mismo camino).
 
 Hace el homing ("h"), --calentar ciclos de calentamiento (no entran en la cuenta) y --ciclos ciclos por las poses en
-orden; guarda cada LLEGO (los ángulos medidos por los encoders al quedar firmes) y al final vuelve a VOLVER de trayectoria.py ("mv 3 10 5").
+orden; guarda cada LLEGO (los ángulos medidos por los encoders al quedar firmes) y al final vuelve a VOLVER de trayectoria.py ("mv 3 17 4").
 Para cada pose y articulación calcula, sobre los ciclos medidos:
     media, desvío estándar, rango (máx - mín) y RP = l̄ + 3·S_l, con l = |q - q̄| (ISO 9283, en una dimensión)
 y el error medio contra el objetivo (exactitud articular). Los encoders están en los motores: no ven el juego de los
