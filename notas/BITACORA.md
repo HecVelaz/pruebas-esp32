@@ -985,3 +985,34 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   calibración: ≥ 12 cm de la caja (lo más cerca, J2 74 / J3 70 con J1 20–60) y ≥ 19 cm del piso. Grilla de todos los
   destinos que acepta la franja nueva: chocan con la tapa los de J1 ≥ ~67° con J2 ≥ ~66° y J3 ≥ ~68–76°, casi todos
   abiertos por la franja nueva. Sin cambios en el firmware (ver pendientes).
+- **J1 real contra encoder** (usuario, a ojo): en el homing (2,8) el brazo apunta exacto al costado y en 86,1 exacto al
+  frente. En `cinematica.py`: `q1_real = (q1 − 2,8) · 90 / 83,3` (8 % más que la escala del firmware; el 26/10, también
+  a ojo, había dado la polea de 84). Firmware sin cambios. Con eso la caja queda a ≥ 11 cm en los caminos de las listas.
+- **Caja con el brazo al frente** (`limites_20261110_230917`, franja prendida, J1 ≈ 83–85 del encoder ≈ frente real):
+  (J2 66,2, J3 74,8) muñeca a **2 cm** de la tapa; (70,4; 68,9) a **1 cm**; (73,6; 75,6), (77,6; 84,8) y
+  (70,0; 78,2): J3 frenó por la franja con la muñeca **ya por delante del borde** de la caja (más baja que la tapa).
+  El modelo acierta la altura con 1–2 mm (más ~6 mm del servo de la muñeca bajo su eje) y el borde de adelante con
+  1–2 cm. **La franja sola no protege de la caja.** Regla propuesta (modelo, muñeca ≥ 3 cm): con J1 ≥ ~64, J3 máximo
+  66 → 67,9 · 70 → 67,2 · 74 → 70,9 · 78 → 74,3 · 80 → 76,0 (sin límite con J2 ≤ 64); sin implementar.
+
+## 2026-11-11 (madrugada, sigue la sesión del 10/11) — Regla de la caja en el firmware (20)
+
+- **Regla nueva en `20`** (`CAJA_ARRIBA` y `CAJA_J1_MIN` en `config.h`, `rangoCaja()`, `excesoCaja()` y
+  `q1Camino` en `main.cpp`): con J1 sobre la caja, J3 máximo según J2 (64 → 73,2 · 66 → 68,2 · 68–69 → 65,0 ·
+  70 → 66,2 · 74 → 69,5 · 78 → 72,7 · 80 → 74,2 · 83 → 76,2; la muñeca a ≥ 3 cm de la tapa según el modelo). `mv`
+  revisa destino y camino con la J1 más alta del movimiento y rechaza si J3 ya arranca alta; el joystick y `j`: con
+  J3 alta, J1 no entra; con J1 sobre la caja, J3 y J2 con tope. Protección: `>> CAJA`, frena las tres. Activa
+  también con `fr 0`. `c` muestra la línea de la caja.
+- **Prueba con `CAJA_J1_MIN` 64:** J1 86,6 / J2 70,3: J3 frenó en 65,2 con la muñeca a **4 cm** (bien). Pero con J1
+  en 63,5 y (J2 68,3, J3 71,7) la muñeca quedó a **1 cm sobre la tapa**, y con J1 en 55,6 y (69,6; 71,3) ya estaba
+  en el borde. El modelo acierta la altura (1,3 cm) pero ubica la muñeca ~5 cm más afuera de lo real en esa zona.
+  **`CAJA_J1_MIN` → 53,5** (55,6 − 2°). La tabla queda igual (es en la práctica una regla de altura).
+- **Tapa en T** (`recolector_de_frutas/docs/TPF R2/Entrega 3/Imágenes/Dimensiones_Base.jpg`): 40 cm de ancho en los
+  23 cm de atrás (J1 a **12 cm** del borde derecho, usuario) y 34 cm en los 17 cm de adelante (9 cm). Cargada en
+  `cinematica.py` (`sobre_la_tapa`). No explica la diferencia: aun así el modelo deja la muñeca 1–5 cm afuera en la
+  pose de J1 63,5. Sospecha: el hombro no está sobre el eje de J1, o el ángulo real de J1 (a recalibrar con video).
+- **Poses de repetibilidad:** (40|60|20, 74, 70) → **(40|60|20, 74, 68)**: con J2 74 la regla deja J3 hasta 68,5 y
+  el camino de un `mv` se revisa con la J1 más alta. Serie simulada con las reglas del firmware: todos los `mv` OK.
+- **Al cierre:** la WROOM tiene la versión con `CAJA_J1_MIN` 64 (probada arriba); la de 53,5 quedó compilada y **sin
+  flashear ni probar**. Sin commitear a propósito: fotos de `12/CERO/`, `17/LIMITES/` y `20/20_20_24.mp4`.
+- Commits: `0f44950` (hombro a 165 mm, caminos contra la caja; push hecho) y el de este cierre (sin push).

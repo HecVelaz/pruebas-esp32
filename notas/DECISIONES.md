@@ -82,3 +82,8 @@
   (`q2 − 49` camino, `q2 − 25` destinos): manda la más alta.
 - **Pose del homing en 3 / 6 / 3 (pedido del usuario, 10/11 noche):** J2 lo más recogida posible con J3 en 3°. J3
   retrocede cuando J2 pasa 5° subiendo, no cuando J2 queda firme (la espera de "firme" era la que tardaba).
+- **Caja en el firmware como regla empírica, no con el modelo (2026-11-11):** con J1 ≥ `CAJA_J1_MIN`, J3 máximo según
+  J2 (tabla). La tabla sale del modelo porque es una regla de altura y la altura la acierta; desde qué J1 rige sale
+  de lo visto en el brazo (55,6 − 2°), porque en el costado el modelo se equivoca ~5 cm. Más conservadora que el
+  modelo: no deja bajar la muñeca por delante del borde con J1 al frente. Con la cinemática recalibrada, se puede
+  pasar a una regla con el modelo (sobre la tapa o delante).

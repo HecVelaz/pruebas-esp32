@@ -1,4 +1,4 @@
-# Pendientes de pruebas-esp32 (al 2026-11-10, noche)
+# Pendientes de pruebas-esp32 (al 2026-11-11)
 
 <!-- Movido desde CLAUDE.md (2026-10-22). Los bloques "Pendiente GPS", "Pendiente" de 08 y "Falta" se movieron
      tal cual; el resto se copió de los "Pendiente:" que siguen dentro de cada entrada de BITACORA.md. -->
@@ -31,19 +31,24 @@
 - ~~Eje de J1~~ (10/11 noche: reemplazado, cero, recorrido y repetibilidad bien). ~~Borde de abajo de la franja~~ y
   ~~borde de arriba re-medido~~ (10/11 noche, tablas en `config.h`, probadas en placa).
 - **En orden:**
-  a. ~~Caminos de las poses contra la caja~~ (10/11 noche, con el modelo del 05/11 y el hombro a 165 mm: los de la
-     repetibilidad, la lista fija y la calibración quedan a ≥ 12 cm de la caja y ≥ 19 cm del piso). **Pero la franja
-     nueva abre destinos que chocan con la tapa:** J1 ≥ ~67° (brazo sobre la caja) con J2 ≥ ~66° y J3 ≥ ~68–76°
-     (1142 poses de la grilla, 96 % abiertas por la franja nueva). `mv` y el joystick no lo saben: **no mandar `mv` a
-     mano ahí** (usar `punta.py`, que revisa choques). Antes de ponerlo en el firmware, comprobar el borde real con el
-     joystick, despacio, con J1 en 90° (el modelo es del juego viejo y extrapola).
-  b. Repetibilidad de 30 ciclos (`repetibilidad.py --ciclos 30 --calentar 3`); la de 10 dio 0,13 / 0,20 / 0,06°.
+  a. **Flashear y probar la caja desde J1 53,5** (compilado el 11/11, sin flashear): joystick con la franja, J2 70 /
+     J3 60, J1 a 40, J3 a ~72, girar J1 al frente → tiene que frenar en 53; J1 55, subir J3 → frena en ~65,2 (medir la
+     muñeca). Si frena bien, repetibilidad con las poses nuevas (J3 68). Si la muñeca entra sobre la tapa antes de 53,
+     bajar `CAJA_J1_MIN`. (Caminos de las listas contra la caja: hecho el 10/11, ≥ 11 cm.)
+  a1. **¿Por qué el modelo ubica la muñeca ~5 cm afuera sobre el costado?** Medir si el hombro (eje de J2) está
+     corrido respecto del eje de J1 (foto desde arriba) y la escala de J1 (a2); después, la caja con el modelo.
+  a2. **Escala de J1 en duda:** a ojo (10/11 noche) el homing (2,8 del encoder) apunta exacto al costado y 86,1 al
+     frente → J1 gira 8 % más de lo que cree el firmware (contradice el 26/10). Corregido solo en `cinematica.py`
+     (`q1_real`). Contar los dientes de la polea grande: 84 → la de hoy estuvo mal; ~78 → cambiar la escala en el
+     firmware (y revisar límites de J1).
+  b. Repetibilidad de 30 ciclos (`repetibilidad.py --ciclos 30 --calentar 3`, poses nuevas con J3 68); la de 10 dio
+     0,13 / 0,20 / 0,06° (con J3 70).
   c. **J2 es la peor (RP 0,20°):** ganancias, despegue y feedforward de J2 para los doble helicoidales (tarda ~0,4 s
      en despegar, se atrasa ~2°).
   d. **Recalibrar la cinemática de la punta** con video (el modelo del 05/11 es con el juego viejo).
   e. Opcional: el borde de arriba entre 0 y 21° es "hasta donde se llegó sin nada" (L), no el borde real; el de abajo
      en J2 = 50–55 es inconsistente (55: A en 22,5 una vez, 19,8 sin nada otra). Re-medir solo si hace falta lugar.
-  f. Pasar franja (las dos tablas), homing (3 / 6 / 3, J3 espera a J2 > 5°, J2 rápida con cero) y reposo nuevos a
+  f. Pasar franja (las dos tablas), caja, homing (3 / 6 / 3, J3 espera a J2 > 5°, J2 rápida con cero) y reposo nuevos a
      `recolector_de_frutas/firmware/brazo` y volver a flashearlo en la WROOM.
 - **`20-brazo-coordinado`, lo anterior (revisar qué sigue valiendo con los engranajes nuevos):**
   0. ~~Verificar `tools/cinematica.py` con cinta~~ (05/11, hecho: ±1 cm salvo la pose estirada (600, 150), 2 cm

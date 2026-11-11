@@ -56,6 +56,23 @@ constexpr PuntoFranja FRANJA_ARRIBA[] = {
     {0.0f, 0.5f},   {3.4f, 1.05f},  {5.8f, 8.1f},   {10.6f, 10.3f}, {15.1f, 15.4f}, {21.0f, 20.3f},
     {30.4f, 32.4f}, {45.2f, 51.9f}, {60.1f, 70.8f}, {74.6f, 83.3f}, {79.8f, 88.1f},
 };
+// ---------- Caja (2026-11-10 noche): con J1 sobre la caja, J3 máximo según J2 para que la muñeca no baje a la tapa.
+// Calculado con tools/cinematica.py (modelo del 05/11, hombro a 165 mm, J1 real = (J1 - 2,8) * 90 / 83,3): la muñeca
+// (servo ~6 mm bajo su eje) y el antebrazo a >= 30 mm de la tapa para CUALQUIER J1 desde CAJA_J1_MIN. Comprobado en
+// placa con J1 al frente (limites_20261110_230917.csv): con (J2 66,2, J3 74,8) la muñeca quedó a 2 cm y con
+// (70,4; 68,9) a 1 cm, como decía el modelo. Pierde bajar la muñeca por delante del borde de adelante (no distingue
+// "sobre la tapa" de "delante"). Debajo de J2 64 no limita (manda la franja); arriba de 83, el último valor
+// CAJA_J1_MIN: el modelo daba 66 (-> 64), pero en placa (11/11) con J1 en 63,5 y (J2 68,3, J3 71,7) la muñeca quedó a
+// 1 cm SOBRE la tapa, y con J1 en 55,6 y (69,6; 71,3) ya estaba en el borde: el modelo ubica la muñeca ~5-10 cm más
+// afuera de lo real en esa zona (¿el hombro no está sobre el eje de J1?). La altura sí la acierta: la tabla vale como
+// regla de altura. 55,6 - 2° de margen
+constexpr float CAJA_J1_MIN = 53.5f;
+constexpr PuntoFranja CAJA_ARRIBA[] = {
+    {64.0f, 73.2f}, {65.0f, 70.7f}, {66.0f, 68.2f}, {67.0f, 66.5f}, {68.0f, 65.0f}, {69.0f, 65.0f}, {70.0f, 66.2f},
+    {71.0f, 66.7f}, {72.0f, 67.7f}, {73.0f, 68.5f}, {74.0f, 69.5f}, {75.0f, 70.0f}, {76.0f, 71.0f}, {77.0f, 71.7f},
+    {78.0f, 72.7f}, {79.0f, 73.2f}, {80.0f, 74.2f}, {81.0f, 74.7f}, {82.0f, 75.7f}, {83.0f, 76.2f},
+};
+
 constexpr float FRANJA_HOLGURA = 0.5f;  // el control frena todo si la medición sale de la franja más que esto
 // Margen a la franja para los destinos de "j", "mv" y el joystick (el de los límites propios es MARGEN_LIMITE). Con
 // 3° como los límites, "mv 3 3 3" y el reposo del homing quedaban afuera (en q2 = 3 el codo llega a 4,7°)

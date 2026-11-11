@@ -129,13 +129,37 @@ float excesoFranjaAhora(int *lado = nullptr) { return excesoFranja(art[I2].q(), 
 // Lo mismo para un destino (donde J2/J3 quedan sostenidas): el borde de abajo es Q2_MENOS_Q3_DESTINO (firmeza de J3)
 float excesoDestino(float q2, float q3) { return !franjaActiva ? -1000.0f : fmaxf(q3 - q3MaxFranja(q2), q3MinDestino(q2) - q3); }
 
+// ---------- Caja (config.h, 2026-11-10 noche): con J1 >= CAJA_J1_MIN, q3 <= q3MaxCaja(q2) ----------
+// Siempre activa (también con "fr 0"). J1 es la del encoder (el modelo convierte a la real)
+constexpr int N_CAJA = sizeof(CAJA_ARRIBA) / sizeof(CAJA_ARRIBA[0]);
+float q3MaxCaja(float q2) {
+  if (q2 < CAJA_ARRIBA[0].q2) return INFINITY;
+  for (int k = 1; k < N_CAJA; k++) {
+    const PuntoFranja &a = CAJA_ARRIBA[k - 1], &b = CAJA_ARRIBA[k];
+    if (q2 <= b.q2) return a.q3Max + (b.q3Max - a.q3Max) * (q2 - a.q2) / (b.q2 - a.q2);
+  }
+  return CAJA_ARRIBA[N_CAJA - 1].q3Max;
+}
+// El más bajo de la tabla con J2 entre a y b (la tabla tiene un pozo en J2 68-69: no alcanza con los extremos)
+float q3MaxCajaEntre(float a, float b) {
+  float m = fminf(q3MaxCaja(a), q3MaxCaja(b));
+  for (float x = ceilf(a); x <= b; x += 1.0f) m = fminf(m, q3MaxCaja(x));
+  return m;
+}
+// Cuánto sale J3 (°) de la zona de la caja: <= 0 adentro; -1000 con J1 al costado
+float excesoCaja(float q1, float q2, float q3) { return q1 < CAJA_J1_MIN ? -1000.0f : q3 - q3MaxCaja(q2); }
+// J1 con la que se revisa la caja en el camino de un "mv": la más alta entre la de partida y la de llegada (J1 tiene
+// su propia duración: puede llegar antes que J2/J3). -inf fuera de comandoMv
+float q1Camino = -INFINITY;
+
 // El exceso más grande sobre la recta de (a2, a3) a (b2, b3), mirando cada "paso" grados
 float excesoTramo(float a2, float a3, float b2, float b3, float paso = 0.25f) {
   const int pasos = 1 + (int)(fmaxf(fabsf(b2 - a2), fabsf(b3 - a3)) / paso);
   float peor = -INFINITY;
   for (int k = 0; k <= pasos; k++) {
     const float t = (float)k / pasos;
-    peor = fmaxf(peor, excesoFranja(a2 + t * (b2 - a2), a3 + t * (b3 - a3)));
+    const float q2 = a2 + t * (b2 - a2), q3 = a3 + t * (b3 - a3);
+    peor = fmaxf(peor, fmaxf(excesoFranja(q2, q3), excesoCaja(q1Camino, q2, q3)));
   }
   return peor;
 }
@@ -187,6 +211,7 @@ void homingCortar(const char *causa) {
 
 // La medición de J2/J3 salió de la franja (la tarea frena una vez por episodio; "zq" lo pone si ya empieza afuera)
 bool fueraFranja = false;
+bool fueraCaja = false;  // ya avisado (una vez por episodio)
 
 bool fueraFranjaAhora() {
   return cerosJ2J3() && excesoFranjaAhora() > FRANJA_HOLGURA;
@@ -609,7 +634,9 @@ bool buscarIntermedio(float s2, float s3, float o2, float o3, float tolerado, fl
   const float mn3 = c3.limNeg + MARGEN_LIMITE, mx3 = c3.limPos - MARGEN_LIMITE;
   float mejor = INFINITY;
   const auto probar = [&](float x, float y) {
-    if (x < mn2 || x > mx2 || y < mn3 || y > mx3 || excesoFranja(x, y) > -MARGEN_FRANJA) return;
+    if (x < mn2 || x > mx2 || y < mn3 || y > mx3 || excesoFranja(x, y) > -MARGEN_FRANJA ||
+        excesoCaja(q1Camino, x, y) > -MARGEN_FRANJA)
+      return;
     const float largo = fmaxf(fabsf(x - s2), fabsf(y - s3)) + fmaxf(fabsf(o2 - x), fabsf(o3 - y));
     if (largo >= mejor) return;
     // los dos tramos con MARGEN_CAMINO (el primero, con lo que se tolere si arranca más cerca del borde)
@@ -650,11 +677,27 @@ void comandoMv(const char *args) {
         q3MinDestino(obj[I2]) + MARGEN_FRANJA, q3MaxFranja(obj[I2]) - MARGEN_FRANJA);
     return;
   }
+  if (excesoCaja(obj[I1], obj[I2], obj[I3]) > -MARGEN_FRANJA) {
+    msg("Sobre la caja (J1 desde %.0f°): con J2 en %+.1f°, J3 hasta %+.1f° (con margen).", CAJA_J1_MIN, obj[I2],
+        q3MaxCaja(obj[I2]) - MARGEN_FRANJA);
+    return;
+  }
   if (fueraFranjaAhora()) {
     msg("J2 y J3 fuera de la franja ahora (%.2f° afuera): volver adentro con \"j\" antes.", excesoFranjaAhora());
     return;
   }
   const float s2 = art[I2].q(), s3 = art[I3].q();
+  // Caja en todo el camino con la J1 más alta del mv; si ya arranca con J3 alta para esa J1, no hay camino seguro
+  // (J1 puede llegar antes que J3 baje): primero bajar J3 con "j" o mover J1 por separado
+  q1Camino = fmaxf(art[I1].q(), obj[I1]);
+  struct Restaurar {
+    ~Restaurar() { q1Camino = -INFINITY; }
+  } restaurar;
+  if (excesoCaja(q1Camino, s2, s3) > -MARGEN_CAMINO) {
+    msg("Sobre la caja: con J1 hasta %+.1f°, J3 tiene que estar debajo de %+.1f° antes de empezar. Bajar J3 con \"j\" "
+        "(o mover J1 sola).", q1Camino, q3MaxCaja(s2) - MARGEN_CAMINO);
+    return;
+  }
   // Todo el camino a MARGEN_CAMINO del borde; si arranca más cerca, que no se acerque más (2026-11-05)
   const float tolerado = fmaxf(-MARGEN_CAMINO, excesoFranjaAhora());
   if (excesoMv(s2, s3, obj[I2], obj[I3]) <= tolerado) {
@@ -681,7 +724,8 @@ void ayuda() {
       HOMING_RETROCESO);
   msg("  j <n> <°>    mover una articulación (1, 2 o 3) a un ángulo, dentro de sus límites y de la franja");
   msg("  mv <q1> <q2> <q3>  las tres a la vez, terminan juntas (recta en q2-q3), llegan con el ángulo creciendo;");
-  msg("               al asentarse: LLEGO,t,q1,q2,q3,e1,e2,e3. Ojo: no esquiva la caja (zona prohibida pendiente)");
+  msg("               al asentarse: LLEGO,t,q1,q2,q3,e1,e2,e3. Caja: con J1 >= %.0f°, J3 con tope según J2",
+      CAJA_J1_MIN);
   msg("  jv <a1> <a2> <a3>  joystick: cada eje (-1 a 1) es la velocidad de su articulación; repetir cada");
   msg("               < %lu ms (si no, frena); al soltar se sostiene. tools/joystick.py --placa 20",
       (unsigned long)JOY_HOMBRE_MUERTO_MS);
@@ -709,17 +753,49 @@ void estado() {
     msg("   franja: con J2 en %+.2f°, J3 entre %+.1f° y %+.1f° (%+.2f° del borde); destinos desde %+.1f°", art[I2].q(),
         q3MinCamino(art[I2].q()), q3MaxFranja(art[I2].q()), -excesoFranjaAhora(),
         q3MinDestino(art[I2].q()) + MARGEN_FRANJA);
+  if (cero[I1] && cerosJ2J3())
+    msg("   caja: J1 desde %.0f°: con J2 en %+.2f°, J3 hasta %+.1f°%s", CAJA_J1_MIN, art[I2].q(),
+        q3MaxCaja(art[I2].q()), art[I1].q() >= CAJA_J1_MIN ? " (J1 sobre la caja: rige)" : " (J1 al costado: no rige)");
 }
 
 // Rango permitido para la articulación i con las otras donde están (o yendo a): límites propios con MARGEN_LIMITE y
 // franja de los destinos (borde de abajo Q2_MENOS_Q3_DESTINO) con MARGEN_FRANJA
+// La caja en el rango de una (2026-11-10 noche). Las otras, en el peor caso entre su medido y su referencia
+void rangoCaja(int i, float &mn, float &mx) {
+  const auto peor = [](int k, float &lo, float &hi) {
+    lo = fminf(art[k].q(), art[k].referencia());
+    hi = fmaxf(art[k].q(), art[k].referencia());
+  };
+  float q1lo, q1hi, q2lo, q2hi, q3lo, q3hi;
+  peor(I1, q1lo, q1hi);
+  peor(I2, q2lo, q2hi);
+  peor(I3, q3lo, q3hi);
+  if (i == I1) {
+    // J1 no entra sobre la caja si J3 está más alta que la tabla (0,3° de tolerancia: J3 quieta en el borde del
+    // joystick no tiene que bloquear a J1 por el ruido de la medición)
+    if (q3hi > q3MaxCajaEntre(q2lo, q2hi) - MARGEN_FRANJA + 0.3f) mx = fminf(mx, CAJA_J1_MIN - 0.5f);
+    return;
+  }
+  if (q1hi < CAJA_J1_MIN - 1.0f) return;  // al costado (1° antes: J1 puede estar llegando)
+  if (i == I3) {
+    mx = fminf(mx, q3MaxCajaEntre(q2lo, q2hi) - MARGEN_FRANJA);
+    return;
+  }
+  // J2: desde donde está, hasta donde la tabla deje a J3 (su valor más alto) con margen, de a 0,25°
+  const float lim = q3hi + MARGEN_FRANJA, q2 = art[I2].q();
+  float a = q2, b = q2;
+  while (a + 0.25f <= mx && q3MaxCaja(a + 0.25f) >= lim) a += 0.25f;
+  while (b - 0.25f >= mn && q3MaxCaja(b - 0.25f) >= lim) b -= 0.25f;
+  mx = fminf(mx, a);
+  mn = fmaxf(mn, b);
+}
+
 bool rango(int i, float &mn, float &mx) {
   const ConfigArticulacion &c = art[i].cfg();
   mn = c.limNeg + MARGEN_LIMITE;
   mx = c.limPos - MARGEN_LIMITE;
-  if (i == I2 || i == I3) {
-    if (!cerosJ2J3()) return false;
-    if (!franjaActiva) return true;
+  if ((i == I2 || i == I3) && !cerosJ2J3()) return false;
+  if ((i == I2 || i == I3) && franjaActiva) {
     const int o = i == I2 ? I3 : I2;
     // La otra, en el peor caso entre su medido y su referencia
     const float qo1 = art[o].q(), qo2 = art[o].referencia();
@@ -733,6 +809,7 @@ bool rango(int i, float &mn, float &mx) {
       mx = fminf(mx, q3MaxFranja(lo) - MARGEN_FRANJA);
     }
   }
+  if (cero[I1] && cerosJ2J3()) rangoCaja(i, mn, mx);
   return true;
 }
 
@@ -1099,6 +1176,21 @@ void control(void *) {
       }
       fueraFranja = fuera;
     }
+    // Caja: si la medición sale (con holgura) estando J1 sobre la caja, frenar las tres (las del joystick no: rango()
+    // ya no las deja alejarse, solo volver). Una vez por episodio
+    if (cero[I1] && cerosJ2J3()) {
+      const float d = excesoCaja(art[I1].q(), art[I2].q(), art[I3].q());
+      const bool fuera = d > FRANJA_HOLGURA;
+      if (fuera && !fueraCaja) {
+        if (hm.activo) homingCortar("bajaría sobre la caja");
+        if (mv.activo) mvCortar("bajaría sobre la caja");
+        for (int i = 0; i < N; i++)
+          if (!joy.mueve[i] && art[i].modo() != Articulacion::Modo::Suelta) art[i].frenarAqui();
+        msg(">> CAJA: J3 %.2f° más alta que lo permitido sobre la caja (J1 %+.2f°, J2 %+.2f°, J3 %+.2f°). Frenadas: "
+            "bajar J3 o volver J1 con \"j\".", d, art[I1].q(), art[I2].q(), art[I3].q());
+      }
+      fueraCaja = fuera;
+    }
     // Cortes y avisos de cada una (una vez)
     for (int i = 0; i < N; i++) {
       const char *e = art[i].error();
@@ -1173,6 +1265,8 @@ void setup() {
   Serial.printf("Franja (manivela de 95 mm): q2 - %.1f° <= q3 <= tabla (destinos desde q2 - %.1f°):", Q2_MENOS_Q3_MAX,
                 Q2_MENOS_Q3_DESTINO);
   for (const PuntoFranja &p : FRANJA_ARRIBA) Serial.printf(" %.0f->%.1f", p.q2, p.q3Max);
+  Serial.printf("; caja con J1 >= %.0f°, J3 máx:", CAJA_J1_MIN);
+  for (const PuntoFranja &p : CAJA_ARRIBA) Serial.printf(" %.0f->%.1f", p.q2, p.q3Max);
   Serial.printf("; abajo, además, tabla:");
   for (const PuntoFranjaAbajo &p : FRANJA_ABAJO) Serial.printf(" %.0f->%.1f", p.q2, p.q3Min);
   Serial.printf(". J1 0-%.0f° (PROVISORIO: estirado choca antes), J2 0-%.0f°, J3 0-%.1f°.\n", CFG_J1.limPos,

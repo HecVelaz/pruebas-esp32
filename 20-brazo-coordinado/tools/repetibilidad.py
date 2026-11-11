@@ -34,7 +34,9 @@ from trayectoria import DIR_RESULTADOS, PUERTO, VOLVER, Captura, abrir  # noqa: 
 # 2026-11-04 (manivela de 95 mm): "20 20 24" quedó fuera de la franja (con J2 en 20°, J3 hasta 15,5°) -> "20 20 14"
 # 2026-11-10 (doble helicoidales, franja nueva): "20 20 14" -> "20 20 6" (J3 hasta 7,0°) y "40 30 20" -> "40 30 14"
 # (hasta 15,0°). Caminos sin probar contra la caja
-POSES = ["20 20 6", "40 30 14", "40 74 70", "60 74 70", "20 74 70"]
+# 2026-11-11: las tres de arriba J3 70 -> 68 (regla de la caja desde J1 53,5: con J2 en 74, J3 hasta 68,5; el camino
+# de un mv se revisa con la J1 más alta, así que (40, 74, 70) -> (60, ...) ya arrancaba afuera)
+POSES = ["20 20 6", "40 30 14", "40 74 68", "60 74 68", "20 74 68"]
 FIN_MV = ("LLEGO,", "MV_ERROR,", "Uso:", "Fuera de", "J2 y J3 fuera", "sin cero")
 CAMPOS = ["ciclo", "pose", "obj1", "obj2", "obj3", "q1", "q2", "q3", "e1", "e2", "e3", "t_ms"]
 

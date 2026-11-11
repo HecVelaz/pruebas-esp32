@@ -13,8 +13,8 @@ medida (q2 20-78°, q3 5-81°) el modelo extrapola: lo avisa.
 Marco del robot (mm), visto desde adelante (el frente es el de los ultrasonidos):
     origen en el eje de J1, a la altura de la tapa de la caja
     x hacia la derecha, y hacia adelante, z hacia arriba
-    q1 = 0 apunta a +x (a la derecha); q1 + gira hacia adelante (90° = hacia el frente, sobre la caja)
-Geometría de ~/Imágenes/brazo/medidas.jpeg (a ojo): caja 400 x 400 x 230 mm, J1 a 90 mm del borde derecho y 315 mm del
+    J1 real 0 apunta a +x (a la derecha); + gira hacia adelante (90° = hacia el frente, sobre la caja); ver q1_real()
+Geometría de ~/Imágenes/brazo/medidas.jpeg (a ojo): caja 400 x 400 x 230 mm (tapa en T: ver CAJA_*), J1 a 120 mm del borde derecho (90 en la parte de adelante) y 315 mm del
 frente; hombro (ejes de J2 y J3) 165 mm sobre la tapa (medido, 10/11), sobre el eje de J1 y centrado; mástil Ø 50 a 300 mm a
 la izquierda y 240 mm adelante de J1.
 
@@ -34,8 +34,21 @@ CSV = Path(__file__).absolute().parent.parent / "resultados" / "calibracion_punt
 # Geometría (mm)
 L2 = 350.22            # hombro -> codo (escala del video)
 H_HOMBRO = 165.0       # ejes de J2 y J3 sobre la tapa (usuario, 2026-11-10 noche; antes 175 (05/11) y 180 supuesto)
-CAJA_X = (-310.0, 90.0)    # la tapa, en x (izquierda, derecha) desde J1
+CAJA_X = (-280.0, 120.0)   # la tapa, en x (izquierda, derecha) desde J1: la parte ANCHA (40 cm)
 CAJA_Y = (-85.0, 315.0)    # en y (atrás, adelante)
+# 2026-11-11: la tapa es una T (recolector_de_frutas/docs/TPF R2/Entrega 3/Imágenes/Dimensiones_Base.jpg): 40 cm de
+# ancho en los 23 cm de atrás (J1 ahí, a 12 cm del borde derecho, usuario) y 34 cm (3 cm menos por lado, las ruedas)
+# en los 17 cm de adelante (borde derecho a 9 cm, el del croquis del 03/11)
+CAJA_Y_ANGOSTA = 145.0     # desde acá hacia adelante, la parte angosta
+CAJA_X_ANGOSTA = (-250.0, 90.0)
+
+
+def sobre_la_tapa(x, y, margen=0.0):
+    """(x, y) dentro de la huella de la tapa en T, con margen (mm)."""
+    if CAJA_Y[0] - margen <= y <= CAJA_Y_ANGOSTA + margen and CAJA_X[0] - margen <= x <= CAJA_X[1] + margen:
+        return True
+    return (CAJA_Y_ANGOSTA - margen <= y <= CAJA_Y[1] + margen
+            and CAJA_X_ANGOSTA[0] - margen <= x <= CAJA_X_ANGOSTA[1] + margen)
 CAJA_ALTO = 230.0
 MASTIL = (-300.0, 240.0, 25.0)   # x, y, radio
 MARGEN = 30.0          # mm de aire a la caja, al mástil y al piso
@@ -94,9 +107,25 @@ def modelo():
     return M
 
 
+# J1: grados del encoder -> ángulo real del brazo (2026-11-10 noche, a ojo por el usuario: en el homing, 2,8 del
+# encoder, el brazo apunta exacto al costado; en 86,1, exacto al frente). Real = (encoder - 2,8) * 90 / 83,3: cero
+# corrido 2,8° y J1 gira 8 % más que lo que cree el firmware (contradice el 26/10, polea de 84 dientes, también a
+# ojo: confirmar). Solo en la cinemática: el firmware y lo medido siguen en grados del encoder
+Q1_CERO_REAL = 2.8
+Q1_ESCALA_REAL = 90.0 / (86.1 - 2.8)
+
+
+def q1_real(q1):
+    return (q1 - Q1_CERO_REAL) * Q1_ESCALA_REAL
+
+
+def q1_encoder(real):
+    return real / Q1_ESCALA_REAL + Q1_CERO_REAL
+
+
 def al_robot(q1, rz):
-    """(r, z) del plano del brazo -> (x, y, z) del robot."""
-    a = math.radians(q1)
+    """(r, z) del plano del brazo -> (x, y, z) del robot (q1 en grados del encoder)."""
+    a = math.radians(q1_real(q1))
     return np.array([rz[0] * math.cos(a), rz[0] * math.sin(a), H_HOMBRO + rz[1]])
 
 
@@ -144,8 +173,7 @@ def choques(puntos, paso=10.0):
         n = max(2, int(np.linalg.norm(b - a) / paso))
         for t in np.linspace(0, 1, n):
             x, y, z = a + t * (b - a)
-            if (CAJA_X[0] - MARGEN <= x <= CAJA_X[1] + MARGEN and CAJA_Y[0] - MARGEN <= y <= CAJA_Y[1] + MARGEN
-                    and z < MARGEN and np.hypot(x, y) > 120):   # el pie del brazo (r < 120 mm) está sobre la tapa
+            if sobre_la_tapa(x, y, MARGEN) and z < MARGEN and np.hypot(x, y) > 120:   # el pie (r < 120) está sobre la tapa
                 m.add("choca con la caja")
             if np.hypot(x - MASTIL[0], y - MASTIL[1]) < MASTIL[2] + MARGEN:
                 m.add("choca con el mástil")
@@ -162,7 +190,7 @@ def fuera_de_lo_medido(q2, q3):
 def inversa(x, y, z, tol=0.5):
     """(x, y, z) de la punta en mm -> (q1, q2, q3) en grados del encoder, o (None, motivos)."""
     r = math.hypot(x, y)
-    q1 = math.degrees(math.atan2(y, x))
+    q1 = q1_encoder(math.degrees(math.atan2(y, x)))
     objetivo = np.array([r, z - H_HOMBRO])
     mod = modelo()
     # semilla: la mejor de una grilla de 2° dentro de los límites

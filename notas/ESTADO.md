@@ -1,4 +1,4 @@
-# Estado de pruebas-esp32 (al 2026-11-10, noche)
+# Estado de pruebas-esp32 (al 2026-11-11)
 
 Foto de hoy. La historia, las mediciones completas y los nombres de los CSV están en `BITACORA.md`; lo que sigue, en
 `PENDIENTES.md`; los pines de la S3, en `PINES_S3.md`.
@@ -6,7 +6,8 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
 ## Brazo: lo próximo
 
 - **`20-brazo-coordinado` (lo actual):** J1, J2 y J3 con el mismo controlador (`lib/Articulacion`), lazo no
-  bloqueante a 100 Hz, 20 kHz, sin el resorte de la pinza. **Flasheado: el del 10/11 noche** (franja completa).
+  bloqueante a 100 Hz, 20 kHz, sin el resorte de la pinza. **Flasheado: el del 11/11 con la caja desde J1 64;
+  el de J1 53,5 está compilado y SIN flashear ni probar** (lo primero de la próxima sesión).
   - **Mecánica (10/11):** J2 y J3 con **doble helicoidales** 15 → 75, en seco. J3 con manivela de 95 mm. **Eje de J1
     reemplazado** (misma pieza) el 10/11 a la noche: cero, recorrido 3–115° y repetibilidad bien.
   - **Franja (10/11 noche, medida entera con el joystick):** borde de arriba, tabla `FRANJA_ARRIBA` (0 → 0,5 est. ·
@@ -20,26 +21,30 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
     Reposo de los scripts: **`mv 3 17 4`**.
   - `mv`: quíntico, J2/J3 terminan juntas, J1 con su duración; si la recta sale de la franja, por un intermedio.
     Llegada desde abajo; `tolLlegada` 0,15° y freno anticipado (J1 0,03 s, J2 0,055 s, J3 0,045 s).
-  - **Repetibilidad** (`repetibilidad_20261110_224409`, 10 ciclos): RP **J1 0,13°, J2 0,20°, J3 0,06°**; 5 ciclos con
+  - **Caja (11/11):** con J1 ≥ `CAJA_J1_MIN`, J3 máximo según J2 (`CAJA_ARRIBA`: 64 → 73,2 · 68–69 → 65,0 ·
+    70 → 66,2 · 74 → 69,5 · 80 → 74,2; muñeca a ≥ 3 cm de la tapa). `mv` revisa con la J1 más alta del camino; con
+    J3 alta J1 no entra; protección `>> CAJA`. Desde J1 64 (flasheado): frenó en 65,2 con la muñeca a 4 cm, pero con
+    J1 63,5 la muñeca llegó a 1 cm de la tapa → **53,5** (sin flashear). Activa también con `fr 0`.
+  - **Poses de repetibilidad:** `20 20 6`, `40 30 14`, `40 74 68`, `60 74 68`, `20 74 68` (J3 70 → 68 por la caja).
+  - **Repetibilidad** (`repetibilidad_20261110_224409`, 10 ciclos, con J3 70): RP **J1 0,13°, J2 0,20°, J3 0,06°**; 5 ciclos con
     la franja completa (`_230137`): 0,06 / 0,20 / 0,08. J2 la peor (ganancias y feedforward de los engranajes
     viejos; tarda ~0,4 s en despegar).
-  - **Cinemática: DESACTUALIZADA** (modelo del 05/11, con el juego viejo). Con la franja nueva J3 llega más alto:
-    **caminos de las poses sin revisar contra la caja** (lo primero de la próxima sesión).
+  - **Cinemática** (`tools/cinematica.py`, modelo del 05/11, juego viejo): hombro (J2 y J3) a **165 mm**, J1 real
+    `(q1 − 2,8) · 90 / 83,3` (a ojo), tapa en **T** (40 cm atrás, J1 a 12 cm del borde derecho; 34 cm adelante, 9).
+    Acierta la altura de la muñeca (1–2 mm + ~6 mm del servo) pero la ubica ~5 cm más afuera de lo real sobre el
+    costado: la caja del firmware es empírica, no del modelo.
   - Joystick `jv` (`17/tools/joystick.py --placa 20 [--sin-franja]`; botones Homing y Anotar). J1 0–118°
-    PROVISORIO. La caja no está en el firmware.
+    PROVISORIO.
 - **Cero del brazo:** la pose con los tres finales de carrera apretados (foto del 30/10); + = alejarse de cada uno.
   Límites: J1 0–118° (brazo recogido), J2 0–83°, J3 0–101,5°; franja con tablas (ver arriba). Finales de carrera:
   J1 32, J2 27, J3 33. **Tienen un solo punto de apoyo y el golpe los gira**: llegar despacio (`h`) y fijarlos
   mejor (pendiente).
-- **20 kHz en J2 y J3** (decisión del 31/10, sin pitido): más duty por la misma fuerza (J2 arranca subiendo con 35 %);
-  J3 sostiene con compensación de fricción 15 %. A 20 kHz la fricción sostiene el brazo en un rango ancho de duty: el
-  mapa de gravedad (`19/resultados/mapa_gravedad_20261031_135400.*`) no sirve como modelo (`gm` apagado).
+- **20 kHz en J2 y J3** (31/10, ver `DECISIONES.md`); compensación de gravedad apagada (`gm`).
 - **Abrir el puerto serie reinicia la WROOM** (cero perdido, brazo suelto): después del monitor, `h`.
 - **Fuente:** conectada a la bornera del bus de 12 V (el adaptador al XT60 tiene un contacto malo). Así no pasa por el
   fusible ni la seta: límite de 3 A y apagar la fuente como parada.
 - **`12`:** J1 lista (0–5), repetir el paso 3 con el cero nuevo. **`17`:** pega fuerte en los FC. **`18`:** OK.
-- **Robot:** la WROOM tiene hoy el firmware de `20` (hay que volver a flashear `firmware/brazo`, que sigue con la
-  franja, el homing y el reposo viejos).
+- **Robot:** la WROOM tiene el firmware de `20`; `firmware/brazo` sigue con franja, homing y reposo viejos.
 
 ## Pinza y muñeca (servos)
 
@@ -63,7 +68,7 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
 - Notebook y Pi 5 (`r2d2@192.168.2.219`, Tailscale `r2d2-desktop`) ordenadas igual: repos en `~/Documentos` (Pi:
   `~/firmware`, `~/scripts`, `~/logs`), workspaces en `~/ros/`, venvs en `~/venvs/`. Las dos placas están en la Pi
   (se compila en la notebook y se flashea con esptool desde la Pi); la WROOM del brazo, hoy, en la notebook
-  (`/dev/ttyUSB1`; `tools/monitor.sh` la abre por id).
+  (hoy `/dev/ttyUSB0`; `tools/monitor.sh` la abre por id).
 - Respaldo del firmware micro-ROS del brazo de la WROOM de la Pi: `~/firmware/brazo/respaldo_20261001_183959.bin`.
 
 ## Pruebas terminadas
