@@ -60,7 +60,7 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
 - `bash ~/scripts/25-teleop-pi/tools/lanzar.sh` (dos agentes + teleop) → `http://100.116.96.71:8000`, horizontal.
   **WROOM con 20 env `ros`** (flasheado; homing, joystick, pinza y muñeca OK desde el celular).
 - **Base:** la S3 está **en la notebook con `03-hcsr04`** (los tres HC-SR04 OK); falta flashear el `ros` completo y
-  volver a la Pi. **Encoder de la rueda izquierda (GPIO 15/16) sin cuentas**: la rueda se escapa y salta `atasco`.
+  volver a la Pi. Tracción: la rueda izquierda se escapaba (sin cuentas): **era una tierra suelta, arreglada**.
   IMU real sin confirmar (con `ros` daba SIN_DATOS; con `ros_motores` no se mira). La S3 a veces no arranca después
   de flashear o reconectar el USB: RST; el by-id cambia de ttyACM0 a ACM1.
 - `24` (bumpers 14/21/39) y `03` (HC-SR04 10-11 / 41-12 / 42-13) OK; IMU (`01`) respondía el 06/11 (SDA 8, SCL 9).

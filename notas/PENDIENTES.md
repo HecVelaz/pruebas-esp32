@@ -5,8 +5,8 @@
 
 ## Teleop (25) y base (lo próximo)
 
-1. **Encoder de la rueda izquierda** (GPIO 15/16, alimentación y GND): no cuenta. Después grabar `/odom` empujando
-   derecho: w/v ≈ 0 y las dos ruedas iguales.
+1. ~~Encoder de la rueda izquierda~~ (11/11 noche: **una tierra desconectada**, arreglada por el usuario). Falta
+   confirmar con `/odom` empujando derecho (w/v ≈ 0) y ver si con eso desaparecen los cortes de USB de la S3.
 2. **S3 con el `ros` completo** (está en la notebook con `03`): `pio run -e ros -t upload --upload-port <by-id>`, a la
    Pi, RST, `lanzar.sh`, **Sensores**: IMU (si SIN_DATOS, probar con `01`), HC-SR04 del frente con la mano, bumpers;
    después las pruebas de seguridad en el aire (frente < 20 cm no avanza, bumper frena, vuelco > 25°).

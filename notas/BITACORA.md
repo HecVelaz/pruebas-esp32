@@ -1112,3 +1112,5 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   --upload-port <by-id>` en `recolector_de_frutas/firmware/base`) y volver a la Pi. Binarios en la Pi:
   `~/firmware/brazo20_ros`, `base_ros_20261111`, `base_ros_motores_20261111`; teleop en `~/scripts/25-teleop-pi`.
 - Commit: el de este cierre (sin push).
+- **Después del cierre:** la rueda izquierda sin cuentas era **una tierra desconectada** (arreglada por el usuario).
+  Sin confirmar todavía con `/odom`.
