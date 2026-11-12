@@ -13,6 +13,8 @@
 #include "config.h"
 #include "pins.h"
 
+extern Print *out;  // main.cpp: Serial o, con micro-ROS, /brazo/respuesta
+
 namespace {
 
 struct Servo {
@@ -34,17 +36,17 @@ Servo servos[2] = {
 };
 
 void estado(Servo &v) {
-  Serial.printf("SERVO %s %s actual=%u us destino=%u us franja=[%u, %u] w=%.0f °/s\n", v.nombre,
+  out->printf("SERVO %s %s actual=%u us destino=%u us franja=[%u, %u] w=%.0f °/s\n", v.nombre,
                 v.s.suelto() ? "SUELTO" : "ACTIVO", v.s.actualUs(), v.s.destinoUs(), v.s.minUs(), v.s.maxUs(), v.w);
 }
 
 void ir(Servo &v, long us) {
   if (us < v.minUs || us > v.maxUs)
-    Serial.printf("SERVO %s: %ld us fuera de [%u, %u]: se recorta\n", v.nombre, us, v.minUs, v.maxUs);
+    out->printf("SERVO %s: %ld us fuera de [%u, %u]: se recorta\n", v.nombre, us, v.minUs, v.maxUs);
   if (us < 0) us = 0;
   const bool suelto = v.s.suelto();
   v.s.irA((uint16_t)us);
-  Serial.printf("SERVO_VA,%s,%u%s\n", v.nombre, v.s.destinoUs(), suelto ? " (estaba suelto: salto directo)" : "");
+  out->printf("SERVO_VA,%s,%u%s\n", v.nombre, v.s.destinoUs(), suelto ? " (estaba suelto: salto directo)" : "");
   v.avisar = true;
 }
 
@@ -70,7 +72,7 @@ bool servosComando(const char *l) {
     } else if (strcmp(a, "s") == 0) {
       v.s.soltar();
       v.avisar = false;
-      Serial.printf("SERVO %s SUELTO\n", v.nombre);
+      out->printf("SERVO %s SUELTO\n", v.nombre);
     } else if (strcmp(a, "a") == 0) {
       ir(v, v.a);
     } else if ((strcmp(a, "b") == 0 && v.b != 0 && strcmp(v.prefijo, "mn") == 0) ||
@@ -84,12 +86,12 @@ bool servosComando(const char *l) {
         if (v.w < 0) v.w = 0;
         v.s.velocidad(v.w * v.usPorGrado);
       }
-      Serial.printf("SERVO %s w=%.0f °/s%s\n", v.nombre, v.w, v.w == 0 ? " (salto directo)" : "");
+      out->printf("SERVO %s w=%.0f °/s%s\n", v.nombre, v.w, v.w == 0 ? " (salto directo)" : "");
     } else {
       char *fin;
       const long us = strtol(a, &fin, 10);
       if (fin == a || *fin != '\0')
-        Serial.printf("SERVO %s: comando desconocido \"%s\" (? para la ayuda)\n", v.nombre, a);
+        out->printf("SERVO %s: comando desconocido \"%s\" (? para la ayuda)\n", v.nombre, a);
       else
         ir(v, us);
     }
@@ -103,7 +105,12 @@ void servosActualizar() {
     v.s.update();
     if (v.avisar && v.s.enDestino()) {
       v.avisar = false;
-      Serial.printf("SERVO_LLEGO,%s,%u\n", v.nombre, v.s.actualUs());
+      out->printf("SERVO_LLEGO,%s,%u\n", v.nombre, v.s.actualUs());
     }
   }
+}
+
+void servosTexto(char *b, size_t cap) {
+  snprintf(b, cap, "pz=%d;mn=%d", servos[0].s.suelto() ? -1 : (int)servos[0].s.actualUs(),
+           servos[1].s.suelto() ? -1 : (int)servos[1].s.actualUs());
 }

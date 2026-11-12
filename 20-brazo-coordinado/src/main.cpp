@@ -13,6 +13,12 @@
 #include "config.h"
 #include "pins.h"
 #include "servos.h"
+#ifdef USAR_MICROROS
+#include "capa_ros.h"
+#endif
+
+// Salida de texto: Serial, o con micro-ROS el buffer que capa_ros publica en /brazo/respuesta
+Print *out = &Serial;
 
 namespace {
 
@@ -1233,6 +1239,34 @@ char linea[48];
 size_t lineaLen = 0;
 bool ultimoFueCR = false;
 
+}  // namespace
+
+// Una línea de comando (de Serial o de /brazo/comando): pinza y muñeca se atienden acá (loop), "x" baja el EN acá
+// mismo, lo demás va a la cola de la tarea de control
+void encolar(const char *texto) {
+  Linea l;
+  strncpy(l.t, texto, sizeof(l.t));
+  l.t[sizeof(l.t) - 1] = '\0';
+  if (l.t[0] == '\0' || servosComando(l.t)) return;
+  if (strcmp(l.t, "x") == 0) {
+    digitalWrite(PIN_BRAZO_EN, LOW);
+    xPendiente = true;  // la tarea descarta la cola y suelta las tres
+  } else if (xQueueSend(colaComandos, &l, pdMS_TO_TICKS(50)) != pdTRUE) {
+    out->printf("Comando perdido (la placa está ocupada): \"%s\". Repetirlo.\n", l.t);
+  }
+}
+
+// Estado compacto para /brazo/estado: q=..;e=..;c=..;fc=..;pz/mn (estados como la telemetría: 0 suelta, 1 yendo,
+// 2 llegó, 3 firme, 4 frenada, 5 mov, 6 homing)
+void textoEstado(char *b, size_t cap) {
+  int n = snprintf(b, cap, "q=%.2f,%.2f,%.2f;e=%u,%u,%u;c=%d%d%d;fc=%d%d%d;", art[I1].q(), art[I2].q(), art[I3].q(),
+                   estadoTele(art[I1]), estadoTele(art[I2]), estadoTele(art[I3]), cero[I1], cero[I2], cero[I3],
+                   art[I1].fc(), art[I2].fc(), art[I3].fc());
+  if (n > 0 && (size_t)n < cap) servosTexto(b + n, cap - n);
+}
+
+namespace {
+
 void leerSerial() {
   while (Serial.available()) {
     const char ch = (char)Serial.read();
@@ -1247,19 +1281,7 @@ void leerSerial() {
     }
     if (ch == '\r' || ch == '\n') {
       linea[lineaLen] = '\0';
-      Linea l;
-      strncpy(l.t, linea, sizeof(l.t));
-      l.t[sizeof(l.t) - 1] = '\0';
-      if (lineaLen && servosComando(l.t)) {
-        // pinza y muñeca: se atienden acá (loop), no pasan por la tarea de control ni cortan un mv
-      } else if (lineaLen) {
-        // "x": el EN se baja acá mismo (no depende de la cola); la tarea después las pone sueltas
-        if (strcmp(l.t, "x") == 0) {
-          digitalWrite(PIN_BRAZO_EN, LOW);
-          xPendiente = true;  // la tarea descarta la cola y suelta las tres
-        } else if (xQueueSend(colaComandos, &l, pdMS_TO_TICKS(50)) != pdTRUE)
-          Serial.printf("Comando perdido (la placa está ocupada): \"%s\". Repetirlo.\n", l.t);
-      }
+      if (lineaLen) encolar(linea);
       lineaLen = 0;
     } else if (lineaLen < sizeof(linea) - 1 && ch >= ' ') {
       linea[lineaLen++] = ch;
@@ -1281,39 +1303,54 @@ void setup() {
     hwOk = art[i].begin(*cfg[i]) && hwOk;
     art[i].frenoEnBanda(frenoBanda);
   }
+#ifdef USAR_MICROROS
+  rosBegin();  // abre Serial para el agente y apunta out al buffer de /brazo/respuesta
+#else
   Serial.setTxBufferSize(2048);  // la telemetría (~5 kB/s) no bloquea loop() en cada línea
   Serial.begin(115200);
   delay(1500);
+#endif
   colaComandos = xQueueCreate(16, sizeof(Linea));
   colaMensajes = xQueueCreate(24, sizeof(Mensaje));
   colaTele = xQueueCreate(50, sizeof(Muestra));  // 1 s de muestras
-  Serial.println();
-  Serial.println("== 20 · J1, J2 y J3 con el mismo controlador (5a: homing, \"j\"; 5b: \"mv\"; 5c: \"t\") · WROOM, 20 kHz ==");
-  Serial.printf("Franja (manivela de 95 mm): q2 - %.1f° <= q3 <= tabla (destinos desde q2 - %.1f°):", Q2_MENOS_Q3_MAX,
+  out->println();
+  out->println("== 20 · J1, J2 y J3 con el mismo controlador (5a: homing, \"j\"; 5b: \"mv\"; 5c: \"t\") · WROOM, 20 kHz ==");
+  out->printf("Franja (manivela de 95 mm): q2 - %.1f° <= q3 <= tabla (destinos desde q2 - %.1f°):", Q2_MENOS_Q3_MAX,
                 Q2_MENOS_Q3_DESTINO);
-  for (const PuntoFranja &p : FRANJA_ARRIBA) Serial.printf(" %.0f->%.1f", p.q2, p.q3Max);
-  Serial.printf("; caja con J1 >= %.0f°, J3 máx:", CAJA_J1_MIN);
-  for (const PuntoFranja &p : CAJA_ARRIBA) Serial.printf(" %.0f->%.1f", p.q2, p.q3Max);
-  Serial.printf("; abajo, además, tabla:");
-  for (const PuntoFranjaAbajo &p : FRANJA_ABAJO) Serial.printf(" %.0f->%.1f", p.q2, p.q3Min);
-  Serial.printf(". J1 0-%.0f° (PROVISORIO: estirado choca antes), J2 0-%.0f°, J3 0-%.1f°.\n", CFG_J1.limPos,
+  for (const PuntoFranja &p : FRANJA_ARRIBA) out->printf(" %.0f->%.1f", p.q2, p.q3Max);
+  out->printf("; caja con J1 >= %.0f°, J3 máx:", CAJA_J1_MIN);
+  for (const PuntoFranja &p : CAJA_ARRIBA) out->printf(" %.0f->%.1f", p.q2, p.q3Max);
+  out->printf("; abajo, además, tabla:");
+  for (const PuntoFranjaAbajo &p : FRANJA_ABAJO) out->printf(" %.0f->%.1f", p.q2, p.q3Min);
+  out->printf(". J1 0-%.0f° (PROVISORIO: estirado choca antes), J2 0-%.0f°, J3 0-%.1f°.\n", CFG_J1.limPos,
                 CFG_J2.limPos, CFG_J3.limPos);
-  if (!servosIniciar()) Serial.println("ERROR: no se pudo configurar el LEDC de la pinza o de la muñeca.");
-  if (!hwOk) Serial.println("ERROR: no se pudo configurar algún PWM o encoder.");
-  Serial.println("Las tres sueltas (EN en bajo) hasta \"h\", \"s\" o \"z\". Para el cero: \"h\".");
+  if (!servosIniciar()) out->println("ERROR: no se pudo configurar el LEDC de la pinza o de la muñeca.");
+  if (!hwOk) out->println("ERROR: no se pudo configurar algún PWM o encoder.");
+  out->println("Las tres sueltas (EN en bajo) hasta \"h\", \"s\" o \"z\". Para el cero: \"h\".");
+#ifndef USAR_MICROROS
   while (Serial.available()) Serial.read();  // basura del CH340 al abrir el puerto
+#endif
   xTaskCreatePinnedToCore(control, "control", 6144, nullptr, 5, nullptr, 1);
+#ifndef USAR_MICROROS
   Linea l = {"?"};
   xQueueSend(colaComandos, &l, 0);
+#endif
 }
 
 void loop() {
+#ifdef USAR_MICROROS
+  rosLoop();  // /brazo/comando -> encolar(); publica /brazo/estado y lo que quedó en out
+#else
   leerSerial();
+#endif
   servosActualizar();
   Mensaje m;
-  while (xQueueReceive(colaMensajes, &m, 0) == pdTRUE) Serial.println(m.t);
+  while (xQueueReceive(colaMensajes, &m, 0) == pdTRUE) out->println(m.t);
   Muestra x;
   while (xQueueReceive(colaTele, &x, 0) == pdTRUE) {
+#ifdef USAR_MICROROS
+    continue;  // con micro-ROS la telemetría "t" no sale (el USB es del agente)
+#endif
     char b[200];
     int n = snprintf(b, sizeof(b), "T,%lu,%u", (unsigned long)x.ms, x.etapa);
     for (int i = 0; i < N; i++)

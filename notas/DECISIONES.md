@@ -99,3 +99,7 @@
   después J1 sola; al final un mv hacia afuera con J1 quieta. Nunca girar J1 con el brazo estirado cerca del objeto.
 - **Velocidad de los mv (2026-11-11):** la aproximación final de J2/J3 se queda en 2 °/s (a 4 °/s J3 se pasa y se
   traba al corregir bajando); lo que se acelera es el recorrido (`vel 0.75`) y el asentamiento (0,5 s).
+- **Teleop por ROS 2 + micro-ROS, no serie directo (2026-11-11, usuario):** el brazo usa el firmware 20 en el env
+  `ros` y la misma línea de comandos por `/brazo/comando` (sin un protocolo nuevo); la base, el firmware `ros` del
+  robot. La página manda como mucho un pedido en vuelo por joystick (siempre el último valor), con HTTP/1.1
+  keep-alive: con una conexión por pedido y sin esperar las respuestas, la cola llegaba a 20 s.

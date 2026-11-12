@@ -74,6 +74,9 @@
 		},
 		{
 			"path": "24-bumpers-s3"
+		},
+		{
+			"path": "25-teleop-pi"
 		}
 	],
 	"settings": {

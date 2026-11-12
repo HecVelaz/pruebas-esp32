@@ -3,6 +3,17 @@
 <!-- Movido desde CLAUDE.md (2026-10-22). Los bloques "Pendiente GPS", "Pendiente" de 08 y "Falta" se movieron
      tal cual; el resto se copió de los "Pendiente:" que siguen dentro de cada entrada de BITACORA.md. -->
 
+## Teleop (25) y base (lo próximo)
+
+1. **Encoder de la rueda izquierda** (GPIO 15/16, alimentación y GND): no cuenta. Después grabar `/odom` empujando
+   derecho: w/v ≈ 0 y las dos ruedas iguales.
+2. **S3 con el `ros` completo** (está en la notebook con `03`): `pio run -e ros -t upload --upload-port <by-id>`, a la
+   Pi, RST, `lanzar.sh`, **Sensores**: IMU (si SIN_DATOS, probar con `01`), HC-SR04 del frente con la mano, bumpers;
+   después las pruebas de seguridad en el aire (frente < 20 cm no avanza, bumper frena, vuelco > 25°).
+3. Por qué la S3 no arranca después de flashear / reconectar (RST a mano) y los cortes del enlace (USB) y el reinicio
+   de la Pi (¿alimentación al encender los 12 V o arrancar los motores?).
+4. En la página: botones de `tarea` / punta (cinemática) si hacen falta; la seta de verdad (GPIO 47).
+
 ## Base (S3)
 
 - **`24-bumpers-s3`:** pasos A4–A5 (mover los cables sin apretar, apretar despacio) y A6 (paragolpes montado, empujar

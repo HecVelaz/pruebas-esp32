@@ -1079,3 +1079,36 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   duty se traba: el integrador tarda ~11 s en despegarla. A 2 °/s no. Queda **"ir frente a A" en 30 s** (esperable
   ~16): sin diagnosticar.
 - Commits: `6901545` (servos, ap / ret / tarea) y el de este cierre (`vel` y tiempos de `tarea`). Sin push.
+
+## 2026-11-11 (noche) — 25-teleop-pi: tracción y brazo desde el celular por ROS 2 + micro-ROS en la Pi
+
+- **Decisión del usuario:** ROS 2 / micro-ROS (no serie directo), carpeta nueva en pruebas, página del celular,
+  horizontal y cómoda; tracción + brazo + botones de pinza y muñeca; con la seguridad de la base (bumpers, IMU,
+  HC-SR04).
+- **20, env `ros`** (`include/capa_ros.h`, `src/capa_ros.cpp`; `EnlaceMicroRos` y el colcon.meta de
+  `recolector_de_frutas/firmware` por symlink): `/brazo/comando` (String) entra por el mismo `encolar()` que el
+  serial (jv, h, s, x, mv, pz, mn, vel, c); publica `/brazo/estado` (`q=..;e=..;c=..;fc=..;pz=..;mn=..`, 10 Hz) y
+  `/brazo/respuesta`; sin agente, "s". `Print *out` (Serial o el buffer de /brazo/respuesta); servos.cpp también.
+  `default_envs = brazo`. Primera compilación de micro-ROS: 7 min. **Flasheado en la WROOM desde la Pi** (respaldo
+  `~/firmware/respaldo_wroom_20261111.bin`); homing, jv, pinza y muñeca desde la página: OK.
+- **`25-teleop-pi`** (`tools/teleop.py` rclpy + http, `tools/teleop.html`, `tools/lanzar.sh` = dos agentes + teleop,
+  cierra lo que quedó abierto): /cmd_vel cada 100 ms mientras se toca, /base/comando (armar, desarmar, s, r, sens),
+  /brazo/comando; muestra /brazo/estado, /base/estado, /bumpers, /range/*, /imu (roll/pitch), /battery. Página:
+  barra arriba (PARAR, Homing, Reposo, Armar base, Desarmar, Rearmar, Sensores), tracción izq., brazo der. (pad J1/J2,
+  barra J3), pinza y muñeca al centro; probada a 873 × 330 (Poco X6 Pro horizontal). Arreglos en el día: botones
+  cortados (layout), `Rearmar` (la EMERGENCIA de la seta queda trabada hasta `r`), "recto fácil" (desvío < 20 % del
+  avance = sin giro), rclpy atrapaba SIGTERM y el teleop viejo quedaba con el 8000 (`os._exit`), **latencia de
+  18–25 s** (HTTP/1.0 + 13 pedidos/s sin esperar + Nagle: cola en el navegador) → HTTP/1.1 keep-alive, TCP_NODELAY,
+  un pedido en vuelo por joystick (19 ms para 40 pedidos en local; ping al celular 137 ms), rangos "libre"/"sin eco".
+- **Base:** primero env `ros` (EMERGENCIA (seta), IMU SIN_DATOS → no rearma); después `ros_motores` (sin IMU y con el
+  frente forzado a INFINITY: el "imu=ok" y el frente "libre" de esa prueba no eran reales). Con `ros_motores` las
+  ruedas se movieron pero **la izquierda se escapa**: `/odom` con w/v = 4,95 siempre (= 2 / trocha de 0,40 m) → **solo
+  cuenta el encoder derecho**; el izquierdo (GPIO 15/16) no cuenta: el PI la lleva a fondo y salta `atasco`. El
+  usuario había desconectado / reconectado los encoders de la derecha. HC-SR04 con `03` en la notebook: los tres OK.
+- **S3:** después de flashear o de reconectar el USB a veces **no arranca** (ni modo descarga ni datos: esptool "No
+  serial data") hasta pulsar RST; vuelve como `ttyACM1` (usar el by-id). El enlace de la base tuvo 4–5 cortes (USB).
+  La **Pi se reinició** una vez (18:40) y Tailscale se cortó varias veces (SSH timeout).
+- **Al cierre:** la S3 en la notebook con `03-hcsr04`; falta flashearle el `ros` completo (`pio run -e ros -t upload
+  --upload-port <by-id>` en `recolector_de_frutas/firmware/base`) y volver a la Pi. Binarios en la Pi:
+  `~/firmware/brazo20_ros`, `base_ros_20261111`, `base_ros_motores_20261111`; teleop en `~/scripts/25-teleop-pi`.
+- Commit: el de este cierre (sin push).

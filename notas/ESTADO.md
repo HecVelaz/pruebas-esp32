@@ -1,4 +1,4 @@
-# Estado de pruebas-esp32 (al 2026-11-11, tarde)
+# Estado de pruebas-esp32 (al 2026-11-11, noche)
 
 Foto de hoy. La historia, las mediciones completas y los nombres de los CSV están en `BITACORA.md`; lo que sigue, en
 `PENDIENTES.md`; los pines de la S3, en `PINES_S3.md`.
@@ -49,28 +49,28 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
 
 ## Pinza y muñeca (servos)
 
-- **`23-servos-wroom` (lo actual):** los dos en la **WROOM-32D del brazo** con los pines del robot: **pinza GPIO 4,
-  muñeca GPIO 14** (verificado contra `todo.html` / `placa_wroom.html`; los dos responden). `p <cmd>` / `m <cmd>` con
-  los comandos y valores de 21 y 22; EN 23 de los IBT-2 en LOW. Código con los valores de 21 (cero 1500 µs).
+- **En 20 (`pz`, `mn`) y `23-servos-wroom`:** pinza GPIO 4, muñeca GPIO 14, valores de 21 y 22 (cero 1500 µs).
   - **Pinza con el brazo del servo ~45° corrido** al montarla: cero visual en 1000 µs, `p a` abre 45°. Falta
     recalzarlo (~3 dientes) para que 500 µs vuelva a ser 90° (73 mm). Muñeca: se mueve con los valores de 22.
 - Sueltas en la ESP32 "ESP32S" (CP2102): **`21`** (GPIO 18) cero 1500, abierto 500 µs = 73 mm, cerrado 1250 µs;
   **`22`** (GPIO 19) cero 1500, ±90° en 860 / 2150 µs (~7,2 µs/°). Detalle en `BITACORA.md`.
 
-## Base (S3)
+## Teleop (`25-teleop-pi`, ROS 2 + micro-ROS en la Pi)
 
-- **`24-bumpers-s3`:** los tres responden (frente 14, izq. 21, der. 39; 0 rebotes, 06/11); falta el paragolpes montado.
-- **`03-hcsr04`:** los tres HC-SR04 responden (TRIG 10/41/42, ECHO 11/12/13, driver de la base; 06/11); falta la cinta.
-- **IMU (`01`):** responde en la base (SDA 8, SCL 9; gyro y −5 °/s sin calibrar); `02` compilado, RViz sin probar.
-  Firmware en la S3: incierto (`24` o `03`). `01`–`03` y `24` usan el puerto by-id.
+- `bash ~/scripts/25-teleop-pi/tools/lanzar.sh` (dos agentes + teleop) → `http://100.116.96.71:8000`, horizontal.
+  **WROOM con 20 env `ros`** (flasheado; homing, joystick, pinza y muñeca OK desde el celular).
+- **Base:** la S3 está **en la notebook con `03-hcsr04`** (los tres HC-SR04 OK); falta flashear el `ros` completo y
+  volver a la Pi. **Encoder de la rueda izquierda (GPIO 15/16) sin cuentas**: la rueda se escapa y salta `atasco`.
+  IMU real sin confirmar (con `ros` daba SIN_DATOS; con `ros_motores` no se mira). La S3 a veces no arranca después
+  de flashear o reconectar el USB: RST; el by-id cambia de ttyACM0 a ACM1.
+- `24` (bumpers 14/21/39) y `03` (HC-SR04 10-11 / 41-12 / 42-13) OK; IMU (`01`) respondía el 06/11 (SDA 8, SCL 9).
 
 ## Máquinas
 
 - Notebook y Pi 5 (`r2d2@192.168.2.219`, Tailscale `r2d2-desktop`) ordenadas igual: repos en `~/Documentos` (Pi:
   `~/firmware`, `~/scripts`, `~/logs`), workspaces en `~/ros/`, venvs en `~/venvs/`. Las dos placas están en la Pi
-  (se compila en la notebook y se flashea con esptool desde la Pi); la WROOM del brazo, hoy, en la notebook
-  (hoy `/dev/ttyUSB0`; `tools/monitor.sh` la abre por id).
-- Respaldo del firmware micro-ROS del brazo de la WROOM de la Pi: `~/firmware/brazo/respaldo_20261001_183959.bin`.
+  (se compila en la notebook y se flashea con esptool desde la Pi: `~/venvs/esptool/bin/esptool`). Respaldos de la
+  WROOM: `~/firmware/brazo/respaldo_20261001_183959.bin` (micro-ROS del robot) y `respaldo_wroom_20261111.bin` (20).
 
 ## Pruebas terminadas: IMU MPU-6500 (01, 02) OK, sin magnetómetro; GPS UP501 (04, 05) OK por WiFi; lazo abierto 06/07 y 08 (`Freno`) OK.
 
