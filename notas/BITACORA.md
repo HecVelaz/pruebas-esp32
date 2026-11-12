@@ -1121,3 +1121,10 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
 - **Plan del 12/11** (en `PENDIENTES.md`): cerrar la base, calibrar la estéreo, detección del limón, cámara → brazo
   (marca en la pinza + `directa`), cero del GPS al final. Commits de la noche: `ecbb798`, `0a13eb6`, `894469b`,
   `5950bc9`, `8002f43` y el de este cierre (sin push).
+
+## 2026-11-12 — 25-teleop-pi: registrador de tensión para la prueba del power bank
+- `25-teleop-pi/tools/registrar_tension.sh [segundos]` (copiado a la Pi en `~/scripts/25-teleop-pi/tools/`): CSV
+  cada 2 s en `~/logs/prueba_powerbank_real_<fecha>.csv` (EXT5V, potencia de los rieles del PMIC, `throttled`,
+  temperatura, carga, MHz); avisa si EXT5V < 4,85 V o `throttled` ≠ `0x0`. Probado 2 s: 5,08 V, `0x0`, 2,4-2,6 W.
+- Prueba real (teleop + visión v3 + ESP32 con el power bank) sin hacer; detalle de la v3 en la bitácora de
+  `recolector_de_frutas` (12/11). La S3 todavía necesita RST físico con `lanzar.sh` (sin mirar `~/logs/reset_s3.log`).
