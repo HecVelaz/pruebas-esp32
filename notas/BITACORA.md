@@ -1128,3 +1128,17 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   temperatura, carga, MHz); avisa si EXT5V < 4,85 V o `throttled` ≠ `0x0`. Probado 2 s: 5,08 V, `0x0`, 2,4-2,6 W.
 - Prueba real (teleop + visión v3 + ESP32 con el power bank) sin hacer; detalle de la v3 en la bitácora de
   `recolector_de_frutas` (12/11). La S3 todavía necesita RST físico con `lanzar.sh` (sin mirar `~/logs/reset_s3.log`).
+
+## 2026-11-12 (noche) — 20-brazo-coordinado: calibración cámara → brazo (preparación)
+- Objetivo: la TF `brazo_base -> stereo_camera_link` de `recolector_de_frutas/ros2_ws/src/mision/launch/mision.launch.py`
+  con pares limón (visión, marco óptico `camera`) ↔ punta del brazo (`cinematica.py`).
+- Herramientas nuevas en `20-brazo-coordinado/tools/`: `medir_limon.py` (en la Pi, con `start_limon.sh`: mediana de
+  `/limon/posicion` en N s por punto → `resultados/camara_brazo_<fecha>_camara.csv`); `anotar <punto>` en `punta.py`
+  (q y punta → `..._brazo.csv`); `ajuste_camara.py` (cara → centro corriendo el radio sobre el rayo como
+  `centro_desde_superficie` de la misión, marco de `cinematica.py` → `brazo_base` = (y, −x, z), Kabsch/SVD, residuo
+  por punto y dejando cada uno afuera, y los 6 argumentos componiendo con la rotación fija `stereo_camera_link ->
+  camera` de `limon.launch.py`). `--prueba` con una TF sintética y 5 mm de ruido por eje: 8 puntos, 7 mm de residuo
+  medio, TF a 16 mm y ~1,5° de la verdadera.
+- `punta.py` necesita el env `brazo` (serie): binario único `brazo20_serie.bin` (0x0) para flashear desde la Pi,
+  con respaldo antes (la WROOM tiene el env `ros`).
+- Sin medir todavía.

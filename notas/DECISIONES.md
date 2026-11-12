@@ -103,3 +103,7 @@
   `ros` y la misma línea de comandos por `/brazo/comando` (sin un protocolo nuevo); la base, el firmware `ros` del
   robot. La página manda como mucho un pedido en vuelo por joystick (siempre el último valor), con HTTP/1.1
   keep-alive: con una conexión por pedido y sin esperar las respuestas, la cola llegaba a 20 s.
+- **TF cámara → brazo geométrica; el radio del limón, en la misión (2026-11-12):** la visión da la cara del limón y
+  la misión ya la pasa al centro (`centro_desde_superficie`, `radio_limon` 0,03 m). El ajuste corre los puntos de la
+  cámara ese mismo radio antes de Kabsch, así la TF no absorbe el radio (que depende del limón) y no se suma dos
+  veces. Si el limón de la demo es de otro tamaño, se cambia `radio_limon`, no la TF.

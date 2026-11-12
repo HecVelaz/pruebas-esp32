@@ -47,6 +47,9 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
 - **`12`:** J1 lista (0–5), repetir el paso 3 con el cero nuevo. **`17`:** pega fuerte en los FC. **`18`:** OK.
 - **Robot:** la WROOM tiene el firmware de `20`; `firmware/brazo` sigue con franja, homing y reposo viejos.
 
+- **Cámara → brazo (12/11 noche):** herramientas listas (`medir_limon.py`, `anotar` en `punta.py`,
+  `ajuste_camara.py`, validado con datos sintéticos); **sin medir**. Hace falta el env `brazo` (serie) en la WROOM.
+
 ## Pinza y muñeca (servos)
 
 - **En 20 (`pz`, `mn`) y `23-servos-wroom`:** pinza GPIO 4, muñeca GPIO 14, valores de 21 y 22 (cero 1500 µs).

@@ -16,6 +16,8 @@ Abre el puerto como un monitor: lo que se escribe va a la placa (h, c, mv, s, x,
                       (mv 3 17 4). Un mv que corta por "no quedan firmes" se repite una vez.
                       vertarea: solo el plan. Ctrl+C en cualquier momento: "s"
     donde             pide "c" y dice dónde está la punta
+    anotar <punto>    como donde, y lo guarda en resultados/camara_brazo_<fecha>_brazo.csv (calibración de la
+                      cámara: ver tools/ajuste_camara.py)
     salir             (o Ctrl+D)
 Marco del robot (el de cinematica.py): origen en el eje de J1 a la altura de la tapa; x a la derecha del robot
 (J1 está a la izquierda y atrás, el mástil a la derecha), y adelante (hacia los ultrasonidos), z arriba. Ej.: "p 0 500 300" = 50 cm adelante y 30 cm sobre la tapa (J1 en 90°).
@@ -45,11 +47,16 @@ import sys
 import threading
 import time
 
+from pathlib import Path
+
 import numpy as np
 
 import cinematica as k
 
 PUERTO = "/dev/serial/by-id/usb-1a86_USB_Serial-if00-port0"
+# "anotar": un archivo por sesión (calibración cámara -> brazo; lo lee ajuste_camara.py)
+ANOTADOS = (Path(__file__).absolute().parent.parent / "resultados"
+            / f"camara_brazo_{time.strftime('%Y%m%d_%H%M%S')}_brazo.csv")
 # Del firmware (include/config.h)
 Q2_MENOS_Q3_MAX = 49.0     # borde de abajo de la franja en el firmware (el camino puede pasar por ahí)
 MARGEN_CAMINO = 1.2        # ° (el firmware usa 1,0: un poco más para que acepte la recta que elegimos acá)
@@ -429,7 +436,7 @@ def correr_tarea(placa, pasos, timeout):
 def sesion(args):
     placa = Placa(args.puerto)
     time.sleep(2.0)  # saludo y ayuda si se reinició al abrir
-    print("[punta.py: \"p x y z\", \"ver x y z\", \"ap x y z\", \"verap x y z\", \"ret\", \"donde\", \"salir\"; lo demás "
+    print("[punta.py: \"p x y z\", \"ver x y z\", \"ap x y z\", \"verap x y z\", \"ret\", \"donde\", \"anotar\", \"salir\"; lo demás "
           "va a la placa (pz, mn, mv, c, s...). Primero \"h\"]")
     try:
         while placa.vivo:
@@ -504,6 +511,23 @@ def sesion(args):
                             print("[Ctrl+C: \"s\", las tres se sostienen donde están]")
                     else:
                         print("cancelada")
+            elif w[0] == "anotar":
+                # Calibración cámara -> brazo: guarda el punto (la punta en el limón) en resultados/
+                if len(w) != 2:
+                    print("Uso: anotar <punto>  (la misma etiqueta que en medir_limon.py)")
+                    continue
+                s = placa.angulos()
+                if s is None:
+                    continue
+                p, _ = k.directa(*s)
+                nuevo = not ANOTADOS.exists()
+                with open(ANOTADOS, "a") as f:
+                    if nuevo:
+                        f.write("punto,q1,q2,q3,x_mm,y_mm,z_mm,fuera_de_lo_medido\n")
+                    f.write(f"{w[1]},{s[0]:.2f},{s[1]:.2f},{s[2]:.2f},{p[0]:.1f},{p[1]:.1f},{p[2]:.1f},"
+                            f"{int(k.fuera_de_lo_medido(s[1], s[2]))}\n")
+                print(f"  {w[1]}: q {s[0]:.2f} {s[1]:.2f} {s[2]:.2f} -> punta x {p[0]:.0f} y {p[1]:.0f} z {p[2]:.0f} mm"
+                      f"  (en {ANOTADOS.name})")
             elif w[0] == "donde":
                 s = placa.angulos()
                 if s is not None:
