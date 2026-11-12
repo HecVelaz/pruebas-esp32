@@ -3,6 +3,20 @@
 <!-- Movido desde CLAUDE.md (2026-10-22). Los bloques "Pendiente GPS", "Pendiente" de 08 y "Falta" se movieron
      tal cual; el resto se copió de los "Pendiente:" que siguen dentro de cada entrada de BITACORA.md. -->
 
+## Para el 12/11 (usuario, 11/11 noche), en este orden (recomendado)
+
+1. **Cerrar la base** (~30 min): S3 con el `ros` completo, `lanzar.sh` sin RST, `/odom` derecho (la tierra), IMU,
+   HC-SR04 del frente y bumpers con la seguridad real (ver "Teleop (25)" abajo).
+2. **Calibrar la visión estéreo** (las dos cámaras CSI de la Pi, 30 FPS): tablero de ajedrez impreso y medido, ~20–30
+   pares con el tablero en distintas posiciones; intrínsecos de cada cámara, extrínsecos entre ellas, rectificación;
+   verificar la profundidad con cinta (un objeto a 30 / 50 / 80 cm).
+3. **Detección del limón**: YOLO del robot (`recolector_de_frutas/vision`) con imágenes reales de la cámara (el de
+   juguete y limones de verdad, distintas luces); posición 3D del centro con la estéreo.
+4. **Cámara → brazo** (lo que une todo): la transformación de la cámara al marco de `cinematica.py`. Marca en la pinza,
+   varias poses conocidas (`directa`) vistas por la estéreo, ajuste. Después: limón detectado → `ap` / `tarea`.
+5. **GPS: cero de navegación** (origen / datum del mapa): afuera, a cielo abierto (primer fix ~5 min, σ ~21 m el
+   21/10). Último: es lo menos necesario para agarrar un limón y depende del clima y de salir.
+
 ## Teleop (25) y base (lo próximo)
 
 1. ~~Encoder de la rueda izquierda~~ (11/11 noche: **una tierra desconectada**, arreglada por el usuario). Falta
