@@ -34,7 +34,7 @@ bloqueante a 100 Hz**. `19` queda como banco de pruebas de una articulación por
   mecánico). La lista de calibración del 05/11 tiene poses a −25° ((35, 10), (50, 25), (65, 40)): ya no las acepta.
   J2 0–83° (destinos hasta 80°: cerca de 90° J2 se pasa y no vuelve), J3 0–101,5°. Reposo de los
   scripts: `mv 3 10 5` (en (3, 3) J2/J3 llegaban sin aproximación y J3 oscilaba). Antes (manivela de 80 mm): `q2 − 25° ≤ q3 ≤ q2 + 7,5°`, J2 0–97°, J3 0–113°.
-- **J1:** 0–118° PROVISORIO (desde el 03/11, antes 90°; 118° medido con el brazo recogido; estirado choca antes con el soporte de la visión: medir con el joystick hasta dónde llega en las dos poses).
+- **J1:** 0–118° PROVISORIO (desde el 03/11, antes 90°; 118° medido con el brazo recogido; estirado choca antes con el soporte de la visión: medir con el joystick hasta dónde llega en las dos poses). **El soporte de la visión cambió el 12/11** (en el mástil, cámaras mirando a la izquierda): ese límite hay que volver a medirlo.
 - **Transmisión de J3** (dato del usuario, 2026-11-03): motor 139:1 → engranajes 75:15 (5:1) → manivela de 80 mm en
   el engranaje grande → pivote a 40 mm del eje del antebrazo (cuatro barras: la pinza queda paralela). **q3 es el
   ángulo del engranaje grande** (123,6 cuentas/°): la manivela y la palanca quedan fuera del lazo. La palanca divide el
