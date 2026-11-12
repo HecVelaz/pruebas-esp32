@@ -1114,3 +1114,7 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
 - Commit: el de este cierre (sin push).
 - **Después del cierre:** la rueda izquierda sin cuentas era **una tierra desconectada** (arreglada por el usuario).
   Sin confirmar todavía con `/odom`.
+- **RST de la S3:** el USB nativo (USB-Serial/JTAG) conecta DTR/RTS al reset: abrir o cerrar el puerto o reconectar
+  el USB a veces la deja en modo descarga o sin arrancar. `lanzar.sh` ahora la reinicia sola antes del agente
+  (esptool `--after watchdog-reset read-mac`; `SIN_RESET_S3=1` lo saltea); para flashear desde la Pi,
+  `--after watchdog-reset`. Sin probar (la S3 quedó en la notebook). Commit `894469b`.

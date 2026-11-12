@@ -10,7 +10,8 @@
 2. **S3 con el `ros` completo** (está en la notebook con `03`): `pio run -e ros -t upload --upload-port <by-id>`, a la
    Pi, RST, `lanzar.sh`, **Sensores**: IMU (si SIN_DATOS, probar con `01`), HC-SR04 del frente con la mano, bumpers;
    después las pruebas de seguridad en el aire (frente < 20 cm no avanza, bumper frena, vuelco > 25°).
-3. Por qué la S3 no arranca después de flashear / reconectar (RST a mano) y los cortes del enlace (USB) y el reinicio
+3. **Probar el reinicio automático de la S3** en `lanzar.sh` (esptool + watchdog, `~/logs/reset_s3.log`; flashear con
+   `--after watchdog-reset`): ¿ya no hace falta el RST a mano? Además, por qué la S3 no arrancaba y los cortes del enlace (USB) y el reinicio
    de la Pi (¿alimentación al encender los 12 V o arrancar los motores?).
 4. En la página: botones de `tarea` / punta (cinemática) si hacen falta; la seta de verdad (GPIO 47).
 
