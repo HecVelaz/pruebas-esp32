@@ -1118,3 +1118,6 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   el USB a veces la deja en modo descarga o sin arrancar. `lanzar.sh` ahora la reinicia sola antes del agente
   (esptool `--after watchdog-reset read-mac`; `SIN_RESET_S3=1` lo saltea); para flashear desde la Pi,
   `--after watchdog-reset`. Sin probar (la S3 quedó en la notebook). Commit `894469b`.
+- **Plan del 12/11** (en `PENDIENTES.md`): cerrar la base, calibrar la estéreo, detección del limón, cámara → brazo
+  (marca en la pinza + `directa`), cero del GPS al final. Commits de la noche: `ecbb798`, `0a13eb6`, `894469b`,
+  `5950bc9`, `8002f43` y el de este cierre (sin push).

@@ -1,4 +1,4 @@
-# Estado de pruebas-esp32 (al 2026-11-11, noche)
+# Estado de pruebas-esp32 (al 2026-11-11, cierre)
 
 Foto de hoy. La historia, las mediciones completas y los nombres de los CSV están en `BITACORA.md`; lo que sigue, en
 `PENDIENTES.md`; los pines de la S3, en `PINES_S3.md`.
