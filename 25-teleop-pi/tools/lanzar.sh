@@ -26,6 +26,19 @@ if pgrep -f "micro_ros_agent|tools/teleop.py" > /dev/null; then
   sleep 0.5
 fi
 
+# La S3 (USB nativo) a veces queda en modo descarga o sin arrancar después de flashear o reconectar el USB (antes:
+# RST a mano). esptool la pone en modo descarga a propósito y la reinicia por watchdog, que con el USB-JTAG arranca
+# siempre el programa (el reset por RTS es el que la dejaba trabada). Sin esto: SIN_RESET_S3=1 bash lanzar.sh
+ESPTOOL=~/venvs/esptool/bin/esptool
+if [ "${SIN_RESET_S3:-0}" != "1" ] && [ -x "$ESPTOOL" ]; then
+  echo "Reiniciando la S3 (watchdog)..."
+  if "$ESPTOOL" --chip esp32s3 --port "$BASE" --after watchdog-reset read-mac > ~/logs/reset_s3.log 2>&1; then
+    sleep 3   # que vuelva a aparecer el USB y arranque
+  else
+    echo "  no se pudo reiniciar la S3 (ver ~/logs/reset_s3.log); sigo igual: si queda \"sin datos\", RST a mano"
+  fi
+fi
+
 pids=()
 cerrar() {
   echo; echo "Cerrando..."
@@ -42,7 +55,7 @@ ros2 run micro_ros_agent micro_ros_agent serial --dev "$BRAZO" > ~/logs/agente_b
 pids+=($!)
 ros2 run micro_ros_agent micro_ros_agent serial --dev "$BASE" > ~/logs/agente_base.log 2>&1 &
 pids+=($!)
-echo "Agentes: brazo $BRAZO, base $BASE (logs en ~/logs). Si la página dice \"sin datos\", pulsar RST en esa placa."
+echo "Agentes: brazo $BRAZO, base $BASE (logs en ~/logs). Si la página dice \"sin datos\" por más de 10 s, pulsar RST en esa placa."
 sleep 2
 python3 "$DIR/teleop.py" "$@" &
 pids+=($!)
