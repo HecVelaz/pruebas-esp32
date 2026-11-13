@@ -21,6 +21,8 @@ Uso:
     python3 tools/ajuste_camara.py                         # los dos CSV más nuevos de resultados/
     python3 tools/ajuste_camara.py --camara A.csv --brazo B.csv [--radio 30] [--sin P3 P7]
     python3 tools/ajuste_camara.py --prueba                # datos sintéticos con una TF conocida (validación)
+    python3 tools/ajuste_camara.py --sin P5 --radio 25 --limon 20 40 700   # un limón visto por la cámara (cara, mm,
+                                                           # `camera`) -> centro en el marco de cinematica.py y el "ap"
 """
 import argparse
 import math
@@ -152,6 +154,8 @@ def main():
     ap.add_argument("--radio", type=float, default=30.0, help="radio del limón, mm (= radio_limon de la misión)")
     ap.add_argument("--sin", nargs="*", default=[], help="puntos a dejar afuera")
     ap.add_argument("--prueba", action="store_true")
+    ap.add_argument("--limon", type=float, nargs=3, metavar=("X", "Y", "Z"),
+                    help="cara del limón vista por la cámara (mm, marco camera): dónde está para punta.py")
     a = ap.parse_args()
     if a.prueba:
         prueba()
@@ -165,8 +169,16 @@ def main():
         raise SystemExit("hacen falta al menos 3 pares no alineados (mejor 8-10, repartidos en todo el volumen)")
     C = np.array([cam[k] for k in nombres])
     B = np.array([brz[k] for k in nombres])
-    ajustar(C, B, 0.0, nombres)  # referencia: sin pasar de la cara al centro
-    R, t, _, _ = ajustar(C, B, a.radio, nombres)
+    if a.limon is None:
+        ajustar(C, B, 0.0, nombres)  # referencia: sin pasar de la cara al centro
+    R, t, _, _ = ajustar(C, B, a.radio, nombres, informar=a.limon is None)
+    if a.limon is not None:
+        c = cara_a_centro(np.array([a.limon]), a.radio)[0]
+        pb = R @ c + t  # brazo_base, mm
+        x, y, z = -pb[1], pb[0], pb[2]  # -> marco de cinematica.py
+        print(f"limón (centro) en el marco de cinematica.py: x {x:.0f}  y {y:.0f}  z {z:.0f} mm")
+        print(f"  en punta.py:  verap {x:.0f} {y:.0f} {z:.0f}   y después   ap {x:.0f} {y:.0f} {z:.0f}")
+        return
     informar_tf(R, t)
 
 
