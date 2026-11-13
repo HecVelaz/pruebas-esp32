@@ -12,21 +12,21 @@ radio 0 mm, 9 puntos: residuo medio 15.1 mm, RMS 17.9, máx 34.5; dejando cada u
   P9         20.8     28.7    (   99   599   180) -> (   93   605   199)
   P10         3.8      4.3    (  199   499   120) -> (  203   499   122)
 
-radio 30 mm, 9 puntos: residuo medio 17.7 mm, RMS 20.8, máx 39.0; dejando cada uno afuera: medio 22.9, máx 45.8 mm
+radio 25 mm, 9 puntos: residuo medio 17.2 mm, RMS 20.2, máx 38.2; dejando cada uno afuera: medio 22.3, máx 45.0 mm
   punto     residuo   afuera    (brazo_base, mm: medido por el brazo -> predicho por la cámara)
-  P1         21.3     27.3    (  299   401   180) -> (  315   413   186)
-  P2         14.8     20.5    (  399   400   180) -> (  405   410   189)
-  P3         39.0     45.8    (  301   401    59) -> (  286   378    31)
-  P4         26.8     37.1    (   99   550    80) -> (   92   552    54)
-  P6         10.9     13.4    (  400   452    80) -> (  406   444    83)
-  P7          7.8     11.3    (  198   650   119) -> (  194   653   125)
-  P8         11.0     14.9    (  399   549   180) -> (  406   544   186)
-  P9         25.8     33.6    (   99   599   180) -> (   87   608   201)
-  P10         1.7      2.0    (  199   499   120) -> (  200   500   121)
+  P1         21.0     26.9    (  299   401   180) -> (  315   413   186)
+  P2         14.4     20.1    (  399   400   180) -> (  404   410   189)
+  P3         38.2     45.0    (  301   401    59) -> (  286   379    32)
+  P4         26.2     36.5    (   99   550    80) -> (   93   552    54)
+  P6         10.1     12.6    (  400   452    80) -> (  405   444    84)
+  P7          7.6     11.1    (  198   650   119) -> (  195   652   125)
+  P8         10.2     14.0    (  399   549   180) -> (  406   544   186)
+  P9         24.9     32.7    (   99   599   180) -> (   88   608   201)
+  P10         1.9      2.2    (  199   499   120) -> (  201   499   121)
 
 TF brazo_base -> stereo_camera_link (cámara izquierda = la de atrás):
-  x +0.1944  y -0.2736  z +0.3856 m     (a cinta: +0.195 -0.330 +0.327; diferencia 81 mm)
-  roll +0.0422  pitch +0.2425  yaw +1.5794 rad   (+2.4° +13.9° +90.5°)
-  mira hacia (-0.01 +0.97 -0.24) en brazo_base (izquierda = +y; inclinación -13.9°)
+  x +0.1961  y -0.2694  z +0.3833 m     (a cinta: +0.195 -0.330 +0.327; diferencia 83 mm)
+  roll +0.0425  pitch +0.2415  yaw +1.5810 rad   (+2.4° +13.8° +90.6°)
+  mira hacia (-0.01 +0.97 -0.24) en brazo_base (izquierda = +y; inclinación -13.8°)
 
-  ros2 launch mision mision.launch.py x:=0.1944 y:=-0.2736 z:=0.3856 roll:=0.0422 pitch:=0.2425 yaw:=1.5794
+  ros2 launch mision mision.launch.py x:=0.1961 y:=-0.2694 z:=0.3833 roll:=0.0425 pitch:=0.2415 yaw:=1.5810

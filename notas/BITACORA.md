@@ -1164,3 +1164,4 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   están más abajo y los altos más arriba (rígida + escala en z del brazo: k ≈ 1,26, dejando uno afuera 19 mm en vez
   de 23). Es el límite de la precisión: TF ± ~2 cm mientras el modelo de la punta tenga ese error en z.
 - WROOM restaurada al env `ros` con `write_flash 0x0 ~/firmware/respaldo_wroom_20261112.bin` (hash verificado; el agente abre sesión y crea sus publicadores/suscriptores).
+- Limón de juguete: ~5 cm de diámetro → ajuste con `--radio 25` (el `_ajuste.txt` quedó con 25): x 0,1961 y −0,2694 z 0,3833 m, roll 0,0425 pitch 0,2415 yaw 1,5810 rad; dejando cada punto afuera 22,3 mm de media, máx 45. La misión tiene que correr con `radio_limon` 0,025. Baseline 100,3 mm corregido en `recolector_de_frutas/vision/entrenamiento_limon` (`8ba48ca`).

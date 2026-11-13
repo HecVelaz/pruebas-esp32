@@ -47,8 +47,8 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
 - **`12`:** J1 lista (0–5), repetir el paso 3 con el cero nuevo. **`17`:** pega fuerte en los FC. **`18`:** OK.
 - **Robot:** la WROOM tiene el firmware de `20`; `firmware/brazo` sigue con franja, homing y reposo viejos.
 
-- **Cámara → brazo (12/11 noche, medida):** 9 puntos, TF `brazo_base -> stereo_camera_link` x 0,1944 y −0,2736
-  z 0,3856 m, roll 0,0422 pitch 0,2425 yaw 1,5794 rad (cámaras ~14° hacia abajo); error dejando cada punto afuera
+- **Cámara → brazo (12/11 noche, medida):** 9 puntos, radio 25 mm, TF `brazo_base -> stereo_camera_link` x 0,1961 y −0,2694
+  z 0,3833 m, roll 0,0425 pitch 0,2415 yaw 1,5810 rad (misión con `radio_limon:=0.025`) (cámaras ~14° hacia abajo); error dejando cada punto afuera
   ~23 mm de media, 46 máx. El modelo de la punta tiene error en z (el brazo sube/baja ~1,26 × lo que calcula): eso
   limita la TF. La WROOM de la Pi volvió al env `ros` (respaldo `~/firmware/respaldo_wroom_20261112.bin`, restaurado el 12/11).
 
