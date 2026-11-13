@@ -110,6 +110,23 @@ def ajustar(cam, brz, radio, nombres, informar=True):
     return R, t, res, loo
 
 
+def camara_a_cinematica(R, t, cara, radio):
+    """Cara del limón vista por la cámara (mm, `camera`) -> centro en el marco de cinematica.py (mm)."""
+    pb = R @ cara_a_centro(np.array([cara], float), radio)[0] + t  # brazo_base
+    return -pb[1], pb[0], pb[2]
+
+
+def cargar_tf(camara, brazo, radio, sin=()):
+    """R, t (cámara -> brazo_base, mm) ajustados con los dos CSV, sin los puntos de `sin`."""
+    cam, brz = leer(camara), leer(brazo)
+    nombres = [n for n in cam if n in brz and n not in sin]
+    if len(nombres) < 3:
+        raise SystemExit(f"{camara.name} + {brazo.name}: solo {len(nombres)} pares")
+    R, t, _, loo = ajustar(np.array([cam[n] for n in nombres]), np.array([brz[n] for n in nombres]), radio,
+                           nombres, informar=False)
+    return R, t, nombres, (float(np.mean(loo)) if loo else float("nan"))
+
+
 def tf_link(R_bc, t_bc):
     R_bs = R_bc @ rot_rpy(*RPY_LINK_CAMERA).T
     return t_bc / 1000.0, rpy_de(R_bs), R_bs
@@ -173,9 +190,7 @@ def main():
         ajustar(C, B, 0.0, nombres)  # referencia: sin pasar de la cara al centro
     R, t, _, _ = ajustar(C, B, a.radio, nombres, informar=a.limon is None)
     if a.limon is not None:
-        c = cara_a_centro(np.array([a.limon]), a.radio)[0]
-        pb = R @ c + t  # brazo_base, mm
-        x, y, z = -pb[1], pb[0], pb[2]  # -> marco de cinematica.py
+        x, y, z = camara_a_cinematica(R, t, a.limon, a.radio)
         print(f"limón (centro) en el marco de cinematica.py: x {x:.0f}  y {y:.0f}  z {z:.0f} mm")
         print(f"  en punta.py:  verap {x:.0f} {y:.0f} {z:.0f}   y después   ap {x:.0f} {y:.0f} {z:.0f}")
         return
