@@ -1187,3 +1187,29 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
 - **Power bank (25, prueba real del 12/11):** 1 h con teleop + visión + ESP32 (14:50–15:50,
   `~/logs/prueba_powerbank_real_20261112_1450.csv` en la Pi): EXT5V 4,96–5,13 V, `throttled` 0x0 siempre, 4 W de
   media y 10,5 W de pico, 61 °C máx: **OK** (usuario). Caño del mástil fijado (usuario).
+
+## 2026-11-13 — 20: comando `agarrar` (visión → brazo automático)
+- `punta.py`: `agarrar [s]` / `veragarrar [s]` (en la Pi, con `start_limon.sh` y `source /opt/ros/jazzy/setup.bash`):
+  mediana de `/limon/posicion` en 5 s (rclpy; no agarra con < 3 posiciones, dispersión > 10 mm o marco ≠ `camera`) →
+  centro con la calibración del 12/11 (`ajuste_camara.cargar_tf`: `camara_brazo_20261112_203642_camara.csv` +
+  `..._203659_brazo.csv`, sin P5, radio 25) → planea `pz a`, `ap`, `pz`, `ret` (lo máximo), `mv 3 17 4` → Enter.
+  Commits `18c05e1`, `37faaac`, `cc421c1`.
+- Pedido del usuario: pinza a **1300 us** (`AGARRAR_PINZA_US`) y agarre **1 cm más abajo** (`AGARRAR_DZ = -10`).
+- Primera prueba: agarró y al salir el firmware cortó (`saldría de la franja`): el plan pasaba a 1,6° del borde de
+  arriba (punto previo de la aproximación de J2/J3) y con la carga se desvió más. Arreglo: la salida y la vuelta al
+  reposo de `agarrar` con **3° de margen** (`MARGEN_SALIDA_CARGA`; retrocede ~8 cm en vez de 10). Después: **funciona**
+  (usuario). Un limón a 38 cm del piso no lo agarró (sin la salida de `veragarrar`: probablemente r < 55 o > 70 cm).
+- WROOM de la Pi con el env `brazo` (`brazo20_serie.bin`, flasheado desde la Pi con los 12 V apagados; respaldo del
+  env `ros` = `respaldo_wroom_20261112.bin`). Visión v3 en segundo plano (`~/logs/start_limon_20261113.log`).
+
+## 2026-11-13 — 26-sim-alcance-arbolito: simulación de la estación de trabajo
+- Carpeta nueva (sin placa): `tools/alcance.py` (mapa del agarre con `planear_agarre` de `punta.py` desde el reposo,
+  3 direcciones de J1 × r × z, 972 puntos, 15 min → `resultados/mapa_alcance_20261113_161717.csv`) y
+  `tools/simular.py` (arbolito como cilindro, cámara con la TF del 12/11 y la zona con disparidad, robot de
+  `recolector_de_frutas`: tapa en T, tapa a 23 cm; barrido de dónde parar y de 1–6 paradas alrededor del árbol).
+  Alturas del piso → z del modelo con la recta de la cinta del 12/11: piso ≈ 256 + 1,43·z mm.
+- Alcance del agarre: limón a **55–70 cm de J1** (horizontal), **~30–66 cm del piso**, casi igual en J1 5/25/45°.
+- **Arbolito medido (usuario):** 60 cm de alto, limones a 10–14 cm del tronco, el más bajo a 32 cm y el más alto a
+  54 cm del piso. Una parada: 31 %; 2: 61 %; 3: 92 %; **4 (cada 90°): 100 %**. **Parada recomendada:** eje del
+  árbol a **70 cm a la izquierda de J1 y 15 cm adelante** (100 %; ≥ 86 % con ±5 cm de error). Figuras
+  `resultados/sim_20261113_164405_*`. Commits `e0c2f0e`, `6cecf3a`. Sin validar con el robot.

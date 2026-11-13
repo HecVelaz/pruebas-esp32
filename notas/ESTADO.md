@@ -1,10 +1,16 @@
-# Estado de pruebas-esp32 (al 2026-11-12, cierre)
+# Estado de pruebas-esp32 (al 2026-11-13)
 
 Foto de hoy. La historia, las mediciones completas y los nombres de los CSV están en `BITACORA.md`; lo que sigue, en
 `PENDIENTES.md`; los pines de la S3, en `PINES_S3.md`.
 
 ## Brazo: lo próximo
 
+- **Agarre automático con la visión (13/11): `agarrar` en `punta.py` funciona** (Pi, `start_limon.sh` v3, WROOM con el
+  env `brazo`): mide 5 s, calibración del 12/11, pinza a 1300 us, 1 cm más abajo, salida con 3° de margen. Ahora la
+  WROOM de la Pi tiene el env **`brazo`** (serie); volver al `ros` con `respaldo_wroom_20261112.bin`.
+- **Simulación de la estación (`26-sim-alcance-arbolito`, 13/11):** agarra a 55–70 cm de J1 y 30–66 cm del piso. Con el
+  arbolito medido, **4 paradas cada 90° = 100 %**; parada: eje del árbol a 70 cm a la izquierda de J1 y 15 cm
+  adelante. Sin validar con el robot.
 - **Visión → brazo (12/11 noche): agarró todos los limones pedidos.** El usuario cuelga el limón; `medir_limon.py` (Pi,
   con la visión) → `ajuste_camara.py --sin P5 --radio 25 --limon x y z` → `ap` en `punta.py` (a mano). TF
   `brazo_base -> stereo_camera_link`: x 0,1961 y −0,2694 z 0,3833 m, roll 0,0425 pitch 0,2415 yaw 1,5810 rad

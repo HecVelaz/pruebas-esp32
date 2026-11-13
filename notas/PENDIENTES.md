@@ -1,13 +1,13 @@
-# Pendientes de pruebas-esp32 (al 2026-11-12)
+# Pendientes de pruebas-esp32 (al 2026-11-13)
 
 <!-- Movido desde CLAUDE.md (2026-10-22). Los bloques "Pendiente GPS", "Pendiente" de 08 y "Falta" se movieron
      tal cual; el resto se copió de los "Pendiente:" que siguen dentro de cada entrada de BITACORA.md. -->
 
 ## Lo próximo (12/11 noche, recomendado en este orden)
 
-1. **Agarre automático con la visión en `punta.py`** (~30 min): comando `agarrar` = mediana de `/limon/posicion`
-   (rclpy) → TF (`ajuste_camara.py`) → revisar alcance → `pz a`, `ap`, `pz 1250`, `ret`, `mv 3 17 4`, con Enter
-   antes de mover. Hoy funciona con esos pasos a mano (agarró todos).
+1. ~~Agarre automático con la visión en `punta.py`~~ (13/11: `agarrar`, funciona). **Validar la simulación
+   (`26`)**: robot con el eje del árbol a 70 cm a la izquierda de J1 y 15 cm adelante, limones en varios lados y
+   alturas, anotar `veragarrar` en cada uno contra lo que predice `simular.py`. Después: las 4 paradas en la misión.
 2. ~~Restaurar la WROOM de la Pi al env `ros`~~ (12/11, al cierre). Para `agarrar` (1) vuelve a hacer falta el serie.
 3. **Al robot (ROS):** que la misión mande comandos de texto por `/brazo/comando` al firmware 20 (`brazo_ik` publica
    `/brazo/joint_cmd`, que el 20 no entiende) y pase a `brazo_ik` el modelo medido de la punta (hombro 165 mm).
