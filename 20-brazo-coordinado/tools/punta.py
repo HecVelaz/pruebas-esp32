@@ -189,9 +189,24 @@ def planear_frente(s, x, y, z, d=100.0):
     if qp is None or mot:
         return None, [f"punto previo ({pre[0]:.0f}, {pre[1]:.0f}, {pre[2]:.0f}): " + "; ".join(mot)]
     qp = tuple(round(v, 2) for v in qp)
-    # 1) J2/J3 a la pose del punto previo con J1 donde está (recogido: la punta nunca más lejos que el punto previo,
-    #    para no barrer de costado cerca del objeto); 2) J1 sola hasta la dirección del objeto; 3) entrada de frente
     r_pre = math.hypot(*pre[:2]) + 20.0
+    # Si la punta ya está recogida (no más lejos que el punto previo) o bien arriba del objeto (>= 15 cm, como en
+    # el reposo: punta a z 444), 1) J1 sola hasta la dirección del objeto,
+    # 2) J2/J3 a la pose del punto previo (se estira hacia el objeto, sin pasar del punto previo) y 3) entrada de
+    # frente. Así no se estira hacia donde apunta J1 en el reposo (a la izquierda, donde puede estar el árbol). 12/11
+    arriba = k.directa(*s)[0][2] >= z + 150.0
+    if (radio_punta(*s) <= r_pre or arriba) and abs(qp[0] - s[0]) > 0.05:
+        g = (qp[0], s[1], s[2])
+        giro = revisar_camino(s, g)
+        if not giro:
+            pl2, av2 = planear_q(g, qp, r_max=r_pre)
+            if pl2 is not None:
+                entrada, msgs = recta_j1_quieta(pl2[-1], pre, (x, y, z))
+                if entrada is None:
+                    return None, msgs
+                return [g] + pl2 + entrada, av2
+    # Si no (arranca estirada o no se puede girar así): 1) J2/J3 a la pose del punto previo con J1 donde está (recogido: la punta nunca más lejos que el punto previo,
+    #    para no barrer de costado cerca del objeto); 2) J1 sola hasta la dirección del objeto; 3) entrada de frente
     a = (round(min(max(s[0], k.Q1_LIM[0]), k.Q1_LIM[1]), 2), qp[1], qp[2])   # J1 donde está, dentro de sus límites
     pl, avisos = planear_q(s, a, r_max=r_pre)
     if pl is None:
