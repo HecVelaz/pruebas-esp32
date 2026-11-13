@@ -50,7 +50,7 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
 - **Cámara → brazo (12/11 noche, medida):** 9 puntos, TF `brazo_base -> stereo_camera_link` x 0,1944 y −0,2736
   z 0,3856 m, roll 0,0422 pitch 0,2425 yaw 1,5794 rad (cámaras ~14° hacia abajo); error dejando cada punto afuera
   ~23 mm de media, 46 máx. El modelo de la punta tiene error en z (el brazo sube/baja ~1,26 × lo que calcula): eso
-  limita la TF. **La WROOM de la Pi tiene el env `brazo` (serie)**; respaldo del `ros` en `~/firmware/respaldo_wroom_20261112.bin`.
+  limita la TF. La WROOM de la Pi volvió al env `ros` (respaldo `~/firmware/respaldo_wroom_20261112.bin`, restaurado el 12/11).
 
 ## Pinza y muñeca (servos)
 

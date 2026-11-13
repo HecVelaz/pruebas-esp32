@@ -1163,3 +1163,4 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
 - **El brazo sube y baja más de lo que dice `cinematica.py`**: la cámara y la cinta coinciden en que los puntos bajos
   están más abajo y los altos más arriba (rígida + escala en z del brazo: k ≈ 1,26, dejando uno afuera 19 mm en vez
   de 23). Es el límite de la precisión: TF ± ~2 cm mientras el modelo de la punta tenga ese error en z.
+- WROOM restaurada al env `ros` con `write_flash 0x0 ~/firmware/respaldo_wroom_20261112.bin` (hash verificado; el agente abre sesión y crea sus publicadores/suscriptores).
