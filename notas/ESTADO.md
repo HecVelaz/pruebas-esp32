@@ -50,7 +50,7 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
 - **Cámara → brazo (12/11 noche, medida):** 9 puntos, radio 25 mm, TF `brazo_base -> stereo_camera_link` x 0,1961 y −0,2694
   z 0,3833 m, roll 0,0425 pitch 0,2415 yaw 1,5810 rad (misión con `radio_limon:=0.025`) (cámaras ~14° hacia abajo); error dejando cada punto afuera
   ~23 mm de media, 46 máx. El modelo de la punta tiene error en z (el brazo sube/baja ~1,26 × lo que calcula): eso
-  limita la TF. La WROOM de la Pi volvió al env `ros` (respaldo `~/firmware/respaldo_wroom_20261112.bin`, restaurado el 12/11).
+  limita la TF. **Agarre con la visión probado: agarró todos los limones pedidos** (cámara → `ajuste_camara.py --limon` → `ap`, a mano). **La WROOM de la Pi tiene el env `brazo` (serie)**; para el teleop, restaurar `~/firmware/respaldo_wroom_20261112.bin` (env `ros`).
 
 ## Pinza y muñeca (servos)
 

@@ -1165,3 +1165,16 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   de 23). Es el límite de la precisión: TF ± ~2 cm mientras el modelo de la punta tenga ese error en z.
 - WROOM restaurada al env `ros` con `write_flash 0x0 ~/firmware/respaldo_wroom_20261112.bin` (hash verificado; el agente abre sesión y crea sus publicadores/suscriptores).
 - Limón de juguete: ~5 cm de diámetro → ajuste con `--radio 25` (el `_ajuste.txt` quedó con 25): x 0,1961 y −0,2694 z 0,3833 m, roll 0,0425 pitch 0,2415 yaw 1,5810 rad; dejando cada punto afuera 22,3 mm de media, máx 45. La misión tiene que correr con `radio_limon` 0,025. Baseline 100,3 mm corregido en `recolector_de_frutas/vision/entrenamiento_limon` (`8ba48ca`).
+- **Prueba de agarre con la visión (12/11 noche):** la WROOM otra vez con el env `brazo` (serie). El usuario cuelga
+  el limón de juguete a mano en el arbolito, `medir_limon.py` (`L1`, archivo `camara_brazo_20261112_215749_camara.csv`
+  en la Pi), `ajuste_camara.py --sin P5 --radio 25 --limon x y z` → `ap` en `punta.py`. Limones en (−547, 420, 156),
+  (−528, 419, 86), (−506, 369, 173), …: **agarró todos los que se le pidieron** (usuario). Cerca de J1 y alto
+  (r < ~45 cm) no llega (franja); el `ap` normal de 10 cm necesita r ≳ 50 cm.
+- La visión se cayó a mitad de la sesión: el `disparity_node` de la copia de las 19:51 murió (segfault) y había una
+  segunda copia de `start_limon.sh` (20:35) sin cámaras. Reiniciada limpia en segundo plano
+  (log `~/logs/start_limon_20261112.log`). Ojo: `pkill -f` desde ssh con el patrón en la línea de comandos mata la
+  propia sesión ssh: usar un script.
+- `punta.py`: `ap` gira J1 primero (con la punta recogida o ≥ 15 cm por encima del objeto, como desde el reposo) y
+  después estira hacia el objeto (antes estiraba con J1 en el reposo, hacia la izquierda, donde está el árbol);
+  `ret` sin números retrocede lo máximo (hasta 40 cm; 18–25 cm desde los limones lejanos). `tarea` sin cambios.
+  Commits `e84bc75`, `adbe76b`.
