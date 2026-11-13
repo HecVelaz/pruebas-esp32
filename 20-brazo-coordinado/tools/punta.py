@@ -8,7 +8,8 @@ Abre el puerto como un monitor: lo que se escribe va a la placa (h, c, mv, s, x,
                       dirección desde J1 y a la misma altura, y después entra hacia afuera, horizontal, con J1
                       quieta (un mv). verap: solo el plan. Cada mv llega desde 2° abajo (juego): la punta sube
                       hasta ~1,3 cm en el medio de la entrada y de la salida
-    ret [d] [dz]      salir de frente y horizontal: retrocede d mm (def. 100) hacia J1 con J1 quieta (dz: subir antes, def. 0)
+    ret [d] [dz]      salir de frente y horizontal: retrocede d mm hacia J1 con J1 quieta (dz: subir antes, def. 0);
+                      sin d, lo más que se pueda (hasta 40 cm)
     pz ... / mn ...   pinza y muñeca (van a la placa: pz a/c/0, mn a/b/0, ...)
     tarea [xA yA zA xB yB zB]   agarrar en A y dejar en B, solo (def. A = -550 100 100, B = -450 350 100):
                       planea todo antes y pide Enter; recoge, gira J1 recogido, abre la pinza, entra de frente a A,
@@ -237,6 +238,17 @@ def planear_salida(s, d=100.0, dz=0.0):
     if atras is None:
         return None, msgs
     return sube + atras, []
+
+
+def planear_salida_max(s, dz=0.0, d_max=400.0, paso=10.0):
+    """Como planear_salida, pero retrocede lo más que se pueda (de d_max para abajo, de a paso mm). 12/11"""
+    d = d_max
+    while d >= paso:
+        plan, _ = planear_salida(s, d, dz)
+        if plan:
+            return plan, [f"retrocede {d:.0f} mm (lo máximo en horizontal con J1 quieta)"]
+        d -= paso
+    return None, ["no puede retroceder ni 1 cm en horizontal desde acá: probar \"mv 3 17 4\" mirando la pinza"]
 
 
 def imprimir_plan(plan, msgs):
@@ -490,7 +502,7 @@ def sesion(args):
                 if s is None:
                     continue
                 if w[0] == "ret":
-                    plan = imprimir_plan(*planear_salida(s, *v))
+                    plan = imprimir_plan(*(planear_salida(s, *v) if v else planear_salida_max(s)))
                 else:
                     plan = imprimir_plan(*planear_frente(s, *v))
                 if plan and w[0] != "verap":
