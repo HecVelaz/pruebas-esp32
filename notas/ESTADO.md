@@ -13,7 +13,7 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
   `ap` gira J1 primero; `ret` sin números retrocede lo máximo. Datos: `resultados/camara_brazo_20261112_203642_*`.
 - **La WROOM de la Pi tiene el env `ros`** (restaurado el 12/11 al cierre). Para `punta.py` hace falta el serie:
   `write_flash 0x0 ~/firmware/brazo20_serie.bin`; volver con `respaldo_wroom_20261112.bin` (12 V apagados).
-- **Visión en la Pi:** corriendo en segundo plano (`start_limon.sh` con el v3, log `~/logs/start_limon_20261112.log`).
+- **Visión en la Pi:** apagada al cierre del 12/11 (para el agarre: `start_limon.sh` con el v3, `MODELO=... CLASE=limon`).
 - **`20-brazo-coordinado` (lo actual):** J1, J2 y J3 con el mismo controlador (`lib/Articulacion`), lazo no
   bloqueante a 100 Hz, 20 kHz. **Flasheado (11/11 tarde): caja desde J1 53,5 (sin probar), pinza y muñeca (`pz`,
   `mn`) y `vel <factor> [aprox] [asentamiento s]`** (en vivo; al reiniciar vuelve a 0,5 / 2 / 2 de `config.h`).

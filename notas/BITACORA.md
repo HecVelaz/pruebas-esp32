@@ -1183,3 +1183,4 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   `bcc611d` (argumento `radio_limon` en `mision.launch.py`). Sin push. Al cierre: la WROOM de la Pi con el env
   `brazo` (serie) y la visión corriendo en segundo plano en la Pi.
 - Después del cierre: WROOM restaurada al env `ros` (`respaldo_wroom_20261112.bin`, hash verificado; `punta.py` cerrado antes).
+- Visión apagada en la Pi al cierre (cámaras, disparidad, YOLO, localizador y `medir_limon.py`).
