@@ -11,8 +11,8 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
   (cámaras ~14° hacia abajo; `radio_limon:=0.025`); error dejando cada punto afuera ~22 mm, 45 máx. Límite: el modelo
   de la punta en z (el brazo sube/baja ~1,26 × lo calculado). Alcance con `ap`: r ≳ 50 cm de J1; cerca y alto no llega.
   `ap` gira J1 primero; `ret` sin números retrocede lo máximo. Datos: `resultados/camara_brazo_20261112_203642_*`.
-- **La WROOM de la Pi tiene el env `brazo` (serie)**: para el teleop (25), restaurar el env `ros` con
-  `write_flash 0x0 ~/firmware/respaldo_wroom_20261112.bin` (12 V apagados). Binario serie: `~/firmware/brazo20_serie.bin`.
+- **La WROOM de la Pi tiene el env `ros`** (restaurado el 12/11 al cierre). Para `punta.py` hace falta el serie:
+  `write_flash 0x0 ~/firmware/brazo20_serie.bin`; volver con `respaldo_wroom_20261112.bin` (12 V apagados).
 - **Visión en la Pi:** corriendo en segundo plano (`start_limon.sh` con el v3, log `~/logs/start_limon_20261112.log`).
 - **`20-brazo-coordinado` (lo actual):** J1, J2 y J3 con el mismo controlador (`lib/Articulacion`), lazo no
   bloqueante a 100 Hz, 20 kHz. **Flasheado (11/11 tarde): caja desde J1 53,5 (sin probar), pinza y muñeca (`pz`,
@@ -60,7 +60,7 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
 ## Teleop (`25-teleop-pi`, ROS 2 + micro-ROS en la Pi)
 
 - `bash ~/scripts/25-teleop-pi/tools/lanzar.sh` (dos agentes + teleop) → `http://100.116.96.71:8000`, horizontal.
-  Con 20 env `ros` en la WROOM: homing, joystick, pinza y muñeca OK desde el celular (hoy tiene el env `brazo`).
+  Con 20 env `ros` en la WROOM: homing, joystick, pinza y muñeca OK desde el celular .
 - **Base:** la S3 está **en la notebook con `03-hcsr04`** (los tres HC-SR04 OK); falta flashear el `ros` completo y
   volver a la Pi. Tracción: la rueda izquierda se escapaba (sin cuentas): **era una tierra suelta, arreglada**.
   IMU real sin confirmar (con `ros` daba SIN_DATOS; con `ros_motores` no se mira). La S3 a veces no arranca después

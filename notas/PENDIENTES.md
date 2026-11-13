@@ -8,7 +8,7 @@
 1. **Agarre automático con la visión en `punta.py`** (~30 min): comando `agarrar` = mediana de `/limon/posicion`
    (rclpy) → TF (`ajuste_camara.py`) → revisar alcance → `pz a`, `ap`, `pz 1250`, `ret`, `mv 3 17 4`, con Enter
    antes de mover. Hoy funciona con esos pasos a mano (agarró todos).
-2. **Restaurar la WROOM de la Pi al env `ros`** cuando haga falta el teleop (`respaldo_wroom_20261112.bin`).
+2. ~~Restaurar la WROOM de la Pi al env `ros`~~ (12/11, al cierre). Para `agarrar` (1) vuelve a hacer falta el serie.
 3. **Al robot (ROS):** que la misión mande comandos de texto por `/brazo/comando` al firmware 20 (`brazo_ik` publica
    `/brazo/joint_cmd`, que el 20 no entiende) y pase a `brazo_ik` el modelo medido de la punta (hombro 165 mm).
 4. **Precisión:** recalibrar el modelo de la punta en z con las mediciones de la cámara del 12/11 (el brazo sube y

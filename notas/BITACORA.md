@@ -1182,3 +1182,4 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   `c05f24f` y el de este cierre; en `recolector_de_frutas`, `8ba48ca` (baseline 100,3 en `entrenar_limon`) y
   `bcc611d` (argumento `radio_limon` en `mision.launch.py`). Sin push. Al cierre: la WROOM de la Pi con el env
   `brazo` (serie) y la visión corriendo en segundo plano en la Pi.
+- Después del cierre: WROOM restaurada al env `ros` (`respaldo_wroom_20261112.bin`, hash verificado; `punta.py` cerrado antes).
