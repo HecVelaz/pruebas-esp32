@@ -1184,3 +1184,6 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   `brazo` (serie) y la visión corriendo en segundo plano en la Pi.
 - Después del cierre: WROOM restaurada al env `ros` (`respaldo_wroom_20261112.bin`, hash verificado; `punta.py` cerrado antes).
 - Visión apagada en la Pi al cierre (cámaras, disparidad, YOLO, localizador y `medir_limon.py`).
+- **Power bank (25, prueba real del 12/11):** 1 h con teleop + visión + ESP32 (14:50–15:50,
+  `~/logs/prueba_powerbank_real_20261112_1450.csv` en la Pi): EXT5V 4,96–5,13 V, `throttled` 0x0 siempre, 4 W de
+  media y 10,5 W de pico, 61 °C máx: **OK** (usuario). Caño del mástil fijado (usuario).

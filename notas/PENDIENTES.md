@@ -12,7 +12,7 @@
 3. **Al robot (ROS):** que la misión mande comandos de texto por `/brazo/comando` al firmware 20 (`brazo_ik` publica
    `/brazo/joint_cmd`, que el 20 no entiende) y pase a `brazo_ik` el modelo medido de la punta (hombro 165 mm).
 4. **Precisión:** recalibrar el modelo de la punta en z con las mediciones de la cámara del 12/11 (el brazo sube y
-   baja ~1,26 × lo calculado); fijar el caño del mástil contra el giro (si gira, la TF no vale).
+   baja ~1,26 × lo calculado); el caño del mástil ya está fijado (12/11).
 5. **Cerrar la base**: S3 con el `ros` completo, `lanzar.sh` sin RST, `/odom` derecho, IMU, HC-SR04 y bumpers con la
    seguridad real (ver "Teleop (25)" abajo).
 6. Visión: probar el nodo de disparidad (se cayó con segfault el 12/11 con dos copias de `start_limon.sh`); detector
