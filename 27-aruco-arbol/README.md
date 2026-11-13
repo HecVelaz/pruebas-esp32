@@ -25,6 +25,21 @@ BUSCAR (girar en el lugar de a ~20°; si no ve, avanzar 1 m esquivando con los H
 - Tamaño (cámara del mástil, f = 672 px, 640 × 480): la marca de 15 cm mide ~100 px a 1 m, ~50 a 2 m, ~25 a 4 m
   (ArUco detecta bien desde ~25–30 px): alcanza para un aula buscando desde el medio.
 
+## Detector y calibración para la navegación (13/11)
+
+- `tools/ver_marcas.py` (Pi, con `start_limon.sh`): `/left/image_rect` → `cv2.aruco` → `solvePnP` (IPPE_SQUARE, 150 mm)
+  → posición de la marca, rumbo y hacia dónde mira, en el marco del brazo. `--tf nav` usa la calibración de abajo
+  (`--tf brazo`, la del 12/11, solo sirve < 70 cm). `--radio-maceta <mm>` estima el eje del árbol y cuánto le falta al
+  robot para la parada. `--csv`; foto cada 2 s en `~/logs/aruco_ultima.jpg` (puede salir gente: no versionarla).
+- **La calibración del brazo no sirve lejos:** a 1 m de J1 la marca salía a 89 cm y 15 cm más alta (compensa con
+  14° de inclinación el error en z del modelo de la punta; la cámara real está casi horizontal).
+- **Calibración de navegación:** `tools/medir_marca.py <punto> <x> <y> <h>` (mediana de 5 s de la pose en el marco de
+  la cámara + lo medido con cinta) y `tools/ajuste_nav.py` (Kabsch → `resultados/tf_navegacion.json`). 6 puntos en el
+  piso (`resultados/marca_nav_20261113.csv`): de costado 1 / 1,5 / 2 m × adelante 0 / 30 cm, centro a 22 cm del piso
+  (marca ID 0, 80 / 56 / 44 px, dispersión ≤ 0,4 mm). **Residuo medio 27 mm (máx 44), dejando cada uno afuera 36 mm
+  (máx 52).** Cámara a 57,4 cm del piso, 6,5° hacia abajo, mira +3,8° hacia adelante. En vivo en P6: (−2017, −17)
+  contra (−2000, 0). El error mayor es a lo largo del robot (y); x ±2 cm.
+
 ## Falta
 
 1. Imprimir y armar las marcas alrededor del arbolito.

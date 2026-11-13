@@ -1225,3 +1225,14 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
 - `27-aruco-arbol`: `tools/generar_marcas.py` → `resultados/marcas_aruco_4x4_150mm.pdf` (DICT_4X4_50, IDs 0–3, 150 mm,
   vectorial; la primera versión con `imshow` salía corrida en el PDF). OpenCV 4.6 con `aruco` en la notebook y en la
   Pi. Marca de 15 cm: ~50 px a 2 m, ~25 px a 4 m.
+
+## 2026-11-13 (noche) — 27: detector ArUco y calibración de la cámara para la navegación
+- `ver_marcas.py` en la Pi (visión con `start_limon.sh`): detecta la marca impresa (15 cm medidos) a 1,6 m apoyada en
+  la mesa. La Pi se reinició al bajar el robot al piso (visión relanzada, `~/logs/start_limon_20261113c.log`).
+- Con la calibración del brazo (12/11) la marca a 1 m de J1 salía a 88,6 cm y z −121 (15 cm más alta de lo real):
+  esa TF compensa con 14° de inclinación el error en z del modelo de la punta; sirve para el agarre, no lejos.
+- **Calibración de navegación** (`medir_marca.py` + `ajuste_nav.py`, marca ID 0 en el piso, centro a 22 cm): P1–P6 =
+  (−1000 / −1500 / −2000) × (300 / 0) mm. P1 se repitió (la primera vez la marca estaba a ~22 cm adelante, no 30).
+  Residuo medio 27 mm, máx 44 (P3, en y); dejando cada uno afuera 36 / 52 mm. Cámara: x 241 y 86 z 344 mm (57,4 cm del
+  piso), 6,5° hacia abajo, +3,8° hacia adelante. En vivo en P6: (−2017, −17, −10) contra (−2000, 0, −10).
+  `resultados/marca_nav_20261113.csv`, `tf_navegacion.json`.

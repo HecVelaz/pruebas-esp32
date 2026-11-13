@@ -70,6 +70,11 @@ class VerMarcas(Node):
         self.obj = np.array([[-h, h, 0], [h, h, 0], [h, -h, 0], [-h, -h, 0]], np.float64)  # orden de ArUco
         R, t, _, _ = ajc.cargar_tf(p.CAL_CAMARA, p.CAL_BRAZO, p.RADIO_LIMON, p.CAL_SIN)
         self.R, self.t = R, t
+        self.nav = None
+        if a.tf == "nav":
+            import json
+            j = json.loads((RES / "tf_navegacion.json").read_text())   # de ajuste_nav.py
+            self.nav = (np.array(j["R"]), np.array(j["t"]))
         self.t_info = self.t_foto = 0.0
         self.n_img = 0
         self.csv = None
@@ -110,8 +115,12 @@ class VerMarcas(Node):
                     continue
                 tc = tvec.ravel()
                 Rm, _ = cv2.Rodrigues(rvec)
-                pos = self.a_brazo(tc) + np.array([-self.t[1], self.t[0], self.t[2]])   # punto: + traslación
-                normal = self.a_brazo(Rm[:, 2])    # z de la marca: sale de la cara impresa hacia la cámara
+                if self.nav is not None:           # calibración de navegación (ajuste_nav.py)
+                    pos = self.nav[0] @ tc + self.nav[1]
+                    normal = self.nav[0] @ Rm[:, 2]
+                else:                              # calibración del brazo (12/11)
+                    pos = self.a_brazo(tc) + np.array([-self.t[1], self.t[0], self.t[2]])   # punto: + traslación
+                    normal = self.a_brazo(Rm[:, 2])    # z de la marca: sale de la cara impresa hacia la cámara
                 rumbo = math.degrees(math.atan2(pos[1], -pos[0]))
                 mira = math.degrees(math.atan2(normal[1], normal[0])) % 360
                 lado_px = cv2.arcLength(c.reshape(4, 2), True) / 4
@@ -149,6 +158,8 @@ def main():
     ap.add_argument("--lado", type=float, default=150.0, help="lado del cuadrado negro impreso (mm)")
     ap.add_argument("--foto", type=float, default=2.0, help="cada cuántos s guardar ~/logs/aruco_ultima.jpg")
     ap.add_argument("--csv", action="store_true", help="guardar las mediciones en resultados/aruco_<fecha>.csv")
+    ap.add_argument("--tf", choices=["brazo", "nav"], default="brazo",
+                    help="brazo: calibración del 12/11 (agarre, < 70 cm); nav: resultados/tf_navegacion.json")
     ap.add_argument("--radio-maceta", type=float, help="mm del eje del tronco a la cara de la marca")
     ap.add_argument("--parada", type=float, nargs=2, default=[700.0, 150.0], metavar=("D", "Y"),
                     help="eje del árbol en la parada: D mm a la izquierda de J1, Y mm adelante (def. 700 150)")

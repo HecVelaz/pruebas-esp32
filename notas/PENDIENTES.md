@@ -22,7 +22,8 @@
 
 1. Imprimir `27-aruco-arbol/resultados/marcas_aruco_4x4_150mm.pdf` al 100 %, medir 150 mm, pegar en cartón alrededor
    de la base del arbolito (IDs 0–3 antihorario, centro a 20–40 cm del piso).
-2. Detector ArUco en la Pi (pose con `solvePnP`, eje del árbol en el marco del brazo); medir contra cinta a 1–4 m.
+2. ~~Detector ArUco en la Pi~~ (13/11: `ver_marcas.py`, calibración de navegación de 6 puntos, ~3 cm a 1–2 m).
+   Falta: la marca en la maceta con `--radio-maceta` (medir el radio) y la parada empujando el robot a mano.
 3. Base en ROS: S3 con el `ros` completo, `/odom` derecho, error de odometría (1 m recto y 90° con cinta).
 4. `mision`: BUSCAR / ACERCARSE / PARADA / RODEAR, primero en Gazebo.
 5. GPS para la rúbrica: script de arranque del driver (remapeo a `/gps/fix`), fix afuera, `robot_localization`.
