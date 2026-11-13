@@ -14,6 +14,9 @@ Cada --foto s guarda la última imagen con las marcas dibujadas en ~/logs/aruco_
 
 Uso (Pi):  source /opt/ros/jazzy/setup.bash; cd ~/scripts/27-aruco-arbol; python3 tools/ver_marcas.py [--lado 150]
 Si se guarda con --csv, agrega cada medición a resultados/aruco_<fecha>.csv (para compararla contra cinta).
+Con --radio-maceta (mm, del eje del tronco a la cara de la marca) además estima el eje del árbol (la marca corrida
+ese radio hacia adentro) y cuánto le falta al robot para la PARADA de 26-sim-alcance-arbolito: el eje del árbol a
+--parada D Y mm (def. 700 a la izquierda de J1 y 150 adelante), con la marca de frente (mira a 0°).
 """
 import argparse
 import math
@@ -115,6 +118,18 @@ class VerMarcas(Node):
                 print(f"[{time.strftime('%H:%M:%S')}] ID {i}: dist {np.linalg.norm(tc) / 1000:.2f} m | rumbo "
                       f"{rumbo:+4.0f}° | marca x {pos[0]:6.0f} y {pos[1]:6.0f} z {pos[2]:5.0f} mm | mira a "
                       f"{mira:3.0f}° | {lado_px:.0f} px", flush=True)
+                if self.a.radio_maceta is not None:
+                    nh = np.array([normal[0], normal[1]])
+                    nh /= max(np.linalg.norm(nh), 1e-9)
+                    eje = pos[:2] - nh * self.a.radio_maceta          # la normal sale de la marca hacia afuera
+                    objetivo = np.array([-self.a.parada[0], self.a.parada[1]])
+                    falta = eje - objetivo                            # lo que el robot tiene que moverse (sin girar)
+                    giro = (mira + 180) % 360 - 180
+                    print(f"           eje del árbol x {eje[0]:6.0f} y {eje[1]:6.0f} mm (a {-eje[0] / 10:.0f} cm a la "
+                          f"izquierda de J1, {eje[1] / 10:+.0f} cm adelante) -> para la parada {i + 1}: "
+                          f"{'acercarse' if falta[0] < 0 else 'alejarse'} {abs(falta[0]) / 10:.0f} cm de costado, "
+                          f"{'avanzar' if falta[1] > 0 else 'retroceder'} {abs(falta[1]) / 10:.0f} cm, "
+                          f"girar {giro:+.0f}°", flush=True)
                 if self.csv:
                     with open(self.csv, "a") as f:
                         f.write(f"{time.strftime('%H:%M:%S')},{i},{np.linalg.norm(tc):.0f},{rumbo:.1f},{pos[0]:.0f},"
@@ -134,6 +149,9 @@ def main():
     ap.add_argument("--lado", type=float, default=150.0, help="lado del cuadrado negro impreso (mm)")
     ap.add_argument("--foto", type=float, default=2.0, help="cada cuántos s guardar ~/logs/aruco_ultima.jpg")
     ap.add_argument("--csv", action="store_true", help="guardar las mediciones en resultados/aruco_<fecha>.csv")
+    ap.add_argument("--radio-maceta", type=float, help="mm del eje del tronco a la cara de la marca")
+    ap.add_argument("--parada", type=float, nargs=2, default=[700.0, 150.0], metavar=("D", "Y"),
+                    help="eje del árbol en la parada: D mm a la izquierda de J1, Y mm adelante (def. 700 150)")
     a = ap.parse_args()
     rclpy.init()
     n = VerMarcas(a)
