@@ -1142,3 +1142,24 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
 - `punta.py` necesita el env `brazo` (serie): binario único `brazo20_serie.bin` (0x0) para flashear desde la Pi,
   con respaldo antes (la WROOM tiene el env `ros`).
 - Sin medir todavía.
+
+## 2026-11-12 (noche) — 20-brazo-coordinado: calibración cámara → brazo (medición)
+- WROOM de la Pi: respaldo `~/firmware/respaldo_wroom_20261112.bin` (env `ros`, 4 MB, 197 s) y flasheado
+  `brazo20_serie.bin` (env `brazo`) con el esptool 4.8.1 de `~/keepon_env` (`read_flash` / `write_flash`, con guion
+  bajo). Herramientas en la Pi: `~/scripts/20-brazo-coordinado/` (para `medir_limon.py`, `source /opt/ros/jazzy/setup.bash`).
+- Visión: `start_limon.sh` con el v3 y `calibracion_mastil`. Procedimiento: el brazo lleva el limón agarrado
+  (`pz 1250`) con `p`, el usuario lo deja colgado de un arbolito, `anotar Pn`, `pz a`, `ret`, `mv 3 17 4`, la cámara
+  mide 10 s (20–28 posiciones de ~45 imágenes, dispersión 0,1–1 mm). 10 puntos, x −400…−650, y 100…400, z 60…180.
+- `ret` (10 cm) sale de la franja con el brazo bajo y cerca de J1 (P1, P3, `-400 300 *`): se eligieron puntos con
+  salida (`-500 300 60`, `-550 100 80`, …). El usuario puede ubicar el limón hasta ~51–55 cm del piso (z ≤ 180).
+- Alturas con cinta (centro del limón, desde el piso): P3 (z 59) 33 · P4 (80) 37 · P6 (80) ~39 · P10 (120) ~40 ·
+  P7 (119) 44 · P8, P9 (180) ~51 · P5 (179) 52 · P2 (180) 58,5 (dudosa). Entre z 60 y 180 la cinta da ~18 cm, no 12.
+- P5 se anotó en (−509, 254, 179), no en el `p -600 300 180` pedido, y queda a 77 mm del ajuste: **afuera**.
+- **Ajuste** (`resultados/camara_brazo_20261112_203642_ajuste.txt`, 9 puntos, radio 30 mm): residuo medio 17,7 mm,
+  máx 39 (P3); dejando cada uno afuera 22,9 de media, máx 45,8. TF `brazo_base -> stereo_camera_link`:
+  x 0,1944 y −0,2736 z 0,3856 m, roll 0,0422 pitch 0,2425 yaw 1,5794 rad (+2,4° / **+13,9° hacia abajo** / +90,5°:
+  mira a la izquierda). A 81 mm de lo estimado a cinta (195, −330, 327). Sin P3 y P4: residuo 10,9, pero la TF
+  cambia ~3 cm en z: el resultado depende de qué puntos entran.
+- **El brazo sube y baja más de lo que dice `cinematica.py`**: la cámara y la cinta coinciden en que los puntos bajos
+  están más abajo y los altos más arriba (rígida + escala en z del brazo: k ≈ 1,26, dejando uno afuera 19 mm en vez
+  de 23). Es el límite de la precisión: TF ± ~2 cm mientras el modelo de la punta tenga ese error en z.
