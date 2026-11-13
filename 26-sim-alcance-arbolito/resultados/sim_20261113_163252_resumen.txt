@@ -1,0 +1,33 @@
+Simulación de la estación de trabajo (20261113_163252)
+mapa: mapa_alcance_20261113_161717.csv (direcciones de J1 5, 25, 45°; se usa entre 0 y 55°)
+alturas: cinta del 12/11: piso = 256 + 1.43·z mm
+arbolito: alto 600 mm, copa de radio 200 mm, limones de 300 a 540 mm del piso (468 posiciones: cada 10° y 20 mm)
+  -> en la z del modelo: de 31 a 199 mm sobre la tapa
+cámara en (269, 196, 383) mm del marco del brazo
+
+Una estación: mejor D = 700 mm (J1 -> eje del árbol, hacia la izquierda), Y = 325 mm (adelante de J1): 28 % de los limones
+  borde de la copa a 380 mm del costado izquierdo del robot (parte ancha) y a 500 mm de J1
+
+Estaciones repartidas alrededor del árbol (el robot da la vuelta y para N veces):
+  1:  27.8 %  (D 700, Y 325 mm)
+  2:  55.6 %  (D 700, Y 325 mm)
+  3:  83.3 %  (D 700, Y 325 mm)
+  4: 100.0 %  (D 750, Y 175 mm)
+  5: 100.0 %  (D 775, Y 125 mm)
+  6: 100.0 %  (D 775, Y 50 mm)
+
+Estación de las figuras (D 700, Y 325): agarra y ve 130 de 468 (28 %); llegan 130, la cámara ve 140
+  por altura del piso (agarrables / del lado del robot):
+     30.0 cm:  9 / 13
+     32.0 cm:  9 / 13
+     34.0 cm:  9 / 13
+     36.0 cm:  9 / 13
+     38.0 cm:  9 / 13
+     40.0 cm:  9 / 13
+     42.0 cm:  9 / 13
+     44.0 cm:  9 / 13
+     46.0 cm:  9 / 13
+     48.0 cm:  9 / 13
+     50.0 cm:  9 / 13
+     52.0 cm:  9 / 13
+     54.0 cm:  9 / 13

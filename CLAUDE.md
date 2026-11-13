@@ -84,6 +84,7 @@ de frutas. El **firmware del robot** (lo que ya no es una prueba de un component
 | `23-servos-wroom` | Pinza (GPIO 4, comandos y valores de 21) y muñeca (GPIO 14, los de 22) juntas en la **WROOM-32D** del brazo, con los pines del robot |
 | `24-bumpers-s3` | Los tres bumpers de la base (frente · izq. · der. en GPIO 14 · 21 · 39): suelto / apretado y rebotes, sin mover la tracción, en la **S3** |
 | `25-teleop-pi` | Teleop desde el celular por ROS 2 + micro-ROS en la Pi: tracción (firmware `ros` de la base) y brazo con el control de 20 (env `ros`), pinza y muñeca; página horizontal |
+| `26-sim-alcance-arbolito` | Simulación en Python (sin placa) de la estación de trabajo: qué limones del arbolito agarra el brazo (planificador de `20`, cámara, dimensiones del robot) y dónde parar al navegar |
 | `notas/` | Estado, decisiones, pendientes, pines y flujo de trabajo (no es una prueba) |
 
 `12`–`14`: `tools/` es un enlace a `10-control-lazo-cerrado/tools`.
