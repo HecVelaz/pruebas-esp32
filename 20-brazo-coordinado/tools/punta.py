@@ -512,6 +512,19 @@ class Vision:
         self.rclpy.shutdown()
 
 
+MARGEN_SALIDA_CARGA = 3.0  # ° a la franja en la salida con el limón (13/11: con 1,6° el firmware cortó al retroceder)
+
+
+def con_margen(margen, f, *a):
+    """f(*a) planeando los caminos con otro MARGEN_CAMINO."""
+    global MARGEN_CAMINO
+    viejo, MARGEN_CAMINO = MARGEN_CAMINO, margen
+    try:
+        return f(*a)
+    finally:
+        MARGEN_CAMINO = viejo
+
+
 def planear_agarre(s, limon):
     """De los ángulos s: entrar de frente al limón, salir lo más posible y al reposo. (pasos, motivos)."""
     pa, m = planear_frente(s, *limon)
@@ -519,10 +532,10 @@ def planear_agarre(s, limon):
         r = math.hypot(limon[0], limon[1])
         extra = f" (r {r:.0f} mm: el ap de 10 cm necesita r >~ 500)" if r < 500 else ""
         return None, ["hacia el limón: " + "; ".join(m) + extra]
-    sa, m_ret = planear_salida_max(pa[-1])
+    sa, m_ret = con_margen(MARGEN_SALIDA_CARGA, planear_salida_max, pa[-1])
     if sa is None:
         return None, ["salida: " + "; ".join(m_ret)]
-    rp, m = planear_q(sa[-1], REPOSO)
+    rp, m = con_margen(MARGEN_SALIDA_CARGA, planear_q, sa[-1], REPOSO)
     if rp is None:
         return None, ["al reposo: " + "; ".join(m)]
     return [("servo", "pz a"), ("ir frente al limón", pa[:-1]), ("entrar de frente", pa[-1:]),
