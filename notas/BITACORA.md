@@ -1178,3 +1178,7 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   después estira hacia el objeto (antes estiraba con J1 en el reposo, hacia la izquierda, donde está el árbol);
   `ret` sin números retrocede lo máximo (hasta 40 cm; 18–25 cm desde los limones lejanos). `tarea` sin cambios.
   Commits `e84bc75`, `adbe76b`.
+- Cierre del 12/11: commits del día `afd024e`, `2470135`, `ffa3002`, `b079d6a`, `588572c`, `e84bc75`, `adbe76b`,
+  `c05f24f` y el de este cierre; en `recolector_de_frutas`, `8ba48ca` (baseline 100,3 en `entrenar_limon`) y
+  `bcc611d` (argumento `radio_limon` en `mision.launch.py`). Sin push. Al cierre: la WROOM de la Pi con el env
+  `brazo` (serie) y la visión corriendo en segundo plano en la Pi.

@@ -1,21 +1,22 @@
-# Pendientes de pruebas-esp32 (al 2026-11-11)
+# Pendientes de pruebas-esp32 (al 2026-11-12)
 
 <!-- Movido desde CLAUDE.md (2026-10-22). Los bloques "Pendiente GPS", "Pendiente" de 08 y "Falta" se movieron
      tal cual; el resto se copió de los "Pendiente:" que siguen dentro de cada entrada de BITACORA.md. -->
 
-## Para el 12/11 (usuario, 11/11 noche), en este orden (recomendado)
+## Lo próximo (12/11 noche, recomendado en este orden)
 
-1. **Cerrar la base** (~30 min): S3 con el `ros` completo, `lanzar.sh` sin RST, `/odom` derecho (la tierra), IMU,
-   HC-SR04 del frente y bumpers con la seguridad real (ver "Teleop (25)" abajo).
-2. **Calibrar la visión estéreo** (las dos cámaras CSI de la Pi, 30 FPS): tablero de ajedrez impreso y medido, ~20–30
-   pares con el tablero en distintas posiciones; intrínsecos de cada cámara, extrínsecos entre ellas, rectificación;
-   verificar la profundidad con cinta (un objeto a 30 / 50 / 80 cm).
-3. **Detección del limón**: YOLO del robot (`recolector_de_frutas/vision`) con imágenes reales de la cámara (el de
-   juguete y limones de verdad, distintas luces); posición 3D del centro con la estéreo.
-4. **Cámara → brazo** (lo que une todo): la transformación de la cámara al marco de `cinematica.py`. Marca en la pinza,
-   varias poses conocidas (`directa`) vistas por la estéreo, ajuste. Después: limón detectado → `ap` / `tarea`.
-5. **GPS: cero de navegación** (origen / datum del mapa): afuera, a cielo abierto (primer fix ~5 min, σ ~21 m el
-   21/10). Último: es lo menos necesario para agarrar un limón y depende del clima y de salir.
+1. **Agarre automático con la visión en `punta.py`** (~30 min): comando `agarrar` = mediana de `/limon/posicion`
+   (rclpy) → TF (`ajuste_camara.py`) → revisar alcance → `pz a`, `ap`, `pz 1250`, `ret`, `mv 3 17 4`, con Enter
+   antes de mover. Hoy funciona con esos pasos a mano (agarró todos).
+2. **Restaurar la WROOM de la Pi al env `ros`** cuando haga falta el teleop (`respaldo_wroom_20261112.bin`).
+3. **Al robot (ROS):** que la misión mande comandos de texto por `/brazo/comando` al firmware 20 (`brazo_ik` publica
+   `/brazo/joint_cmd`, que el 20 no entiende) y pase a `brazo_ik` el modelo medido de la punta (hombro 165 mm).
+4. **Precisión:** recalibrar el modelo de la punta en z con las mediciones de la cámara del 12/11 (el brazo sube y
+   baja ~1,26 × lo calculado); fijar el caño del mástil contra el giro (si gira, la TF no vale).
+5. **Cerrar la base**: S3 con el `ros` completo, `lanzar.sh` sin RST, `/odom` derecho, IMU, HC-SR04 y bumpers con la
+   seguridad real (ver "Teleop (25)" abajo).
+6. Visión: probar el nodo de disparidad (se cayó con segfault el 12/11 con dos copias de `start_limon.sh`); detector
+   v3 en cifras y con limones reales. **GPS: cero de navegación** afuera, al final.
 
 ## Teleop (25) y base (lo próximo)
 

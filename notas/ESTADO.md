@@ -1,10 +1,19 @@
-# Estado de pruebas-esp32 (al 2026-11-11, cierre)
+# Estado de pruebas-esp32 (al 2026-11-12, cierre)
 
 Foto de hoy. La historia, las mediciones completas y los nombres de los CSV están en `BITACORA.md`; lo que sigue, en
 `PENDIENTES.md`; los pines de la S3, en `PINES_S3.md`.
 
 ## Brazo: lo próximo
 
+- **Visión → brazo (12/11 noche): agarró todos los limones pedidos.** El usuario cuelga el limón; `medir_limon.py` (Pi,
+  con la visión) → `ajuste_camara.py --sin P5 --radio 25 --limon x y z` → `ap` en `punta.py` (a mano). TF
+  `brazo_base -> stereo_camera_link`: x 0,1961 y −0,2694 z 0,3833 m, roll 0,0425 pitch 0,2415 yaw 1,5810 rad
+  (cámaras ~14° hacia abajo; `radio_limon:=0.025`); error dejando cada punto afuera ~22 mm, 45 máx. Límite: el modelo
+  de la punta en z (el brazo sube/baja ~1,26 × lo calculado). Alcance con `ap`: r ≳ 50 cm de J1; cerca y alto no llega.
+  `ap` gira J1 primero; `ret` sin números retrocede lo máximo. Datos: `resultados/camara_brazo_20261112_203642_*`.
+- **La WROOM de la Pi tiene el env `brazo` (serie)**: para el teleop (25), restaurar el env `ros` con
+  `write_flash 0x0 ~/firmware/respaldo_wroom_20261112.bin` (12 V apagados). Binario serie: `~/firmware/brazo20_serie.bin`.
+- **Visión en la Pi:** corriendo en segundo plano (`start_limon.sh` con el v3, log `~/logs/start_limon_20261112.log`).
 - **`20-brazo-coordinado` (lo actual):** J1, J2 y J3 con el mismo controlador (`lib/Articulacion`), lazo no
   bloqueante a 100 Hz, 20 kHz. **Flasheado (11/11 tarde): caja desde J1 53,5 (sin probar), pinza y muñeca (`pz`,
   `mn`) y `vel <factor> [aprox] [asentamiento s]`** (en vivo; al reiniciar vuelve a 0,5 / 2 / 2 de `config.h`).
@@ -12,23 +21,16 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
     (−550, 100, 100), B = (−450, 350, 100)): entra y sale de frente y horizontal con J1 quieta, `pz 1250`, `mn a`. Con
     `vel 0.75 2 0.5`: **76 s** (con la de `config.h`, 96); "ir frente a A" tarda 30 s (sin diagnosticar). J2 a veces
     no llega al salir con el limón (un reintento).
-  - **Mecánica (10/11):** J2 y J3 con **doble helicoidales** 15 → 75, en seco. J3 con manivela de 95 mm. **Eje de J1
-    reemplazado** (misma pieza) el 10/11 a la noche: cero, recorrido 3–115° y repetibilidad bien.
+  - **Mecánica (10/11):** J2 y J3 con doble helicoidales 15 → 75, en seco; J3 con manivela de 95 mm; eje de J1 nuevo.
   - **Franja (10/11 noche, medida entera con el joystick):** tablas `FRANJA_ARRIBA` (desde J2 60, traba − 2°) y
     `FRANJA_ABAJO` más las rectas `q2 − 49` (camino) / `q2 − 25` (destinos), en `config.h` (valores en la bitácora
     del 10/11). Probada en placa. Margen 1° al destino y al camino, 3° a los límites. `fr 0` / `fr 1`.
   - **Homing `h`:** termina en **J1 3°, J2 6°, J3 3°** (se leen 2,8 / 6,0 / 3,2). J2 con cero busca a 5 °/s hasta 4°
     del cero anterior (flanco a 1,5). J3 espera en su flanco hasta que J2 pasa 5° subiendo. `zq` para bajar sin cero.
     Reposo de los scripts: **`mv 3 17 4`**.
-  - `mv`: quíntico, J2/J3 terminan juntas, J1 con su duración; si la recta sale de la franja, por un intermedio.
-    Llegada desde abajo; `tolLlegada` 0,15° y freno anticipado (J1 0,03 s, J2 0,055 s, J3 0,045 s).
-  - **Caja (11/11):** con J1 ≥ `CAJA_J1_MIN`, J3 máximo según J2 (`CAJA_ARRIBA`: 64 → 73,2 · 68–69 → 65,0 ·
-    70 → 66,2 · 74 → 69,5 · 80 → 74,2; muñeca a ≥ 3 cm de la tapa). `mv` revisa con la J1 más alta del camino; con
-    J3 alta J1 no entra; protección `>> CAJA`. Desde J1 64: frenó en 65,2 con la muñeca a 4 cm, pero con J1 63,5 la
-    muñeca llegó a 1 cm de la tapa → **53,5** (flasheado, sin probar). Activa también con `fr 0`.
-  - **Repetibilidad** (`repetibilidad_20261110_224409`, 10 ciclos, con J3 70): RP **J1 0,13°, J2 0,20°, J3 0,06°**; 5 ciclos con
-    la franja completa (`_230137`): 0,06 / 0,20 / 0,08. J2 la peor (ganancias y feedforward de los engranajes
-    viejos; tarda ~0,4 s en despegar).
+  - `mv`: quíntico, J2/J3 juntas, J1 con su duración; intermedio si la recta sale de la franja; llegada desde abajo.
+  - **Caja (11/11):** J3 máximo según J2 con J1 ≥ `CAJA_J1_MIN` = 53,5 (sin probar; tabla en la bitácora del 11/11).
+  - **Repetibilidad** (10/11): RP J1 0,13°, J2 0,20°, J3 0,06° (J2 la peor).
   - **Cinemática** (`tools/cinematica.py`, **recalibrada con video el 11/11**, 19 poses, error 10 mm de media y
     25 máx): hombro (J2 y J3) a **165 mm**; J1 real `(q1 − 2,8) · 90 / 83,3` (**confirmada** con cinta a 0°, 45° y
     90°; el firmware sigue con la escala de la polea de 84). Marco: x a la derecha del robot, y adelante; **J1 a la
@@ -45,12 +47,7 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
 - **Fuente:** conectada a la bornera del bus de 12 V (el adaptador al XT60 tiene un contacto malo). Así no pasa por el
   fusible ni la seta: límite de 3 A y apagar la fuente como parada.
 - **`12`:** J1 lista (0–5), repetir el paso 3 con el cero nuevo. **`17`:** pega fuerte en los FC. **`18`:** OK.
-- **Robot:** la WROOM tiene el firmware de `20`; `firmware/brazo` sigue con franja, homing y reposo viejos.
-
-- **Cámara → brazo (12/11 noche, medida):** 9 puntos, radio 25 mm, TF `brazo_base -> stereo_camera_link` x 0,1961 y −0,2694
-  z 0,3833 m, roll 0,0425 pitch 0,2415 yaw 1,5810 rad (misión con `radio_limon:=0.025`) (cámaras ~14° hacia abajo); error dejando cada punto afuera
-  ~23 mm de media, 46 máx. El modelo de la punta tiene error en z (el brazo sube/baja ~1,26 × lo que calcula): eso
-  limita la TF. **Agarre con la visión probado: agarró todos los limones pedidos** (cámara → `ajuste_camara.py --limon` → `ap`, a mano). **La WROOM de la Pi tiene el env `brazo` (serie)**; para el teleop, restaurar `~/firmware/respaldo_wroom_20261112.bin` (env `ros`).
+- **Robot:** `recolector_de_frutas/firmware/brazo` sigue con franja, homing y reposo viejos: falta pasarle lo de `20`.
 
 ## Pinza y muñeca (servos)
 
@@ -63,7 +60,7 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
 ## Teleop (`25-teleop-pi`, ROS 2 + micro-ROS en la Pi)
 
 - `bash ~/scripts/25-teleop-pi/tools/lanzar.sh` (dos agentes + teleop) → `http://100.116.96.71:8000`, horizontal.
-  **WROOM con 20 env `ros`** (flasheado; homing, joystick, pinza y muñeca OK desde el celular).
+  Con 20 env `ros` en la WROOM: homing, joystick, pinza y muñeca OK desde el celular (hoy tiene el env `brazo`).
 - **Base:** la S3 está **en la notebook con `03-hcsr04`** (los tres HC-SR04 OK); falta flashear el `ros` completo y
   volver a la Pi. Tracción: la rueda izquierda se escapaba (sin cuentas): **era una tierra suelta, arreglada**.
   IMU real sin confirmar (con `ros` daba SIN_DATOS; con `ros_motores` no se mira). La S3 a veces no arranca después
@@ -74,12 +71,8 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
 
 - Notebook y Pi 5 (`r2d2@192.168.2.219`, Tailscale `r2d2-desktop`) ordenadas igual: repos en `~/Documentos` (Pi:
   `~/firmware`, `~/scripts`, `~/logs`), workspaces en `~/ros/`, venvs en `~/venvs/`. Las dos placas están en la Pi
-  (se compila en la notebook y se flashea con esptool desde la Pi: `~/venvs/esptool/bin/esptool`). Respaldos de la
-  WROOM: `~/firmware/brazo/respaldo_20261001_183959.bin` (micro-ROS del robot) y `respaldo_wroom_20261111.bin` (20).
+  (se compila en la notebook y se flashea con esptool desde la Pi: `~/venvs/esptool/bin/esptool` o el 4.8.1 de
+  `~/keepon_env`). Respaldos de la WROOM: `~/firmware/brazo/respaldo_20261001_183959.bin` (micro-ROS del robot),
+  `respaldo_wroom_20261111.bin` y `respaldo_wroom_20261112.bin` (20 env `ros`).
 
 ## Pruebas terminadas: IMU MPU-6500 (01, 02) OK, sin magnetómetro; GPS UP501 (04, 05) OK por WiFi; lazo abierto 06/07 y 08 (`Freno`) OK.
-
-## Firmware del robot
-
-- El brazo vive en `~/Documentos/recolector_de_frutas/firmware/brazo`; sus pendientes están en el `CLAUDE.md` de ese
-  repo. Falta pasarle lo de `20` (ver `PENDIENTES.md`).
