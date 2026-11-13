@@ -80,6 +80,9 @@
 		},
 		{
 			"path": "26-sim-alcance-arbolito"
+		},
+		{
+			"path": "27-aruco-arbol"
 		}
 	],
 	"settings": {

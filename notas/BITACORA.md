@@ -1213,3 +1213,15 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   54 cm del piso. Una parada: 31 %; 2: 61 %; 3: 92 %; **4 (cada 90°): 100 %**. **Parada recomendada:** eje del
   árbol a **70 cm a la izquierda de J1 y 15 cm adelante** (100 %; ≥ 86 % con ±5 cm de error). Figuras
   `resultados/sim_20261113_164405_*`. Commits `e0c2f0e`, `6cecf3a`. Sin validar con el robot.
+
+## 2026-11-13 — GPS en la Pi y plan de navegación; 27-aruco-arbol
+- GPS UP501 conectado a la Pi por la UART0 (GPIO 14/15, `/dev/ttyAMA0`, `dtparam=uart0=on`): NMEA a **9600 baud**;
+  `ros2 run nmea_navsat_driver nmea_serial_driver --ros-args -p port:=/dev/ttyAMA0 -p baud:=9600 -p frame_id:=gps_link
+  -r fix:=/gps/fix` publica `/gps/fix` (sin el remapeo sale como `fix`), `/vel` y `/time_reference`. Adentro:
+  `status -1`, 0 satélites (fecha 06/01/1980: arranque en frío).
+- Decisión (usuario): un solo arbolito (el profesor acepta), en cualquier lugar del aula; se permiten marcas. GPS solo
+  para la rúbrica (±20 m). Navegación: buscar girando con marcas ArUco → acercarse con odometría + giróscopo →
+  corregir con la marca y los limones → 4 paradas alrededor del árbol (simulación de `26`).
+- `27-aruco-arbol`: `tools/generar_marcas.py` → `resultados/marcas_aruco_4x4_150mm.pdf` (DICT_4X4_50, IDs 0–3, 150 mm,
+  vectorial; la primera versión con `imshow` salía corrida en el PDF). OpenCV 4.6 con `aruco` en la notebook y en la
+  Pi. Marca de 15 cm: ~50 px a 2 m, ~25 px a 4 m.

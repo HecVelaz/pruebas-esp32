@@ -18,6 +18,15 @@
 6. Visión: probar el nodo de disparidad (se cayó con segfault el 12/11 con dos copias de `start_limon.sh`); detector
    v3 en cifras y con limones reales. **GPS: cero de navegación** afuera, al final.
 
+## Navegación (13/11: un arbolito en el aula, marcas ArUco)
+
+1. Imprimir `27-aruco-arbol/resultados/marcas_aruco_4x4_150mm.pdf` al 100 %, medir 150 mm, pegar en cartón alrededor
+   de la base del arbolito (IDs 0–3 antihorario, centro a 20–40 cm del piso).
+2. Detector ArUco en la Pi (pose con `solvePnP`, eje del árbol en el marco del brazo); medir contra cinta a 1–4 m.
+3. Base en ROS: S3 con el `ros` completo, `/odom` derecho, error de odometría (1 m recto y 90° con cinta).
+4. `mision`: BUSCAR / ACERCARSE / PARADA / RODEAR, primero en Gazebo.
+5. GPS para la rúbrica: script de arranque del driver (remapeo a `/gps/fix`), fix afuera, `robot_localization`.
+
 ## Teleop (25) y base (lo próximo)
 
 1. ~~Encoder de la rueda izquierda~~ (11/11 noche: **una tierra desconectada**, arreglada por el usuario). Falta
