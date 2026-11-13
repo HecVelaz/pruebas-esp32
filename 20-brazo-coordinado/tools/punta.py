@@ -18,7 +18,7 @@ Abre el puerto como un monitor: lo que se escribe va a la placa (h, c, mv, s, x,
                       vertarea: solo el plan. Ctrl+C en cualquier momento: "s"
     agarrar [s]       agarrar el limón que ve la cámara (en la Pi, con start_limon.sh): mediana de /limon/posicion
                       durante s segundos (def. 5) -> centro con la calibración del 12/11 (ajuste_camara.py) -> planea
-                      todo (pz a, ap, pz 1250, ret, reposo mv 3 17 4) y pide Enter antes de mover. Queda con el limón
+                      todo (pz a, ap 1 cm más abajo, pz 1300, ret, reposo mv 3 17 4) y pide Enter antes de mover. Queda con el limón
                       en la pinza ("pz a" lo suelta). veragarrar [s]: mide y planea, sin mover
     donde             pide "c" y dice dónde está la punta
     anotar <punto>    como donde, y lo guarda en resultados/camara_brazo_<fecha>_brazo.csv (calibración de la
@@ -474,6 +474,8 @@ CAL_SIN = ("P5",)
 DISPERSION_MAX = 10.0   # mm: más que esto, el limón se movió o la visión duda -> no agarrar
 MIN_POSICIONES = 3
 RADIO_LIMON = 25.0      # mm (limón de juguete de 5 cm; uno real: ~30)
+AGARRAR_PINZA_US = 1300 # 13/11: un poco más cerrada que pz c (1250) para agarrar firme
+AGARRAR_DZ = -10.0      # mm: 13/11, agarrar siempre 1 cm más abajo de lo que da la visión
 
 
 class Vision:
@@ -524,7 +526,7 @@ def planear_agarre(s, limon):
     if rp is None:
         return None, ["al reposo: " + "; ".join(m)]
     return [("servo", "pz a"), ("ir frente al limón", pa[:-1]), ("entrar de frente", pa[-1:]),
-            ("servo", f"pz {PINZA_AGARRE_US}"), ("salir de frente", sa), ("reposo", rp)], m_ret
+            ("servo", f"pz {AGARRAR_PINZA_US}"), ("salir de frente", sa), ("reposo", rp)], m_ret
 
 
 def agarrar(placa, vision, tf, seg, mover, timeout):
@@ -540,10 +542,12 @@ def agarrar(placa, vision, tf, seg, mover, timeout):
     if disp > DISPERSION_MAX:
         print(f"NO: dispersión {disp:.1f} mm (> {DISPERSION_MAX:.0f}): ¿se movió el limón? Repetir")
         return
-    limon = tuple(round(float(v)) for v in ajc.camara_a_cinematica(R, t, cara, RADIO_LIMON))
+    x, y, z = ajc.camara_a_cinematica(R, t, cara, RADIO_LIMON)
+    limon = (round(float(x)), round(float(y)), round(float(z) + AGARRAR_DZ))
     print(f"  cámara (cara): x {cara[0]:+.0f}  y {cara[1]:+.0f}  z {cara[2]:.0f} mm  ({n} posiciones, dispersión "
           f"{disp:.1f} mm)")
-    print(f"  limón (centro): x {limon[0]}  y {limon[1]}  z {limon[2]} mm   (= ap {limon[0]} {limon[1]} {limon[2]})")
+    print(f"  limón (centro): x {limon[0]}  y {limon[1]}  z {z:.0f} mm -> agarre en z {limon[2]} ({AGARRAR_DZ:+.0f})"
+          f"   (= ap {limon[0]} {limon[1]} {limon[2]})")
     s = placa.angulos() if placa else (3.0, 17.0, 4.0)
     if s is None:
         return
