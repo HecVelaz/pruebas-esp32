@@ -48,6 +48,16 @@ Primera corrida (13/11, `resultados/sim_20261113_163252_*`, mapa `mapa_alcance_2
 - **Varias estaciones**: 2 → 56 %, 3 → 83 %, **4 → 100 %** (cada 90° alrededor del árbol, D 75 cm, Y 17 cm).
 - La cámara no limita en la mejor estación: todo lo que el brazo alcanza cae en la zona con disparidad.
 
+**Con el arbolito medido** (13/11, usuario: limones a 10–14 cm del tronco, el más bajo a 32 cm del piso;
+`python3 tools/simular.py --radio-copa 120 --h-min 320` → `resultados/sim_20261113_164405_*`):
+
+- Una parada: **31 %** (11 de los 13 del lado del robot, en todas las alturas de 32 a 54 cm). Zona buena más ancha:
+  eje del árbol a D 63–72 cm a la izquierda de J1 e Y 10–35 cm adelante de J1.
+- 2 → 61 %, 3 → 92 %, **4 → 100 %**. Con radio 10 o 14 cm da casi lo mismo (31 / 61 / 92 / 100 %).
+- **Parada recomendada para la navegación** (la más tolerante a un error de ±5 cm en D y en Y): con 4 paradas cada
+  90° alrededor del árbol, **eje del árbol a 70 cm a la izquierda de J1 y 15 cm adelante de J1**: 100 % ahí y ≥ 86 %
+  en el peor caso de ±5 cm. La copa queda a ~46 cm del costado izquierdo del robot.
+
 Limitaciones: la copa es un cilindro (sin ramas ni hojas que tapen); los limones del otro lado se descartan con un
 ángulo fijo (60° al brazo, 75° a la cámara); la recta de alturas de la cinta vale entre ~33 y ~52 cm del piso; el
 modelo de la punta tiene ~1–2 cm de error y la calibración de la cámara ~2 cm.
