@@ -1261,3 +1261,12 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   Estado: `DESARMADA modo=libre seguridad=sin comandos imu=ok`, enlace sin cortes. Falta: pruebas de seguridad con
   las ruedas en el aire, `/odom` andando y el error de la odometría (1 m y 90° con cinta). ¿La calibración del
   giróscopo se guarda al reiniciar? (sin ver).
+- **Ruedas en el aire (calce):** `v 0.1 0 2` por `/base/comando` apenas mueve (~1 s y zumbido): con micro-ROS el
+  watchdog es de 300 ms (`WD_ROS`, no se puede apagar) y un `v` llega una sola vez → hay que mandar `/cmd_vel`
+  continuo. `ros2 topic pub -r 10` tarda ~1–2 s en arrancar en la Pi (los primeros números daban "la mitad").
+  `25-teleop-pi/tools/prueba_odom.py` (cmd_vel a 20 Hz + /odom; `recto <m>`, `giro <°>`, `tiempo <v> <w> <s>`; arma
+  si hace falta): `tiempo 0.1 0 3` → 30,1 cm, v 0,100 m/s, −0,1°; `tiempo 0 0.5 3` → +86,8°, w 0,502 rad/s. Sentidos
+  OK (giro +: izquierda atrás, derecha adelante, visto desde atrás). Encoders de las dos ruedas OK.
+- **Enlace:** un corte de la sesión micro-ROS durante un giro (la base se desarma sola al reconectar, por diseño;
+  `cortes=1`, la S3 no se reinició) y otro ~14 min antes (con el usuario tocando cables). `pings_fallidos` sube
+  (22 → 41). Pendiente: ver si los cortes coinciden con los motores (ruido / alimentación del USB).
