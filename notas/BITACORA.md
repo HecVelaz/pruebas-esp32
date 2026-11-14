@@ -1270,3 +1270,12 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
 - **Enlace:** un corte de la sesión micro-ROS durante un giro (la base se desarma sola al reconectar, por diseño;
   `cortes=1`, la S3 no se reinició) y otro ~14 min antes (con el usuario tocando cables). `pings_fallidos` sube
   (22 → 41). Pendiente: ver si los cortes coinciden con los motores (ruido / alimentación del USB).
+- **Odometría en el piso (13/11 noche, `prueba_odom.py`):** `recto 1.0` dos veces → odometría 102,2 / 102,8 cm, cinta
+  ~102 cm, desvío ~1° a la derecha (odometría −0,1°): **error < 1 % en distancia**. `giro 90` (0,5 rad/s) → ruedas
+  96,5°, cinta ~96° (se pasaba al frenar) → frenado proporcional en el script (K_W 1,5, W_MIN 0,12; recto K_V 1,
+  V_MIN 0,03): se pasa < 1°. Con el frenado: ruedas −90,9° / +90,8° / −91,0°, cinta ~87–89°; **giróscopo −88,7°**
+  (cinta ~88–89°). Las ruedas sobrestiman ~2° cada 90° (patinan al girar en el lugar). **Decisión (usuario): los giros
+  con el giróscopo** (`giro` para con el giróscopo; la distancia con las ruedas). `/imu/data_raw` es best effort:
+  suscribirse con `qos_profile_sensor_data`. La Pi se reinició al apagarla (`sudo shutdown` = en 1 min); agente con
+  `~/scripts/agente_base.sh` (después de reiniciar, `/odom` tarda ~5 s en aparecer en ROS). La base calibra el
+  giróscopo sola al arrancar (gyro ya en 0 antes de `cal`).
