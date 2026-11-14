@@ -1287,7 +1287,8 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   Probado sin moverse: marca a (−969, 220), mira −4° → tronco a 113 cm, +23 → "girar 86° izq., avanzar 45 cm,
   girar 90° der.". Scripts de la Pi en el repo (`25-teleop-pi/tools/agente_base.sh`, `vision.sh`, `base.sh`; en la
   Pi en `~/scripts/`): `pgrep -f <patrón>` por ssh se encuentra a sí mismo (falsos "ya corre").
-- **Primera secuencia autónoma (13/11 noche): ver la marca → ir a la parada → agarrar.** `ir_a_parada.py` con la maceta
+- **Ir a la parada sola (13/11 noche): ver la marca → ir a la parada OK; `agarrar` NO se ejecutó (corregido: primero
+  se anotó que había agarrado).** `ir_a_parada.py` con la maceta
   a ~1,1 m (marca en (−968, 221), mira −4°, tronco a 113 cm, +23): girar 86° izq. (giróscopo 86,6°) → avanzar 45 cm
   (44,9) → girar 90° der. (giróscopo 90,1°); en la parada la marca ya no se ve completa. Después `agarrar` en
-  `punta.py`: **agarró el limón** (usuario).
+  `punta.py`: **no se ejecutó** (usuario; sin diagnosticar).
