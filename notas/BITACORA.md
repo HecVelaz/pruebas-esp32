@@ -1279,3 +1279,11 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   suscribirse con `qos_profile_sensor_data`. La Pi se reinició al apagarla (`sudo shutdown` = en 1 min); agente con
   `~/scripts/agente_base.sh` (después de reiniciar, `/odom` tarda ~5 s en aparecer en ROS). La base calibra el
   giróscopo sola al arrancar (gyro ya en 0 antes de `cal`).
+- **Ir a la parada** (`27-aruco-arbol/tools/ir_a_parada.py`): mide la marca 3 s (`marcas.py`, calibración de
+  navegación), tronco = marca − 165 mm sobre su normal, parada (−700, 150) con la marca de frente; plan girar
+  (giróscopo) → avanzar (ruedas) → girar, sobre el centro del eje de las ruedas (80, −5) mm desde J1; marcha atrás
+  solo si el giro pasaría de 135°; no se mueve por < 5 cm. `--simular X Y MIRA` verifica la cuenta (7 casos: el
+  tronco termina en (−700, 150)). Movimientos en `25-teleop-pi/tools/movimiento.py` (`prueba_odom.py` lo usa).
+  Probado sin moverse: marca a (−969, 220), mira −4° → tronco a 113 cm, +23 → "girar 86° izq., avanzar 45 cm,
+  girar 90° der.". Scripts de la Pi en el repo (`25-teleop-pi/tools/agente_base.sh`, `vision.sh`, `base.sh`; en la
+  Pi en `~/scripts/`): `pgrep -f <patrón>` por ssh se encuentra a sí mismo (falsos "ya corre").
