@@ -1299,3 +1299,18 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   (87,5°); limón (−611, 241, 152) mm (7 posiciones, 0,7 mm); agarre 54 s (pz a, ir frente 19 s, entrar 6 s, pz 1300,
   salir 13 s, reposo 15 s). **95 s desde que arrancó la base. Agarró el limón** (usuario). `punta.agarrar` y `Vision`
   ahora se pueden usar desde otro programa (nodo propio o ajeno, `confirmar=False`, devuelve True si agarró).
+
+## 2026-11-13 — Cierre
+- Hecho en el día (detalle en las entradas de arriba): `agarrar` en `punta.py` (visión → brazo, pinza 1300 us, 1 cm
+  más abajo, salida con 3° de margen); simulación de la estación (`26`, 4 paradas = 100 %, parada a 70 / +15 cm);
+  GPS en la Pi (`/dev/ttyAMA0`, solo rúbrica); marcas ArUco + calibración de navegación (`27`, ~3 cm a 1–2 m); base
+  en ROS (S3 env `ros`, IMU era un cable, odometría: recto < 1 %, giros con el giróscopo); `ir_a_parada.py` y
+  **`recolectar.py`: primera recolección autónoma completa (95 s)**.
+- Al cierre en la Pi: S3 con el env `ros` de la base; **WROOM con el env `brazo` (serie)** (para la misión en ROS:
+  `write_flash 0x0 ~/firmware/respaldo_wroom_20261112.bin`, 12 V apagados); visión (`~/scripts/vision.sh`) y agente
+  de la base (`~/scripts/agente_base.sh`) corriendo en segundo plano (no arrancan solos al reiniciar).
+- Sin commitear (a propósito): fotos de `12-j1-base/CERO/`, `17-brazo-joystick/LIMITES/` y el video
+  `20-brazo-coordinado/20_20_24.mp4` (aparecen personas; repo público).
+- Commits: `18c05e1`, `37faaac`, `cc421c1`, `e0c2f0e`, `6cecf3a`, `061cd8c`, `37c69de`, `e1bd277`, `c425f7e`,
+  `2e9b3a2`, `ff3c8f6`, `dc027c9`, `2a4c3eb`, `dd2d8f3`, `e1beae0`, `7ee08ee`, `fa36f66`, `3f480e8`, `107f7d2`,
+  `9921b2f`, `ba907ec` y el de este cierre. Sin push.

@@ -1,92 +1,74 @@
-# Estado de pruebas-esp32 (al 2026-11-13)
+# Estado de pruebas-esp32 (al 2026-11-13, cierre)
 
 Foto de hoy. La historia, las mediciones completas y los nombres de los CSV están en `BITACORA.md`; lo que sigue, en
 `PENDIENTES.md`; los pines de la S3, en `PINES_S3.md`.
 
-## Brazo: lo próximo
+## Recolección autónoma (lo actual)
 
-- **Agarre automático con la visión (13/11): `agarrar` en `punta.py` funciona** (Pi, `start_limon.sh` v3, WROOM con el
-  env `brazo`): mide 5 s, calibración del 12/11, pinza a 1300 us, 1 cm más abajo, salida con 3° de margen. Ahora la
-  WROOM de la Pi tiene el env **`brazo`** (serie); volver al `ros` con `respaldo_wroom_20261112.bin`.
-- **Recolección autónoma completa (13/11 noche): `27-aruco-arbol/tools/recolectar.py` = homing → marca → parada →
-  agarrar, 95 s, agarró el limón.** (Antes, `ir_a_parada.py` solo llegaba: el agarre era aparte.)
-  Base en ROS (S3 env `ros`, agente con `~/scripts/agente_base.sh`): recto < 1 % con las ruedas, giros con el
-  giróscopo (~±1°), `25-teleop-pi/tools/movimiento.py`. Visión con `~/scripts/vision.sh`.
-- **Navegación (13/11):** marcas ArUco de 15 cm (`27-aruco-arbol`), detector `ver_marcas.py --tf nav` con
-  calibración de navegación (~3 cm a 1–2 m); en la maceta (`--radio-maceta 165`) ubica el tronco de 1 a 2 m, en la
-  parada la marca queda cortada (se usan los limones). **Desde la parada (~70 cm, a ojo) `agarrar` funciona.** GPS
-  en la Pi (`/dev/ttyAMA0`, 9600, `nmea_navsat_driver` → `/gps/fix`), sin fix adentro: solo para la rúbrica.
-- **Simulación de la estación (`26-sim-alcance-arbolito`, 13/11):** agarra a 55–70 cm de J1 y 30–66 cm del piso. Con el
-  arbolito medido, **4 paradas cada 90° = 100 %**; parada: eje del árbol a 70 cm a la izquierda de J1 y 15 cm
-  adelante. Sin validar con el robot.
-- **Visión → brazo (12/11 noche): agarró todos los limones pedidos.** El usuario cuelga el limón; `medir_limon.py` (Pi,
-  con la visión) → `ajuste_camara.py --sin P5 --radio 25 --limon x y z` → `ap` en `punta.py` (a mano). TF
-  `brazo_base -> stereo_camera_link`: x 0,1961 y −0,2694 z 0,3833 m, roll 0,0425 pitch 0,2415 yaw 1,5810 rad
-  (cámaras ~14° hacia abajo; `radio_limon:=0.025`); error dejando cada punto afuera ~22 mm, 45 máx. Límite: el modelo
-  de la punta en z (el brazo sube/baja ~1,26 × lo calculado). Alcance con `ap`: r ≳ 50 cm de J1; cerca y alto no llega.
-  `ap` gira J1 primero; `ret` sin números retrocede lo máximo. Datos: `resultados/camara_brazo_20261112_203642_*`.
-- **La WROOM de la Pi tiene el env `ros`** (restaurado el 12/11 al cierre). Para `punta.py` hace falta el serie:
-  `write_flash 0x0 ~/firmware/brazo20_serie.bin`; volver con `respaldo_wroom_20261112.bin` (12 V apagados).
-- **Visión en la Pi:** apagada al cierre del 12/11 (para el agarre: `start_limon.sh` con el v3, `MODELO=... CLASE=limon`).
-- **`20-brazo-coordinado` (lo actual):** J1, J2 y J3 con el mismo controlador (`lib/Articulacion`), lazo no
-  bloqueante a 100 Hz, 20 kHz. **Flasheado (11/11 tarde): caja desde J1 53,5 (sin probar), pinza y muñeca (`pz`,
-  `mn`) y `vel <factor> [aprox] [asentamiento s]`** (en vivo; al reiniciar vuelve a 0,5 / 2 / 2 de `config.h`).
-  - **Agarre automático** (`punta.py`: `ap`, `ret`, `tarea`): ciclo completo OK con un limón de juguete (A =
-    (−550, 100, 100), B = (−450, 350, 100)): entra y sale de frente y horizontal con J1 quieta, `pz 1250`, `mn a`. Con
-    `vel 0.75 2 0.5`: **76 s** (con la de `config.h`, 96); "ir frente a A" tarda 30 s (sin diagnosticar). J2 a veces
-    no llega al salir con el limón (un reintento).
-  - **Mecánica (10/11):** J2 y J3 con doble helicoidales 15 → 75, en seco; J3 con manivela de 95 mm; eje de J1 nuevo.
-  - **Franja (10/11 noche, medida entera con el joystick):** tablas `FRANJA_ARRIBA` (desde J2 60, traba − 2°) y
-    `FRANJA_ABAJO` más las rectas `q2 − 49` (camino) / `q2 − 25` (destinos), en `config.h` (valores en la bitácora
-    del 10/11). Probada en placa. Margen 1° al destino y al camino, 3° a los límites. `fr 0` / `fr 1`.
-  - **Homing `h`:** termina en **J1 3°, J2 6°, J3 3°** (se leen 2,8 / 6,0 / 3,2). J2 con cero busca a 5 °/s hasta 4°
-    del cero anterior (flanco a 1,5). J3 espera en su flanco hasta que J2 pasa 5° subiendo. `zq` para bajar sin cero.
-    Reposo de los scripts: **`mv 3 17 4`**.
-  - `mv`: quíntico, J2/J3 juntas, J1 con su duración; intermedio si la recta sale de la franja; llegada desde abajo.
-  - **Caja (11/11):** J3 máximo según J2 con J1 ≥ `CAJA_J1_MIN` = 53,5 (sin probar; tabla en la bitácora del 11/11).
-  - **Repetibilidad** (10/11): RP J1 0,13°, J2 0,20°, J3 0,06° (J2 la peor).
-  - **Cinemática** (`tools/cinematica.py`, **recalibrada con video el 11/11**, 19 poses, error 10 mm de media y
-    25 máx): hombro (J2 y J3) a **165 mm**; J1 real `(q1 − 2,8) · 90 / 83,3` (**confirmada** con cinta a 0°, 45° y
-    90°; el firmware sigue con la escala de la polea de 84). Marco: x a la derecha del robot, y adelante; **J1 a la
-    izquierda** (0 = −x), mástil a la derecha (300, 240, a ojo). Tapa en **T**: ancha (40) adelante, angosta (34)
-    atrás con J1 a 9 cm del borde de atrás y del izquierdo. Inversa con `punta.py` probada con cinta: bien. La punta no
-    llega sobre la tapa (mínimo 36 cm de J1). La caja del firmware sigue siendo empírica.
-  - Joystick `jv` (`17/tools/joystick.py --placa 20 [--sin-franja]`; botones Homing y Anotar).
-- **Cero del brazo:** la pose con los tres finales de carrera apretados (foto del 30/10); + = alejarse de cada uno.
-  Límites: J1 0–118° (brazo recogido), J2 0–83°, J3 0–101,5°; franja con tablas (ver arriba). Finales de carrera:
-  J1 32, J2 27, J3 33. **Tienen un solo punto de apoyo y el golpe los gira**: llegar despacio (`h`) y fijarlos
-  mejor (pendiente).
-- **20 kHz en J2 y J3** (31/10, ver `DECISIONES.md`); compensación de gravedad apagada (`gm`).
-- **Abrir el puerto serie reinicia la WROOM** (cero perdido, brazo suelto): después del monitor, `h`.
-- **Fuente:** conectada a la bornera del bus de 12 V (el adaptador al XT60 tiene un contacto malo). Así no pasa por el
-  fusible ni la seta: límite de 3 A y apagar la fuente como parada.
-- **`12`:** J1 lista (0–5), repetir el paso 3 con el cero nuevo. **`17`:** pega fuerte en los FC. **`18`:** OK.
-- **Robot:** `recolector_de_frutas/firmware/brazo` sigue con franja, homing y reposo viejos: falta pasarle lo de `20`.
+- **`27-aruco-arbol/tools/recolectar.py` hace todo (13/11: agarró el limón, 95 s):** homing del brazo → reposo → mira la
+  marca de la maceta → va a la parada (girar con el giróscopo, avanzar con las ruedas, girar) → mide el limón 5 s →
+  `agarrar`. 3 Enter: 12 V apagados (abre la WROOM), 12 V encendidos (homing), ir. En la Pi:
+  `cd ~/scripts/27-aruco-arbol; python3 tools/recolectar.py` (con la visión y el agente de la base corriendo).
+  Hoy arranca viendo la marca (a ~0,9–4 m a la izquierda) y agarra un limón desde una parada.
+- **Parada** (`26-sim-alcance-arbolito`): tronco a **70 cm a la izquierda de J1 y 15 cm adelante**; agarra a 55–70 cm
+  de J1 y 30–66 cm del piso; con el arbolito medido (60 cm, limones a 10–14 cm del tronco, de 32 a 54 cm del piso),
+  **4 paradas cada 90° = 100 %**. Validada: desde ahí `agarrar` funciona.
+- **Marcas ArUco** (`27`): DICT_4X4_50, 15 cm, ID 0 pegada en la maceta (cara a 16,5 cm del tronco: `--radio-maceta
+  165`); faltan pegar las IDs 1–3 (una por cara, antihorario). Se detecta de ~0,9 a ~4 m; en la parada queda cortada
+  abajo (ahí mandan los limones). `ver_marcas.py --tf nav` para mirarla.
+- **Dos calibraciones de la cámara:** agarre = la del brazo del 12/11 (`ajuste_camara.py`, sirve < 70 cm; compensa con
+  14° el error en z del modelo); navegación = `27/resultados/tf_navegacion.json` (6 puntos en el piso, ~3 cm a 1–2 m;
+  cámara a 57,4 cm del piso, 6,5° hacia abajo).
+- **GPS** UP501 en la Pi (UART0, `/dev/ttyAMA0`, 9600; `nmea_navsat_driver ... -r fix:=/gps/fix`): ±20 m, solo para
+  la rúbrica (zona, registro, `robot_localization`). Adentro sin fix.
+
+## Base (S3, `25-teleop-pi`)
+
+- S3 en la Pi con el env `ros` de `recolector_de_frutas/firmware/base` (flasheo con `--after watchdog-reset`: arranca
+  sola). Agente: `bash ~/scripts/agente_base.sh`; comandos: `bash ~/scripts/base.sh "<cmd>"` (`sens`, `e`, `cal`,
+  `odo0`, `armar`, `r`). Con micro-ROS el watchdog es 300 ms: mover solo con `/cmd_vel` continuo.
+- Todo responde con 12 V: batería ~11,2 V (LiPo 3S sin BMS, corte 10,5 V), HC-SR04 ×3, bumpers ×3, seta suelta, IMU
+  (era un cable; calibra el giróscopo sola al arrancar). **Odometría:** recto < 1 % con las ruedas; giros con el
+  giróscopo (~±1°; las ruedas se pasan ~2° cada 90°). `25-teleop-pi/tools/movimiento.py` (frenado proporcional),
+  `prueba_odom.py recto|giro|tiempo`.
+- Sin probar: frenado por HC-SR04 (< 20 cm), bumper y vuelco con los motores andando. El enlace USB tuvo un corte con
+  los motores en marcha (la base se desarma al reconectar, por diseño).
+
+## Brazo (`20-brazo-coordinado`, WROOM)
+
+- **La WROOM de la Pi tiene el env `brazo` (serie)**, el de `punta.py` y `recolectar.py`. Para la misión en ROS / el
+  teleop: `write_flash 0x0 ~/firmware/respaldo_wroom_20261112.bin` (env `ros`; 12 V apagados).
+- **Abrir el puerto serie reinicia la WROOM** (cero perdido): siempre `h` después (los scripts lo hacen).
+- `punta.py`: `p`, `ap` (entra de frente), `ret`, `tarea`, `anotar`, **`agarrar` / `veragarrar`** (mediana de
+  `/limon/posicion`, calibración del 12/11, pinza **1300 us**, **1 cm más abajo**, salida y reposo con **3° de margen** a
+  la franja). `punta.agarrar` y `Vision` se usan desde otros programas.
+- J1, J2, J3 con `lib/Articulacion`, 100 Hz, 20 kHz; homing `h` → J1 3°, J2 6°, J3 3°; reposo `mv 3 17 4`; franja con
+  tablas (`FRANJA_ARRIBA` / `FRANJA_ABAJO`), caja con J1 ≥ 53,5 (sin probar); repetibilidad RP 0,13 / 0,20 / 0,06°.
+- Cinemática (`tools/cinematica.py`, video del 11/11): ~10 mm de media; hombro 165 mm; J1 real `(q1 − 2,8)·90/83,3`; el
+  brazo real sube y baja ~1,26–1,43 × lo que dice el modelo en z (pendiente recalibrar).
+- Cero en los finales de carrera (J1 32, J2 27, J3 33; un solo apoyo: el golpe los gira). Límites J1 0–118°, J2 0–83°,
+  J3 0–101,5°. Fuente directa a la bornera del bus (sin fusible ni seta por el adaptador XT60 malo).
+- `recolector_de_frutas/firmware/brazo` sigue con franja, homing y reposo viejos: falta pasarle lo de `20`.
 
 ## Pinza y muñeca (servos)
 
-- **En 20 (`pz`, `mn`) y `23-servos-wroom`:** pinza GPIO 4, muñeca GPIO 14, valores de 21 y 22 (cero 1500 µs).
-  - **Pinza con el brazo del servo ~45° corrido** al montarla: cero visual en 1000 µs, `p a` abre 45°. Falta
-    recalzarlo (~3 dientes) para que 500 µs vuelva a ser 90° (73 mm). Muñeca: se mueve con los valores de 22.
-- Sueltas en la ESP32 "ESP32S" (CP2102): **`21`** (GPIO 18) cero 1500, abierto 500 µs = 73 mm, cerrado 1250 µs;
-  **`22`** (GPIO 19) cero 1500, ±90° en 860 / 2150 µs (~7,2 µs/°). Detalle en `BITACORA.md`.
+- En 20 (`pz`, `mn`): pinza GPIO 4 (abierta 500 µs, cerrada 1250; `agarrar` usa 1300), muñeca GPIO 14 (cero 1500,
+  ±90° en 860 / 2150 µs). El brazo del servo de la pinza está ~45° corrido (recalzar ~3 dientes).
 
-## Teleop (`25-teleop-pi`, ROS 2 + micro-ROS en la Pi)
+## Visión (Pi)
 
-- `bash ~/scripts/25-teleop-pi/tools/lanzar.sh` (dos agentes + teleop) → `http://100.116.96.71:8000`, horizontal.
-  Con 20 env `ros` en la WROOM: homing, joystick, pinza y muñeca OK desde el celular .
-- **Base:** la S3 está **en la notebook con `03-hcsr04`** (los tres HC-SR04 OK); falta flashear el `ros` completo y
-  volver a la Pi. Tracción: la rueda izquierda se escapaba (sin cuentas): **era una tierra suelta, arreglada**.
-  IMU real sin confirmar (con `ros` daba SIN_DATOS; con `ros_motores` no se mira). La S3 a veces no arranca después
-  de flashear o reconectar el USB: RST; el by-id cambia de ttyACM0 a ACM1.
-- `24` (bumpers 14/21/39) y `03` (HC-SR04 10-11 / 41-12 / 42-13) OK; IMU (`01`) respondía el 06/11 (SDA 8, SCL 9).
+- `bash ~/scripts/vision.sh` = `start_limon.sh` con el v3 (`/limon/posicion`, `/left/image_rect`). No arranca sola al
+  reiniciar la Pi. En la parada ve el limón entero; la visión ubica limones entre 0,40 y 0,95 m (u ≥ 280 px).
 
 ## Máquinas
 
-- Notebook y Pi 5 (`r2d2@192.168.2.219`, Tailscale `r2d2-desktop`) ordenadas igual: repos en `~/Documentos` (Pi:
-  `~/firmware`, `~/scripts`, `~/logs`), workspaces en `~/ros/`, venvs en `~/venvs/`. Las dos placas están en la Pi
-  (se compila en la notebook y se flashea con esptool desde la Pi: `~/venvs/esptool/bin/esptool` o el 4.8.1 de
-  `~/keepon_env`). Respaldos de la WROOM: `~/firmware/brazo/respaldo_20261001_183959.bin` (micro-ROS del robot),
-  `respaldo_wroom_20261111.bin` y `respaldo_wroom_20261112.bin` (20 env `ros`).
+- Pi 5 `r2d2@100.116.96.71` (Tailscale): las dos placas por USB (S3 `/dev/ttyACM0`, WROOM CH340 `/dev/ttyUSB0`), el GPS
+  por la UART0. Se compila en la notebook y se flashea con `~/venvs/esptool/bin/esptool` desde la Pi. Scripts en
+  `~/scripts/` (copias en el repo), logs en `~/logs/`. Al apagar: `sudo shutdown now` (sin `now` espera 1 min).
+  Después de reiniciar: `agente_base.sh` y `vision.sh` a mano. `pgrep -f` por ssh se encuentra a sí mismo.
+- Respaldos de la WROOM: `~/firmware/brazo/respaldo_20261001_183959.bin` (micro-ROS del robot), `respaldo_wroom_20261112.bin`
+  (20 env `ros`); `~/firmware/brazo20_serie.bin` (20 env `brazo`).
 
-## Pruebas terminadas: IMU MPU-6500 (01, 02) OK, sin magnetómetro; GPS UP501 (04, 05) OK por WiFi; lazo abierto 06/07 y 08 (`Freno`) OK.
+## Pruebas terminadas
+
+IMU MPU-6500 (01, 02), GPS UP501 (04, 05), lazo abierto 06/07 y 08, HC-SR04 (03), bumpers (24), finales de carrera (18).

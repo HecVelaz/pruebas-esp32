@@ -1,43 +1,36 @@
-# Pendientes de pruebas-esp32 (al 2026-11-13)
+# Pendientes de pruebas-esp32 (al 2026-11-13, cierre)
 
 <!-- Movido desde CLAUDE.md (2026-10-22). Los bloques "Pendiente GPS", "Pendiente" de 08 y "Falta" se movieron
      tal cual; el resto se copió de los "Pendiente:" que siguen dentro de cada entrada de BITACORA.md. -->
 
-## Lo próximo (12/11 noche, recomendado en este orden)
+## Lo próximo (13/11 cierre, en este orden)
 
-1. ~~Agarre automático con la visión en `punta.py`~~ (13/11: `agarrar`, funciona). **Validar la simulación
-   (`26`)**: robot con el eje del árbol a 70 cm a la izquierda de J1 y 15 cm adelante, limones en varios lados y
-   alturas, anotar `veragarrar` en cada uno contra lo que predice `simular.py`. Después: las 4 paradas en la misión.
-2. ~~Restaurar la WROOM de la Pi al env `ros`~~ (12/11, al cierre). Para `agarrar` (1) vuelve a hacer falta el serie.
-3. **Al robot (ROS):** que la misión mande comandos de texto por `/brazo/comando` al firmware 20 (`brazo_ik` publica
-   `/brazo/joint_cmd`, que el 20 no entiende) y pase a `brazo_ik` el modelo medido de la punta (hombro 165 mm).
-4. **Precisión:** recalibrar el modelo de la punta en z con las mediciones de la cámara del 12/11 (el brazo sube y
-   baja ~1,26 × lo calculado); el caño del mástil ya está fijado (12/11).
-5. **Cerrar la base**: S3 con el `ros` completo, `lanzar.sh` sin RST, `/odom` derecho, IMU, HC-SR04 y bumpers con la
-   seguridad real (ver "Teleop (25)" abajo).
-6. Visión: probar el nodo de disparidad (se cayó con segfault el 12/11 con dos copias de `start_limon.sh`); detector
-   v3 en cifras y con limones reales. **GPS: cero de navegación** afuera, al final.
+1. **BUSCAR** en `recolectar.py`: si no ve la marca, girar en el lugar de a ~20° mirando (con el giróscopo); si no
+   aparece en 360°, avanzar ~1 m esquivando con los HC-SR04 y volver a girar. Hoy tiene que arrancar viéndola.
+2. **RODEAR**: pegar las marcas ID 1–3 en las otras caras de la maceta (antihorario, centro a ~20–30 cm del piso,
+   cartón plano, a 16–17 cm del tronco), y después de agarrar en una parada ir a la siguiente (arco de 90° alrededor
+   del árbol con el árbol a la izquierda; corregir con la marca de esa cara). Varios limones por parada.
+3. **Soltar el limón**: dónde (caja / depósito sobre la tapa, sin decidir: ver "Dónde dejar el limón" en Brazo) y
+   agregarlo al final de `agarrar`.
+4. **Seguridad de la base andando**: HC-SR04 < 20 cm, bumper y vuelco con los motores (con `prueba_odom.py`), y los
+   cortes del enlace USB de la S3 (¿con los motores? cable, ferrita, alimentación).
+5. **Al robot (ROS):** la misión de `recolector_de_frutas` con lo de hoy (marca → parada → agarrar → rodear), primero en
+   Gazebo; que mande comandos de texto por `/brazo/comando` al firmware 20 (`brazo_ik` publica `/brazo/joint_cmd`,
+   que el 20 no entiende); WROOM al env `ros` (`respaldo_wroom_20261112.bin`). Pasar `movimiento.py` / el giróscopo
+   para los giros (o `robot_localization` con `/odom` + IMU, y el GPS para la rúbrica).
+6. **Precisión del brazo:** recalibrar el modelo de la punta en z (el brazo sube/baja ~1,26–1,43 × lo calculado); así
+   una sola calibración de la cámara serviría para agarre y navegación.
+7. GPS para la rúbrica: script de arranque del driver (remapeo a `/gps/fix`), fix afuera, registro del recorrido.
+8. Visión: el nodo de disparidad (segfault del 12/11 con dos copias de `start_limon.sh`); detector v3 en cifras.
 
-## Navegación (13/11: un arbolito en el aula, marcas ArUco)
-
-1. Imprimir `27-aruco-arbol/resultados/marcas_aruco_4x4_150mm.pdf` al 100 %, medir 150 mm, pegar en cartón alrededor
-   de la base del arbolito (IDs 0–3 antihorario, centro a 20–40 cm del piso).
-2. ~~Detector ArUco en la Pi~~ (13/11: `ver_marcas.py`, calibración de navegación de 6 puntos, ~3 cm a 1–2 m).
-   Falta: la marca en la maceta con `--radio-maceta` (medir el radio) y la parada empujando el robot a mano.
-3. ~~Base en ROS y odometría~~ (13/11: recto < 1 %, giros con el giróscopo; `ir_a_parada.py` llega;
-   `recolectar.py` hace todo: homing → parada → agarrar, OK el 13/11).
-   Falta: BUSCAR (girar mirando), RODEAR (4 paradas, una marca por cara), todo en un solo script / la misión;
-   cortes del enlace USB de la S3 con motores; la WROOM vuelve al env `ros` para la misión en ROS.
-4. `mision`: BUSCAR / ACERCARSE / PARADA / RODEAR, primero en Gazebo.
-5. GPS para la rúbrica: script de arranque del driver (remapeo a `/gps/fix`), fix afuera, `robot_localization`.
+Hecho el 13/11 (detalle en la bitácora): `agarrar`; simulación de la estación (`26`); GPS en la Pi; marcas ArUco y
+calibración de navegación (`27`); base en ROS con IMU y odometría medida; `ir_a_parada.py`; **`recolectar.py`**.
 
 ## Teleop (25) y base (lo próximo)
 
-1. ~~Encoder de la rueda izquierda~~ (11/11 noche: **una tierra desconectada**, arreglada por el usuario). Falta
-   confirmar con `/odom` empujando derecho (w/v ≈ 0) y ver si con eso desaparecen los cortes de USB de la S3.
-2. **S3 con el `ros` completo** (está en la notebook con `03`): `pio run -e ros -t upload --upload-port <by-id>`, a la
-   Pi, RST, `lanzar.sh`, **Sensores**: IMU (si SIN_DATOS, probar con `01`), HC-SR04 del frente con la mano, bumpers;
-   después las pruebas de seguridad en el aire (frente < 20 cm no avanza, bumper frena, vuelco > 25°).
+1. ~~Encoder de la rueda izquierda~~ (11/11: tierra suelta; 13/11: los dos encoders cuentan igual).
+2. ~~S3 con el `ros` completo~~ (13/11: en la Pi, arranca sola con `--after watchdog-reset`; IMU era un cable; sensores
+   OK). Falta: las pruebas de seguridad con los motores (frente < 20 cm, bumper, vuelco > 25°).
 3. **Probar el reinicio automático de la S3** en `lanzar.sh` (esptool + watchdog, `~/logs/reset_s3.log`; flashear con
    `--after watchdog-reset`): ¿ya no hace falta el RST a mano? Además, por qué la S3 no arrancaba y los cortes del enlace (USB) y el reinicio
    de la Pi (¿alimentación al encender los 12 V o arrancar los motores?).

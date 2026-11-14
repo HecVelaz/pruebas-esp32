@@ -107,3 +107,16 @@
   la misión ya la pasa al centro (`centro_desde_superficie`, `radio_limon` 0,03 m). El ajuste corre los puntos de la
   cámara ese mismo radio antes de Kabsch, así la TF no absorbe el radio (que depende del limón) y no se suma dos
   veces. Si el limón de la demo es de otro tamaño, se cambia `radio_limon`, no la TF.
+- **Un solo arbolito en el aula, encontrado con marcas ArUco; el GPS solo para la rúbrica (2026-11-13, usuario):** el
+  profesor acepta un árbol en cualquier lugar del aula y marcas. El UP501 tiene ±20 m y la parada pide ±5 cm: el GPS
+  queda para la zona de trabajo, el registro y `robot_localization`. Marcas DICT_4X4_50 de 15 cm (se ven de ~0,9 a
+  ~4 m), una por cara de la maceta (ID = parada); lejos guía la marca, los últimos ~50 cm la odometría y el agarre los
+  limones (en la parada la marca queda cortada y subirla taparía los limones bajos y la pinza).
+- **Dos calibraciones de la cámara (2026-11-13):** la del brazo (12/11, `ajuste_camara.py`) para el agarre (< 70 cm;
+  compensa con 14° el error en z del modelo de la punta) y una de navegación con la marca en el piso
+  (`27/resultados/tf_navegacion.json`, ~3 cm a 1–2 m). Se unifican cuando el modelo de la punta sea bueno en z.
+- **Giros con el giróscopo, distancia con las ruedas (2026-11-13, usuario):** medido en el piso: recto < 1 % con las
+  ruedas; en los giros en el lugar las ruedas se pasan ~2° cada 90° (patinan) y el giróscopo acierta (~±1°). Frenado
+  proporcional cerca del objetivo (a 0,5 rad/s sin él se pasaba 6°). `25-teleop-pi/tools/movimiento.py`.
+- **Parada del agarre (2026-11-13):** tronco a 70 cm a la izquierda de J1 y 15 cm adelante, con la marca de frente;
+  sale de la simulación de `26` (la más tolerante a ±5 cm: ≥ 86 % con 4 paradas) y se validó agarrando.
