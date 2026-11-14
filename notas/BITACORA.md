@@ -1243,3 +1243,5 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   cortada abajo** (a ~78 cm de la cámara solo se ve desde ~20 cm del piso; la marca va de ~14 a ~29 cm), como se había
   calculado; el árbol y el limón se ven enteros. Decisión: la marca para lejos (1–4 m) y los últimos ~50 cm con
   odometría + los limones (no subir la marca: taparía los limones bajos y quedaría en el camino de la pinza).
+- **Agarre desde la parada (13/11 noche):** maceta con el tronco a ~70 cm a la izquierda de J1 y ~15 cm adelante (a
+  ojo), `agarrar` en `punta.py`: **funciona** (usuario). Valida la parada de `26-sim-alcance-arbolito`.

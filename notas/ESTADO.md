@@ -8,6 +8,10 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
 - **Agarre automático con la visión (13/11): `agarrar` en `punta.py` funciona** (Pi, `start_limon.sh` v3, WROOM con el
   env `brazo`): mide 5 s, calibración del 12/11, pinza a 1300 us, 1 cm más abajo, salida con 3° de margen. Ahora la
   WROOM de la Pi tiene el env **`brazo`** (serie); volver al `ros` con `respaldo_wroom_20261112.bin`.
+- **Navegación (13/11):** marcas ArUco de 15 cm (`27-aruco-arbol`), detector `ver_marcas.py --tf nav` con
+  calibración de navegación (~3 cm a 1–2 m); en la maceta (`--radio-maceta 165`) ubica el tronco de 1 a 2 m, en la
+  parada la marca queda cortada (se usan los limones). **Desde la parada (~70 cm, a ojo) `agarrar` funciona.** GPS
+  en la Pi (`/dev/ttyAMA0`, 9600, `nmea_navsat_driver` → `/gps/fix`), sin fix adentro: solo para la rúbrica.
 - **Simulación de la estación (`26-sim-alcance-arbolito`, 13/11):** agarra a 55–70 cm de J1 y 30–66 cm del piso. Con el
   arbolito medido, **4 paradas cada 90° = 100 %**; parada: eje del árbol a 70 cm a la izquierda de J1 y 15 cm
   adelante. Sin validar con el robot.
