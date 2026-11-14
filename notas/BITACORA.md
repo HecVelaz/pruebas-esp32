@@ -1236,3 +1236,10 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   Residuo medio 27 mm, máx 44 (P3, en y); dejando cada uno afuera 36 / 52 mm. Cámara: x 241 y 86 z 344 mm (57,4 cm del
   piso), 6,5° hacia abajo, +3,8° hacia adelante. En vivo en P6: (−2017, −17, −10) contra (−2000, 0, −10).
   `resultados/marca_nav_20261113.csv`, `tf_navegacion.json`.
+- Marca ID 0 pegada en la maceta (cara a 16–17 cm del eje del tronco; `--radio-maceta 165`; foto del usuario
+  `~/Imágenes/arbol_marcador.jpeg`). Tapa la base del tronco desde el robot, no los limones (32–54 cm). Con
+  `ver_marcas.py --tf nav --radio-maceta 165`: maceta a ~2 m → tronco a 218 cm, −1 cm; a ~1 m (a ojo) → cara a 97 cm,
+  tronco a 114 cm, +13 adelante ("acercarse 44 cm"). **En la parada (tronco a ~70 cm, a ojo) no la detecta: queda
+  cortada abajo** (a ~78 cm de la cámara solo se ve desde ~20 cm del piso; la marca va de ~14 a ~29 cm), como se había
+  calculado; el árbol y el limón se ven enteros. Decisión: la marca para lejos (1–4 m) y los últimos ~50 cm con
+  odometría + los limones (no subir la marca: taparía los limones bajos y quedaría en el camino de la pinza).
