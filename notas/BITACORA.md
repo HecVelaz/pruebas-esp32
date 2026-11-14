@@ -1245,3 +1245,19 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   odometría + los limones (no subir la marca: taparía los limones bajos y quedaría en el camino de la pinza).
 - **Agarre desde la parada (13/11 noche):** maceta con el tronco a ~70 cm a la izquierda de J1 y ~15 cm adelante (a
   ojo), `agarrar` en `punta.py`: **funciona** (usuario). Valida la parada de `26-sim-alcance-arbolito`.
+
+## 2026-11-13 (noche) — 25: base en ROS (S3 con el env `ros`)
+- `recolector_de_frutas/firmware/base` env `ros` recompilado (sin cambios desde el 11/11: mismo md5 que
+  `~/firmware/base_ros_20261111`), copiado a `~/firmware/base_ros_20261113` y flasheado desde la Pi con
+  `~/venvs/esptool/bin/esptool --chip esp32s3 --after watchdog-reset write-flash 0x0 bootloader 0x8000 partitions
+  0xe000 boot_app0 0x10000 firmware` (12 V apagados): **arrancó sola, sin RST**. Agente de la base solo
+  (`micro_ros_agent serial --dev <by-id de la S3>`, log `~/logs/agente_base.log`), sin el del brazo ni el teleop.
+- Con 12 V apagados: `/odom` publica (0, 0), `/battery` 1,85 V (BATERIA_BAJA), HC-SR04 `nan`, seta EMERGENCIA, IMU
+  `SIN_DATOS` (`sens`: "IMU: sin responder (revisar SDA 8 / SCL 9)"). `ros2 topic list` mostraba tópicos a medias
+  hasta reiniciar el daemon (`ros2 daemon stop/start`).
+- Con 12 V: batería 11,24 V; HC-SR04 frente 0,95 · izq 0,98–1,00 · der 0,92 m; bumpers 0 0 0; seta suelta.
+  **IMU: era un cable** (el usuario lo revisó): acc (−0,05, 0,09, 1,00) g, roll 5,1°, pitch 2,9°; el firmware la
+  volvió a encontrar sin reiniciar. Giróscopo con sesgo (−0,11, −5,06, −0,40) °/s → `cal` (2 s quieto) → (0, 0, 0).
+  Estado: `DESARMADA modo=libre seguridad=sin comandos imu=ok`, enlace sin cortes. Falta: pruebas de seguridad con
+  las ruedas en el aire, `/odom` andando y el error de la odometría (1 m y 90° con cinta). ¿La calibración del
+  giróscopo se guarda al reiniciar? (sin ver).
