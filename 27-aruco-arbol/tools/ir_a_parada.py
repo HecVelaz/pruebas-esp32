@@ -89,6 +89,58 @@ def texto(pasos):
     return " -> ".join(t) if t else "ya está en la parada"
 
 
+def tronco_desde(pos, mira, radio):
+    nrm = np.array([math.cos(math.radians(mira)), math.sin(math.radians(mira))])
+    return pos[:2] - nrm * radio
+
+
+def medir_y_planear(base, marcas, radio, parada, orientar=True):
+    """Mira la marca 3 s y devuelve los pasos hasta la parada ([] si ya está), o None si no se puede."""
+    print("mirando la marca 3 s (robot quieto)...")
+    m = marcas.medir(base.girar_ros, 3.0)
+    if m is None:
+        print(f"NO: no veo la marca ({marcas.imgs} imágenes). ¿Visión corriendo (~/scripts/vision.sh)? ¿Maceta a "
+              f"~0,9–4 m a la izquierda, con la marca de frente?")
+        return None
+    i, pos, mira, nv = m
+    tronco = tronco_desde(pos, mira, radio)
+    print(f"  marca ID {i} ({nv} vistas): cara en ({pos[0]:.0f}, {pos[1]:.0f}) mm, mira a {mira:+.0f}° -> tronco a "
+          f"{-tronco[0] / 10:.0f} cm a la izquierda de J1, {tronco[1] / 10:+.0f} cm adelante")
+    pasos = planear(tronco, mira, parada, orientar)
+    final, _ = simular_pasos(tronco, pasos)
+    if any(t == "recto" and abs(v) > MAX_RECTO for t, v in pasos):
+        print(f"NO: el plan avanza más de {MAX_RECTO / 1000:.1f} m: acercar el robot primero ({texto(pasos)})")
+        return None
+    print(f"plan de la base: {texto(pasos)}")
+    print(f"  (queda con el tronco en ({final[0]:.0f}, {final[1]:.0f}) mm; parada ({parada[0]:.0f}, {parada[1]:.0f}))")
+    return pasos
+
+
+def ejecutar(base, pasos):
+    """Hace los pasos (arma la base si hace falta). True si llegó."""
+    from movimiento import informe
+    base.armar()
+    for tipo, val in pasos:
+        print(f"== {texto([(tipo, val)])}")
+        r = base.mover("giro" if tipo == "giro" else "recto", val if tipo == "giro" else val / 1000.0, V_RECTO, W_GIRO)
+        informe(r)
+        if not r["ok"]:
+            print("[cortado: el robot quedó donde está]")
+            return False
+    print("llegó a la parada (según la odometría).")
+    return True
+
+
+def mirar_al_llegar(base, marcas, radio, parada):
+    m = marcas.medir(base.girar_ros, 2.0)
+    if m:
+        tr = tronco_desde(m[1], m[2], radio)
+        print(f"  la marca todavía se ve: tronco a {-tr[0] / 10:.0f} cm, {tr[1] / 10:+.0f} cm (parada "
+              f"{-parada[0] / 10:.0f}, {parada[1] / 10:+.0f})")
+    else:
+        print("  (la marca ya no se ve completa, como se esperaba a esta distancia)")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--radio-maceta", type=float, default=165.0, help="mm del eje del tronco a la cara de la marca")
@@ -108,55 +160,22 @@ def main():
 
     import rclpy
     from marcas import Marcas
-    from movimiento import Base, informe
+    from movimiento import Base
 
     rclpy.init()
     n = rclpy.create_node("ir_a_parada")
     base, marcas = Base(n), Marcas(n)
     try:
         base.esperar_datos()
-        print("mirando la marca 3 s (robot quieto)...")
-        m = marcas.medir(base.girar_ros, 3.0)
-        if m is None:
-            print(f"NO: no veo la marca ({marcas.imgs} imágenes). ¿start_limon.sh corriendo? ¿maceta a ~0,9–4 m a la "
-                  f"izquierda, con la marca de frente?")
-            return
-        i, pos, mira, nv = m
-        nrm = np.array([math.cos(math.radians(mira)), math.sin(math.radians(mira))])
-        tronco = pos[:2] - nrm * a.radio_maceta
-        print(f"  marca ID {i} ({nv} vistas): cara en ({pos[0]:.0f}, {pos[1]:.0f}) mm, mira a {mira:+.0f}° -> tronco a "
-              f"{-tronco[0] / 10:.0f} cm a la izquierda de J1, {tronco[1] / 10:+.0f} cm adelante")
-        pasos = planear(tronco, mira, parada, not a.sin_orientacion)
-        final, _ = simular_pasos(tronco, pasos)
-        if any(t == "recto" and abs(v) > MAX_RECTO for t, v in pasos):
-            print(f"NO: el plan avanza más de {MAX_RECTO / 1000:.1f} m: acercar el robot primero ({texto(pasos)})")
-            return
-        print(f"plan: {texto(pasos)}")
-        print(f"  (queda con el tronco en ({final[0]:.0f}, {final[1]:.0f}) mm; parada ({parada[0]:.0f}, {parada[1]:.0f}))")
+        pasos = medir_y_planear(base, marcas, a.radio_maceta, parada, not a.sin_orientacion)
         if not pasos:
             return
         if input("Enter para ir (cualquier otra cosa cancela): ").strip():
             print("cancelado")
             return
-        base.armar()
-        for tipo, val in pasos:
-            print(f"== {texto([(tipo, val)])}")
-            r = base.mover("giro" if tipo == "giro" else "recto", val if tipo == "giro" else val / 1000.0,
-                           V_RECTO, W_GIRO)
-            informe(r)
-            if not r["ok"]:
-                print("[cortado: el robot quedó donde está]")
-                return
-        print("llegó a la parada (según la odometría).")
-        m = marcas.medir(base.girar_ros, 2.0)
-        if m:
-            i, pos, mira, nv = m
-            tr = pos[:2] - np.array([math.cos(math.radians(mira)), math.sin(math.radians(mira))]) * a.radio_maceta
-            print(f"  la marca todavía se ve: tronco a {-tr[0] / 10:.0f} cm, {tr[1] / 10:+.0f} cm (parada "
-                  f"{-parada[0] / 10:.0f}, {parada[1] / 10:+.0f})")
-        else:
-            print("  (la marca ya no se ve completa, como se esperaba a esta distancia)")
-        print("siguiente: en punta.py, \"veragarrar\" y \"agarrar\"")
+        if ejecutar(base, pasos):
+            mirar_al_llegar(base, marcas, a.radio_maceta, parada)
+            print("siguiente: en punta.py, \"veragarrar\" y \"agarrar\"  (o todo junto: tools/recolectar.py)")
     except KeyboardInterrupt:
         base.frenar()
         print("Ctrl+C: frenado")

@@ -481,12 +481,16 @@ AGARRAR_DZ = -10.0      # mm: 13/11, agarrar siempre 1 cm más abajo de lo que d
 class Vision:
     """Mediana de /limon/posicion (rclpy, se crea al primer "agarrar")."""
 
-    def __init__(self):
+    def __init__(self, nodo=None):
+        """Con nodo (de otro programa, p. ej. 27-aruco-arbol/tools/recolectar.py) usa ese; si no, crea el suyo."""
         import rclpy
         from geometry_msgs.msg import PointStamped
         self.rclpy = rclpy
-        rclpy.init()
-        self.nodo = rclpy.create_node("punta_agarrar")
+        self.propio = nodo is None
+        if self.propio:
+            rclpy.init()
+            nodo = rclpy.create_node("punta_agarrar")
+        self.nodo = nodo
         self.pos, self.marcos = [], set()
         self.nodo.create_subscription(PointStamped, "/limon/posicion", self._al_pos, 10)
 
@@ -508,8 +512,9 @@ class Vision:
         return med, len(p), float(np.median(np.linalg.norm(p - med, axis=1))), set(self.marcos)
 
     def cerrar(self):
-        self.nodo.destroy_node()
-        self.rclpy.shutdown()
+        if self.propio:
+            self.nodo.destroy_node()
+            self.rclpy.shutdown()
 
 
 MARGEN_SALIDA_CARGA = 3.0  # ° a la franja en la salida con el limón (13/11: con 1,6° el firmware cortó al retroceder)
@@ -542,19 +547,20 @@ def planear_agarre(s, limon):
             ("servo", f"pz {AGARRAR_PINZA_US}"), ("salir de frente", sa), ("reposo", rp)], m_ret
 
 
-def agarrar(placa, vision, tf, seg, mover, timeout):
+def agarrar(placa, vision, tf, seg, mover, timeout, confirmar=True):
+    """Mide el limón, planea y (con mover) agarra. confirmar: pide Enter antes de mover. True si agarró."""
     R, t = tf
     print(f"midiendo /limon/posicion {seg:.0f} s (brazo quieto y fuera de la vista)...")
     cara, n, disp, marcos = vision.medir(seg)
     if cara is None:
         print(f"NO: solo {n} posiciones en {seg:.0f} s (¿start_limon.sh corriendo? ¿se ve el limón?)")
-        return
+        return False
     if marcos != {"camera"}:
         print(f"NO: /limon/posicion viene en {marcos}, la calibración es para `camera`")
-        return
+        return False
     if disp > DISPERSION_MAX:
         print(f"NO: dispersión {disp:.1f} mm (> {DISPERSION_MAX:.0f}): ¿se movió el limón? Repetir")
-        return
+        return False
     x, y, z = ajc.camara_a_cinematica(R, t, cara, RADIO_LIMON)
     limon = (round(float(x)), round(float(y)), round(float(z) + AGARRAR_DZ))
     print(f"  cámara (cara): x {cara[0]:+.0f}  y {cara[1]:+.0f}  z {cara[2]:.0f} mm  ({n} posiciones, dispersión "
@@ -563,30 +569,33 @@ def agarrar(placa, vision, tf, seg, mover, timeout):
           f"   (= ap {limon[0]} {limon[1]} {limon[2]})")
     s = placa.angulos() if placa else (3.0, 17.0, 4.0)
     if s is None:
-        return
+        return False
     print("planeando...")
     pasos, mot = planear_agarre(s, limon)
     if pasos is None:
         print("NO:", "; ".join(mot))
-        return
+        return False
     for m in mot:
         print("  ojo:", m)
     imprimir_tarea(pasos)
     if not mover:
-        return
-    try:
-        r = input("Enter para agarrar (cualquier otra cosa cancela): ")
-    except EOFError:
-        r = "no"
-    if r.strip() != "":
-        print("cancelado")
-        return
+        return False
+    if confirmar:
+        try:
+            r = input("Enter para agarrar (cualquier otra cosa cancela): ")
+        except EOFError:
+            r = "no"
+        if r.strip() != "":
+            print("cancelado")
+            return False
     try:
         if correr_tarea(placa, pasos, timeout):
             print("[limón en la pinza: \"pz a\" para soltarlo]")
+            return True
     except KeyboardInterrupt:
         placa.mandar("s")
         print("[Ctrl+C: \"s\", las tres se sostienen donde están]")
+    return False
 
 
 def cargar_tf_agarre():
