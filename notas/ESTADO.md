@@ -8,8 +8,8 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
 - **Agarre automático con la visión (13/11): `agarrar` en `punta.py` funciona** (Pi, `start_limon.sh` v3, WROOM con el
   env `brazo`): mide 5 s, calibración del 12/11, pinza a 1300 us, 1 cm más abajo, salida con 3° de margen. Ahora la
   WROOM de la Pi tiene el env **`brazo`** (serie); volver al `ros` con `respaldo_wroom_20261112.bin`.
-- **Ir a la parada (13/11 noche): `ir_a_parada.py` (marca → girar/avanzar/girar) llegó; `agarrar` después no se
-  ejecutó (sin diagnosticar).**
+- **Recolección autónoma completa (13/11 noche): `27-aruco-arbol/tools/recolectar.py` = homing → marca → parada →
+  agarrar, 95 s, agarró el limón.** (Antes, `ir_a_parada.py` solo llegaba: el agarre era aparte.)
   Base en ROS (S3 env `ros`, agente con `~/scripts/agente_base.sh`): recto < 1 % con las ruedas, giros con el
   giróscopo (~±1°), `25-teleop-pi/tools/movimiento.py`. Visión con `~/scripts/vision.sh`.
 - **Navegación (13/11):** marcas ArUco de 15 cm (`27-aruco-arbol`), detector `ver_marcas.py --tf nav` con

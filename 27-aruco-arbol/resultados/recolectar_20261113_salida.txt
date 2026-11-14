@@ -1,0 +1,143 @@
+[calibración cámara -> brazo: 9 puntos, radio 25 mm, error esperado ~22 mm (dejando cada punto afuera)]
+1) Los 12 V tienen que estar APAGADOS y el brazo abajo y recogido (abrir el puerto reinicia la WROOM).
+   Enter cuando estén apagados: ets Jul 29 2019 12:21:46
+rst:0x1 (POWERON_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0030,len:1184
+load:0x40078000,len:13232
+load:0x40080400,len:3028
+entry 0x400805e4
+== 20 · J1, J2 y J3 con el mismo controlador (5a: homing, "j"; 5b: "mv"; 5c: "t") · WROOM, 20 kHz ==
+Franja (manivela de 95 mm): q2 - 49.0° <= q3 <= tabla (destinos desde q2 - 25.0°): 0->0.5 3->1.0 6->8.1 11->10.3 15->15.4 21->20.3 30->32.4 45->51.9 60->70.8 75->83.3 80->88.1; caja con J1 >= 54°, J3 máx: 64->73.2 65->70.7 66->68.2 67->66.5 68->65.0 69->65.0 70->66.2 71->66.7 72->67.7 73->68.5 74->69.5 75->70.0 76->71.0 77->71.7 78->72.7 79->73.2 80->74.2 81->74.7 82->75.7 83->76.2; abajo, además, tabla: 50->1.0 55->22.5 61->40.3 65->44.2 70->45.2 75->47.8 80->57.5. J1 0-118° (PROVISORIO: estirado choca antes), J2 0-83°, J3 0-101.5°.
+Las tres sueltas (EN en bajo) hasta "h", "s" o "z". Para el cero: "h".
+Comandos (escribir y Enter):
+h            homing: las tres (abajo, juntas) a sus finales de carrera despacio, cero en el flanco, retroceden 3°
+j <n> <°>    mover una articulación (1, 2 o 3) a un ángulo, dentro de sus límites y de la franja
+mv <q1> <q2> <q3>  las tres a la vez, terminan juntas (recta en q2-q3), llegan con el ángulo creciendo;
+al asentarse: LLEGO,t,q1,q2,q3,e1,e2,e3. Caja: con J1 >= 54°, J3 con tope según J2
+jv <a1> <a2> <a3>  joystick: cada eje (-1 a 1) es la velocidad de su articulación; repetir cada
+< 300 ms (si no, frena); al soltar se sostiene. tools/joystick.py --placa 20
+t [1|0]      telemetría a 50 Hz (T,ms,etapa,q,ref,duty,w,estado de cada una); no corta el mv ni el homing
+s            sostener las tres donde están
+z            cero de las tres acá (tienen que estar en sus finales de carrera; mejor "h")
+c            estado de las tres
+fr <1|0>     franja del cuatro barras prendida / apagada (apagada solo para medirla con el joystick)
+fb           freno dentro de la banda sí/no (al llegar, duty 0 hasta que se aleje)
+ff <n> <desp+> <marcha+> <desp-> <marcha->  feedforward de una articulación (%)
+zq <q1> <q2> <q3>  el brazo está en estos ángulos (cero estimado, para bajarlo sin cero; después "h")
+x            rueda libre de las TRES (el brazo cae; mano debajo)
+vel <f> [va] [as]  mv: fracción de vMax/aMax (def. 0.50), aproximación de J2/J3 (def. 2.0 °/s), asentamiento (def.
+pz a|c|0|s|e|<us>|w <°/s>  pinza: abrir (500 us) / cerrar (1250) / cero (1500) / soltar / estado / pulso / rampa
+mn a|b|0|s|e|<us>|w <°/s>  muñeca: 90° horario (860 us) / antihorario (2150) / cero (1500) / ...
+pz y mn no cortan un mv; arrancan sueltos (el primero salta directo); SERVO_LLEGO al llegar
+?            esta ayuda
+2) Encendé los 12 V.
+   Enter cuando estén encendidos (empieza el homing del brazo): << h
+>> Alguna sin cero: bajan juntas despacio hasta sus finales de carrera, desde donde estén (mano cerca).
+>> Homing: las tres juntas (J3 1.5, J2 1.5, J1 1.5 °/s). Cualquier comando corta.
+J1 buscando su final de carrera...
+J2 buscando su final de carrera...
+J3 buscando su final de carrera...
+J3 en su final de carrera: espera a J2 para retroceder.
+J1: flanco -3.110° del cero anterior (no había cero); en +2.94°.
+J3 retrocede (esperó 9.5 s en su final de carrera; J2 en +5.03°).
+J3 soltó su final de carrera (0.3 s después de empezar a retroceder).
+J2: flanco -16.867° del cero anterior (no había cero); en +5.78°.
+J3: flanco -4.079° del cero anterior (no había cero); en +3.16°.
+>> Homing listo: cero en los flancos, J1 en +3.0°, J2 en +6.0°, J3 en +3.0°.
+HOMING,42554,-3.110,-16.867,-4.079,000
+== brazo al reposo
+<< mv 3.00 17.00 4.00
+>> mv a (+3.00, +17.00, +4.00) en 1.7 s + la aproximación.
+>> Llegó: J1 +2.94° J2 +16.91° J3 +4.14° (errores +0.06 +0.09 -0.14°).
+LLEGO,48154,2.941,16.907,4.136,0.059,0.093,-0.136
+3) Base: buscando la marca de la maceta
+mirando la marca 3 s (robot quieto)...
+  marca ID 0 (31 vistas): cara en (-1410, 251) mm, mira a -2° -> tronco a 157 cm a la izquierda de J1, +26 cm adelante
+plan de la base: girar 85° a la izquierda -> avanzar 88 cm -> girar 87° a la derecha
+  (queda con el tronco en (-700, 150) mm; parada (-700, 150))
+4) Enter para ir a la parada y agarrar (cualquier otra cosa cancela): == girar 85° a la izquierda
+fin: llegó (giróscopo) | 5.4 s
+  odometría: avanzó 0.0 cm, giró +87.9° | giróscopo: +85.4°
+  velocidad medida (después de 1 s): v +0.000 m/s (pedida +0.000), w +0.358 rad/s (pedida +0.500)
+== avanzar 88 cm
+fin: llegó (odometría) | 11.5 s
+  odometría: avanzó 88.8 cm, giró +0.0° | giróscopo: -0.2°
+  velocidad medida (después de 1 s): v +0.087 m/s (pedida +0.100), w +0.000 rad/s (pedida +0.000)
+== girar 87° a la derecha
+fin: llegó (giróscopo) | 5.5 s
+  odometría: avanzó 0.1 cm, giró -89.7° | giróscopo: -87.5°
+  velocidad medida (después de 1 s): v +0.000 m/s (pedida +0.000), w -0.359 rad/s (pedida -0.500)
+llegó a la parada (según la odometría).
+  (la marca ya no se ve completa, como se esperaba a esta distancia)
+== agarrar el limón
+midiendo /limon/posicion 5 s (brazo quieto y fuera de la vista)...
+  cámara (cara): x +53  y +2  z 882 mm  (7 posiciones, dispersión 0.7 mm)
+  limón (centro): x -611  y 241  z 162 mm -> agarre en z 152 (-10)   (= ap -611 241 152)
+J1    +2.94° | ref    +3.00° | duty   +0.0 % | sosteniendo, firme, frenada | final de carrera suelto | con cero
+J2   +16.91° | ref   +17.00° | duty   +0.0 % | sosteniendo, firme, frenada | final de carrera suelto | con cero
+J3    +4.14° | ref    +4.00° | duty   +0.0 % | sosteniendo, firme, frenada | final de carrera suelto | con cero
+planeando...
+franja: con J2 en +16.91°, J3 entre -32.1° y +16.9° (+12.77° del borde); destinos desde -7.1°
+caja: J1 desde 54°: con J2 en +16.91°, J3 hasta +inf° (J1 al costado: no rige)
+  ojo: retrocede 200 mm (lo máximo en horizontal con J1 quieta)
+  [pz a]
+  ir frente al limón:
+    mv 22.72 16.91 4.14   (punta x -445  y 175  z 441 mm)
+    mv 22.72 56.42 50.52   (punta x -518  y 204  z 152 mm)
+  entrar de frente:
+    mv 22.72 65.06 49.39   (punta x -611  y 241  z 152 mm)
+  [pz 1300]
+  salir de frente:
+    mv 22.72 56.41 50.52   (punta x -518  y 204  z 152 mm)
+    mv 22.72 50.17 54.06   (punta x -425  y 168  z 152 mm)
+  reposo:
+    mv 3.00 17.00 4.00   (punta x -479  y 2  z 444 mm)
+<< pz a
+SERVO_VA,pinza,500 (estaba suelto: salto directo)
+SERVO_LLEGO,pinza,500
+== ir frente al limón
+<< mv 22.72 16.91 4.14
+>> mv a (+22.72, +16.91, +4.14) en 3.3 s + la aproximación.
+>> Llegó: J1 +22.64° J2 +16.91° J3 +4.14° (errores +0.08 +0.00 +0.00°).
+LLEGO,121574,22.637,16.907,4.136,0.083,0.003,0.004
+<< mv 22.72 56.42 50.52
+>> mv a (+22.72, +56.42, +50.52) en 8.3 s + la aproximación.
+>> Llegó: J1 +22.64° J2 +56.39° J3 +50.39° (errores +0.08 +0.03 +0.13°).
+LLEGO,133994,22.637,56.388,50.390,0.083,0.032,0.130
+== entrar de frente
+<< mv 22.72 65.06 49.39
+>> mv a (+22.72, +65.06, +49.39) en 1.2 s + la aproximación.
+>> Llegó: J1 +22.64° J2 +64.98° J3 +49.57° (errores +0.08 +0.08 -0.18°).
+LLEGO,139844,22.637,64.983,49.573,0.083,0.077,-0.183
+<< pz 1300
+SERVO_VA,pinza,1300
+SERVO_LLEGO,pinza,1300
+== salir de frente
+<< mv 22.72 56.41 50.52
+>> mv a (+22.72, +56.41, +50.52) en 2.0 s + la aproximación.
+>> Llegó: J1 +22.64° J2 +56.41° J3 +50.46° (errores +0.08 -0.00 +0.06°).
+LLEGO,148434,22.637,56.412,50.463,0.083,-0.002,0.057
+<< mv 22.72 50.17 54.06
+>> mv a (+22.72, +50.17, +54.06) en 1.5 s + la aproximación.
+>> Llegó: J1 +22.64° J2 +50.18° J3 +54.02° (errores +0.08 -0.01 +0.04°).
+LLEGO,154414,22.637,50.180,54.024,0.083,-0.010,0.036
+== reposo
+<< mv 3.00 17.00 4.00
+>> mv a (+3.00, +17.00, +4.00) en 9.4 s + la aproximación.
+>> Llegó: J1 +3.01° J2 +16.86° J3 +4.08° (errores -0.01 +0.14 -0.08°).
+LLEGO,168884,3.013,16.859,4.079,-0.013,0.141,-0.079
+== tarea terminada. Tiempos:
+     0.4 s  pz a
+    19.0 s  ir frente al limón (2 mv)
+     5.9 s  entrar de frente (1 mv)
+     2.0 s  pz 1300
+    12.6 s  salir de frente (2 mv)
+    14.5 s  reposo (1 mv)
+    54.3 s  TOTAL
+[limón en la pinza: "pz a" para soltarlo]
+LISTO: limón agarrado en 95 s desde que arrancó la base. "pz a" lo suelta.
+
+[puerto: 'NoneType' object cannot be interpreted as an integer]

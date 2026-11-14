@@ -1292,3 +1292,10 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   a ~1,1 m (marca en (−968, 221), mira −4°, tronco a 113 cm, +23): girar 86° izq. (giróscopo 86,6°) → avanzar 45 cm
   (44,9) → girar 90° der. (giróscopo 90,1°); en la parada la marca ya no se ve completa. Después `agarrar` en
   `punta.py`: **no se ejecutó** (usuario; sin diagnosticar).
+- **PRIMERA RECOLECCIÓN AUTÓNOMA COMPLETA (13/11 noche): `27-aruco-arbol/tools/recolectar.py`** (homing del brazo →
+  reposo → marca → ir a la parada → medir el limón → agarrar, con 3 Enter: 12 V apagados, 12 V encendidos, ir).
+  Corrido por Claude en la Pi con un FIFO para los Enter (salida en `27-aruco-arbol/resultados/recolectar_20261113_salida.txt`). Marca a (−1410,
+  251), mira −2° → tronco a 157 cm, +26 → girar 85° izq. (giróscopo 85,4°) → avanzar 88 cm (88,8) → girar 87° der.
+  (87,5°); limón (−611, 241, 152) mm (7 posiciones, 0,7 mm); agarre 54 s (pz a, ir frente 19 s, entrar 6 s, pz 1300,
+  salir 13 s, reposo 15 s). **95 s desde que arrancó la base. Agarró el limón** (usuario). `punta.agarrar` y `Vision`
+  ahora se pueden usar desde otro programa (nodo propio o ajeno, `confirmar=False`, devuelve True si agarró).
