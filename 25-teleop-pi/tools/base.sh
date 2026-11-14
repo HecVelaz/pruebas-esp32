@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Copia en la Pi: ~/scripts/base.sh
+# Uso (en la Pi): bash base.sh "<comando>" [segundos de escucha]: manda a /base/comando y muestra /base/respuesta
 source /opt/ros/jazzy/setup.bash
 ESPERA=${2:-4}
 (timeout $((ESPERA + 3)) ros2 topic echo --full-length /base/respuesta std_msgs/msg/String > /tmp/resp_base.txt 2>&1 &)
