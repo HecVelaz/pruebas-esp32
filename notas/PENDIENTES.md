@@ -24,7 +24,9 @@
    de la base del arbolito (IDs 0–3 antihorario, centro a 20–40 cm del piso).
 2. ~~Detector ArUco en la Pi~~ (13/11: `ver_marcas.py`, calibración de navegación de 6 puntos, ~3 cm a 1–2 m).
    Falta: la marca en la maceta con `--radio-maceta` (medir el radio) y la parada empujando el robot a mano.
-3. Base en ROS: S3 con el `ros` completo, `/odom` derecho, error de odometría (1 m recto y 90° con cinta).
+3. ~~Base en ROS y odometría~~ (13/11: recto < 1 %, giros con el giróscopo; `ir_a_parada.py` + `agarrar` OK).
+   Falta: BUSCAR (girar mirando), RODEAR (4 paradas, una marca por cara), todo en un solo script / la misión;
+   cortes del enlace USB de la S3 con motores; la WROOM vuelve al env `ros` para la misión en ROS.
 4. `mision`: BUSCAR / ACERCARSE / PARADA / RODEAR, primero en Gazebo.
 5. GPS para la rúbrica: script de arranque del driver (remapeo a `/gps/fix`), fix afuera, `robot_localization`.
 
