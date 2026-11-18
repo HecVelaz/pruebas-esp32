@@ -123,3 +123,9 @@
 - **Seguridad de la base solo con el HC-SR04 del medio (2026-11-18, usuario):** los de las esquinas siguen publicando
   `/range/izq|der` sin frenar. Para la recolección actual (marca + odometría) no hacen falta; si se agrega esquivar al
   buscar, elegir la regla (más cercano de los tres, que corten el giro hacia su lado, o umbral más corto).
+- **Soltar el limón en una canasta sobre la tapa (2026-11-18, usuario):** con el brazo plegado (J1 130, J2 46,7,
+  J3 80), no en una boca en voladizo. J1 pasa de 115 solo plegado (estirado choca con el soporte de la visión; el
+  usuario: a 130 plegado no topa).
+- **Pinza con el servo RDS3218 (2026-11-18, usuario):** el MG996R vibraba mucho; abierta 500 µs, cerrada 1200.
+- **Velocidad de los `mv` al máximo (2026-11-18, usuario):** `vel 1 4 0.5` por defecto; los puntos intermedios van
+  "de paso" (`mvp`), solo el final de cada camino espera a quedar firme.

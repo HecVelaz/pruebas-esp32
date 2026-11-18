@@ -1447,3 +1447,15 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   27,7–29,8 s**, sin cortes; J1 se pasa 0,7° en la canasta. El usuario: "vamos a usar esta velocidad" → por defecto
   `MV_FACTOR_VEL` 1, `VEL_APROX` J2/J3 4 °/s, `ASENTAMIENTO_MS` 500 (`brazo20_serie_20261118g.bin`, sin flashear).
   Falta ver el agarre (`agarrar`) a esta velocidad. El retroceso del homing de J2 ahora acepta ≤ 2° sin firme.
+
+## 2026-11-18 — Cierre
+- Hecho en el día (detalle arriba): HC-SR04 derecho cambiado; **seguridad de la base con motores** (frente a 0,10 y
+  0,20 m/s, bumpers, seta, vuelco; `prueba_frenado.py`, `ver_inclinacion.py`); **recuperación de la IMU probada** y
+  commiteada en `recolector_de_frutas` (`cc96d1f`); RODEAR programado (sin probar); **pose plegada y `soltar` en la
+  canasta** (12,5–14 s, 28–30 s ida y vuelta, con `mvp` y velocidad 1); pinza RDS3218 (500 / 1200); homing tolerante.
+- Al cierre en la Pi: S3 con `base_ros_20261117_imu`; WROOM con `brazo20_serie_20261118f.bin` (env `brazo`; el `g`,
+  con la velocidad nueva por defecto, sin flashear); agente de la base corriendo; visión lanzada (no arranca sola).
+- Sin commitear (a propósito): fotos de `12-j1-base/CERO/`, `17-brazo-joystick/LIMITES/`, el video
+  `20-brazo-coordinado/20_20_24.mp4` y `~/Imágenes/brazo/Pos_canasta.jpeg` (aparecen personas; repo público).
+- Commits: `95c8545`, `7a9990d`, `23d1a69`, `73d2bb9`, `4eef923`, `0acc10c`, `df74329`, `89abf52`, `cd5041c`,
+  `acab11d` (con push) y el de este cierre (sin push).
