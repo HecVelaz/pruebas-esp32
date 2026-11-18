@@ -572,8 +572,8 @@ void mvPaso() {
     const float tau = fminf(mv.k * Articulacion::TS / fmaxf(mv.T, 1e-3f), 1.0f);
     for (int i = 0; i < N; i++) {
       // Todas, también las quietas: ninguna se puede alejar más de MV_ERROR_MAX de su referencia
-      if (fabsf(art[i].referencia() - art[i].q()) > MV_ERROR_MAX) {
-        mvCortar("no sigue la trayectoria (más de 5° de error)");
+      if (fabsf(art[i].referencia() - art[i].q()) > (mv.dePaso ? MV_ERROR_MAX_PASO : MV_ERROR_MAX)) {
+        mvCortar(mv.dePaso ? "no sigue la trayectoria (más de 10° de error, de paso)" : "no sigue la trayectoria (más de 5° de error)");
         return;
       }
       if (!mv.mueve[i]) continue;

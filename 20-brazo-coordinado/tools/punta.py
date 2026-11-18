@@ -380,7 +380,7 @@ FIN_MV = ("LLEGO", "PASO", "MV_ERROR", "Fuera de", "J2 y J3 fuera", "Uso:", "Har
 RECHAZO = ("Fuera de", "J2 y J3 fuera", "Uso:", "Hardware sin", "J1 pasada", "Sobre la caja")
 
 
-def ejecutar(placa, plan, timeout, reintentos=1, de_paso=False, ultimo_de_paso=False):
+def ejecutar(placa, plan, timeout, reintentos=2, de_paso=False, ultimo_de_paso=False):
     """Manda los mv de a uno esperando LLEGO. Si uno corta por "no quedan firmes" (J2 sin fuerza con carga, 11/11), lo
     repite hasta reintentos veces desde donde quedó. de_paso: todos menos el último con "mvp" (sin aproximación ni
     esperar firmes, responde PASO): para puntos intermedios que no necesitan precisión (18/11)."""
@@ -409,7 +409,10 @@ def ejecutar(placa, plan, timeout, reintentos=1, de_paso=False, ultimo_de_paso=F
             if l.startswith(("LLEGO", "PASO")):
                 print(f"[mv: {time.time() - t_mv:.1f} s]")
                 break
-            if l.startswith("MV_ERROR") and "no quedan firmes" in l and intento < reintentos:
+            # Cortes por atraso (carga, rama, gravedad): repetir desde donde quedó (18/11: el robot no se tiene que trabar
+            # en una cosecha). Los de seguridad (franja, caja, plegado) no se repiten
+            if (l.startswith("MV_ERROR") and intento < reintentos and
+                    any(t in l for t in ("no quedan firmes", "no sigue la trayectoria", "se mueve al revés"))):
                 time.sleep(0.5)
                 continue
             if l.startswith(RECHAZO) or "sin cero" in l:
@@ -509,6 +512,12 @@ DE_PASO = {"ir frente al limón": (True, False), "salir de frente": (True, True)
            "desplegar": (True, True)}
 
 
+# Con el limón recién arrancado (tirar, arrastrar, salir) los mv van a la mitad (18/11: a velocidad 1 la salida cortaba
+# por atraso); el resto a la velocidad de siempre (firmware: 1, aproximación 4 °/s, asentamiento 0,5 s)
+CON_CARGA = ("tirar", "arrastrar con J1", "salir de frente")
+VEL_CARGA, VEL_NORMAL = "vel 0.5 4 0.5", "vel 1 4 0.5"
+
+
 def correr_tarea(placa, pasos, timeout):
     t0 = time.time()
     tiempos = []
@@ -525,8 +534,16 @@ def correr_tarea(placa, pasos, timeout):
             tiempos.append((cosa, time.time() - t))
             continue
         print(f"== {nombre}")
+        con_carga = nombre in CON_CARGA
+        if con_carga:
+            placa.mandar(VEL_CARGA)
+            time.sleep(0.2)
         de_paso, ultimo = DE_PASO.get(nombre, (False, False))
-        if not ejecutar(placa, cosa, timeout, de_paso=de_paso, ultimo_de_paso=ultimo):
+        ok = ejecutar(placa, cosa, timeout, de_paso=de_paso, ultimo_de_paso=ultimo)
+        if con_carga:
+            placa.mandar(VEL_NORMAL)
+            time.sleep(0.2)
+        if not ok:
             print(f"[tarea cortada en: {nombre}]")
             return False
         tiempos.append((f"{nombre} ({len(cosa)} mv)", time.time() - t))
@@ -763,6 +780,30 @@ def agarrar(placa, vision, tf, seg, mover, timeout, confirmar=True, a_canasta=Fa
     return False
 
 
+def recuperar_a_canasta(placa, timeout):
+    """Después de un corte en medio del agarre: lleva lo que tenga la pinza a la canasta (sube J2/J3 sin girar, gira
+    hasta plegar y suelta), si el camino entra en el modelo. True si quedó en la canasta."""
+    s = placa.angulos()
+    if s is None:
+        return False
+    if s[0] > k.Q1_LIM[1]:    # ya en la zona de la canasta
+        camino = [CANASTA]
+    else:
+        sube = (s[0],) + tuple(CAMINO_CANASTA[0][1:])
+        camino = [sube] + CAMINO_CANASTA
+        m = (con_zona(revisar_camino, s, sube) + con_zona(revisar_camino, sube, camino[1]) +
+             con_zona(revisar_camino, camino[1], camino[2]))
+        if m:
+            print("[recuperar: " + "; ".join(m) + "]")
+            return False
+    print("== recuperar: a la canasta")
+    if not ejecutar(placa, camino, timeout, de_paso=True, ultimo_de_paso=True):
+        return False
+    servo(placa, "pz a")
+    servo(placa, "mn 0")
+    return True
+
+
 # Cosechar varios (18/11): medir uno, agarrarlo y llevarlo a la canasta, y medir el siguiente desde ahí (en la canasta
 # el brazo está fuera de la vista de la cámara): el árbol se mueve al arrancar cada limón, así que se mide de nuevo.
 # Desde la canasta (J1 130, fuera del modelo) primero vuelve de paso a DESPLEGAR (J1 100, todavía plegado)
@@ -800,7 +841,11 @@ def cosechar(placa, vision, tf, n, seg, timeout, confirmar=True):
             for m in mot:
                 print("  ojo:", m)
             if not correr_tarea(placa, pre + pasos, timeout):
-                return hechos
+                if not recuperar_a_canasta(placa, timeout):
+                    print("[no se pudo recuperar: el brazo quedó donde está]")
+                    return hechos
+                print("[recuperado: lo que tenía la pinza está en la canasta; sigue con el próximo limón]")
+                continue
             hechos += 1
             print(f"[{hechos} en la canasta, {time.time() - t0:.0f} s desde el comienzo]")
         print("== al reposo")

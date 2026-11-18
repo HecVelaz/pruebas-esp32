@@ -163,6 +163,7 @@ constexpr float MV_ACEL_MAX[3] = {10.0f, 0.0f, 0.0f};
 // En los "mvp" (de paso, 2026-11-18) no importa pasarse unas décimas al llegar: J1 hasta 25 °/s² (soltar más rápido)
 constexpr float MV_ACEL_MAX_PASO[3] = {25.0f, 0.0f, 0.0f};
 constexpr float MV_ERROR_MAX = 5.0f;       // ° entre la referencia y la medición: corta (no sigue la trayectoria)
+constexpr float MV_ERROR_MAX_PASO = 10.0f; // ídem en los "mvp" (de paso: sin precisión; 18/11, la salida con el limón cortaba)
 constexpr uint32_t MV_LLEGADA_MAX_MS = 20000;  // después de la trayectoria, tiempo para quedar las tres firmes
 
 // ---------- Joystick ("jv a1 a2 a3", 2026-11-03): cada eje (-1 a 1) es la velocidad de su articulación, en lazo
