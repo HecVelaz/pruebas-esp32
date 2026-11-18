@@ -695,6 +695,20 @@ def medir_limon(vision, tf, seg):
     return limon
 
 
+def planear_agarre_tol(s, limon, a_canasta=False):
+    """planear_agarre; si no llega, entrando menos hondo (hasta el centro del limón, sin AGARRAR_ADELANTE). 18/11"""
+    pasos, mot = planear_agarre(s, limon, a_canasta)
+    if pasos is not None:
+        return pasos, mot
+    r = math.hypot(limon[0], limon[1])
+    for atras in (AGARRAR_ADELANTE / 2, AGARRAR_ADELANTE):
+        f = (r - atras) / r
+        p2, m2 = planear_agarre(s, (round(limon[0] * f), round(limon[1] * f), limon[2]), a_canasta)
+        if p2 is not None:
+            return p2, [f"entra {atras / 10:.1f} cm menos (con todo no llega)"] + m2
+    return None, mot
+
+
 def agarrar(placa, vision, tf, seg, mover, timeout, confirmar=True, a_canasta=False):
     """Mide el limón, planea y (con mover) agarra. a_canasta: después de salir va directo a la canasta y suelta (sin
     pasar por el reposo). confirmar: pide Enter antes de mover. True si agarró."""
@@ -705,7 +719,7 @@ def agarrar(placa, vision, tf, seg, mover, timeout, confirmar=True, a_canasta=Fa
     if s is None:
         return False
     print("planeando...")
-    pasos, mot = planear_agarre(s, limon, a_canasta)
+    pasos, mot = planear_agarre_tol(s, limon, a_canasta)
     if pasos is None:
         print("NO:", "; ".join(mot))
         return False
@@ -762,7 +776,7 @@ def cosechar(placa, vision, tf, n, seg, timeout, confirmar=True):
             pre = []
             if s[0] > k.Q1_LIM[1]:      # en la canasta: primero de paso a DESPLEGAR
                 pre, s = [("desplegar", [DESPLEGAR])], DESPLEGAR
-            pasos, mot = planear_agarre(s, limon, a_canasta=True)
+            pasos, mot = planear_agarre_tol(s, limon, a_canasta=True)
             if pasos is None:
                 print("NO:", "; ".join(mot))
                 break
