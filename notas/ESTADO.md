@@ -44,9 +44,9 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
 
 ## Brazo (`20-brazo-coordinado`, WROOM)
 
-- **WROOM de la Pi: env `brazo` con la pose plegada (18/11, `~/firmware/brazo20_serie_20261118d.bin`: homing acepta J2 a ≤ 2° sin firme)**: J1 hasta 130
+- **WROOM de la Pi: env `brazo` con la pose plegada (18/11, `~/firmware/brazo20_serie_20261118g.bin`: mv a vel 1 / aprox 4 / asent. 0,5 por defecto, `mvp` de paso)**: J1 hasta 130
   solo plegado (J2 42–51, J3 78–85; si no, 115), J3 propio 125 (provisorio). **`soltar`** (punta.py y recolectar.py):
-  canasta en J1 130 / J2 46,7 / J3 80, probado con limón. Imágenes completas: `write-flash 0x0` (en 0x10000, bucle).
+  canasta en J1 130 / J2 46,7 / J3 80 (de paso), **soltado a los 12,5–14 s, ida y vuelta 28–30 s**. Imágenes completas: `write-flash 0x0` (en 0x10000, bucle).
   Teleop: `write-flash 0x0 ~/firmware/respaldo_wroom_20261112.bin` (env `ros` viejo, sin la pose plegada).
 - **Abrir el puerto serie reinicia la WROOM** (cero perdido): siempre `h` después (los scripts lo hacen).
 - `punta.py`: `p`, `ap`, `ret`, `tarea`, `anotar`, **`agarrar` / `veragarrar`** (pinza 1300 us, 1 cm más abajo, 3° de

@@ -1437,3 +1437,13 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   → "no termina de retroceder (15 s)" (tres veces; los ceros sí se tomaban y `mv` andaba). Firmware: si a los 15 s
   llegó a ≤ `HOMING_TOL_SIN_FIRME` (2°), se acepta donde está y sigue (`brazo20_serie_20261118d.bin`). `soltar`
   imprime cuánto tarda (para probar `vel`).
+- **Soltar más rápido** (log en la Pi `~/logs/punta_20261118_174203.log`; `punta.py` ahora guarda cada sesión en
+  `~/logs/punta_*.log` y el tiempo de cada `mv`): con 4 `mv` a `vel 0.5 2 2` soltaba a los 44,5 s (96,9 s ida y
+  vuelta); `vel 0.75 3 0.5`: 29 / 60–66 s; `vel 1 4 0.5`: 71,7 s (peor: más tiempo esperando "firme"). El tiempo se iba
+  en la aproximación y la espera de firmes de cada `mv` y en J1 (aceleración topada a 10 °/s²). Firmware: **`mvp`**
+  (mv de paso: sin aproximación ni esperar firmes, responde `PASO`), J1 hasta 25 °/s² en los `mvp`
+  (`MV_ACEL_MAX_PASO`); `soltar`: `mvp` (100; 46,7; 50) [J1 gira mientras J2/J3 suben] → `mvp` (100; 46,7; 80) →
+  `mvp` canasta → `pz a` → `mvp` × 2 → `mv` reposo. Con `vel 1 4 0.5`, 3 veces: **soltado a los 12,5–14,4 s, total
+  27,7–29,8 s**, sin cortes; J1 se pasa 0,7° en la canasta. El usuario: "vamos a usar esta velocidad" → por defecto
+  `MV_FACTOR_VEL` 1, `VEL_APROX` J2/J3 4 °/s, `ASENTAMIENTO_MS` 500 (`brazo20_serie_20261118g.bin`, sin flashear).
+  Falta ver el agarre (`agarrar`) a esta velocidad. El retroceso del homing de J2 ahora acepta ≤ 2° sin firme.

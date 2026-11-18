@@ -122,14 +122,14 @@ constexpr float HOMING_Q2_MAX_ARRANQUE = 25.0f;  // con el cero conocido, J2 má
 constexpr float HOMING_RECORRIDO_SIN_CERO = 0.0f;
 constexpr float HOMING_Q2_JUNTAS = 5.0f;  // las tres hacen el homing juntas si J2 está abajo (o sin cero: el brazo
                                           // tiene que estar recogido); si no, J3 -> J2 -> J1
-constexpr uint32_t ASENTAMIENTO_MS = 2000;
+constexpr uint32_t ASENTAMIENTO_MS = 500;  // 2026-11-18: 2000 -> 500 (vel 1 4 0.5, soltar 3 veces sin cortes)
 constexpr bool FRENO_EN_BANDA = true;      // 19, 2026-10-31: frenadas, quietas y sin ruido
 
 // ---------- Fase 5b: movimientos coordinados ("mv") ----------
 // Las tres siguen el MISMO perfil normalizado (quíntico: velocidad y aceleración 0 en los extremos) y terminan juntas;
 // J2 y J3 avanzan al mismo ritmo, así que el camino en (q2, q3) es una recta. La franja ya no es convexa (tabla del
 // borde de arriba, 2026-11-04): "mv" revisa el camino entero, con la aproximación, antes de arrancar.
-constexpr float MV_FACTOR_VEL = 0.5f;      // fracción de vMax/aMax de cada una para "mv" (PROVISORIO: empezar despacio)
+constexpr float MV_FACTOR_VEL = 1.0f;      // fracción de vMax/aMax para "mv" (2026-11-18: 0,5 -> 1, el usuario: "vamos a usar esta velocidad")
 constexpr float MV_T_MIN = 1.0f;           // s, duración mínima de un movimiento
 // Llegada siempre con el ángulo creciendo (el juego de los engranajes queda del mismo lado): todas las que se mueven
 // (también las que suben, desde 2026-10-31) terminan el recorrido APROX_GRADOS por debajo y suben el último tramo a
@@ -138,7 +138,7 @@ constexpr float MV_T_MIN = 1.0f;           // s, duración mínima de un movimie
 // 15-18 % y salta a 5-7 °/s, ~2 s por llegada; con el brazo estirado se ve en la punta): un tramo corto y rápido. En
 // la aproximación cada una tiene su duración (J1 termina antes y frena; J2 y J3 siguen juntas)
 constexpr float APROX_GRADOS[3] = {0.5f, 2.0f, 2.0f};
-constexpr float VEL_APROX[3] = {5.0f, 2.0f, 2.0f};  // °/s (pico del perfil del último tramo)
+constexpr float VEL_APROX[3] = {5.0f, 4.0f, 4.0f};  // °/s (pico del perfil del último tramo; J2/J3 2 -> 4 el 2026-11-18)
 // Sentido de la aproximación: false = siempre desde abajo (J2 y J3: el juego queda del mismo lado contra el peso);
 // true = en el sentido en que viene (J1, 2026-11-03: llegando desde arriba bajaba y SUBÍA el último tramo; la correa
 // cambiaba de lado y la punta, con el brazo estirado, oscilaba ±1,4 cm a ~1,5 Hz con los encoders quietos. Llegando en
