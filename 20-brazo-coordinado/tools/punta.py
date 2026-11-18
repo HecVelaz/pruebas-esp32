@@ -537,6 +537,7 @@ DISPERSION_MAX = 10.0   # mm: más que esto, el limón se movió o la visión du
 MIN_POSICIONES = 3
 RADIO_LIMON = 25.0      # mm (limón de juguete de 5 cm; uno real: ~30)
 AGARRAR_PINZA_US = 1200 # 18/11, RDS3218: pz c (con el MG996R 1300, un poco más que su pz c 1250)
+AGARRAR_ADELANTE = 40.0  # mm más allá del centro del limón, en la dirección de entrada (18/11: quedaba 4 cm corta)
 AGARRAR_DZ = 0.0        # mm: 13/11 -10 (1 cm más abajo de lo que da la visión); 18/11 0: lo corrige Z_VISION_*
 # Altura de la visión corregida (18/11, 3 limones medidos con cinta a 33 / 46 / 51 cm del piso: la visión daba
 # 31,2 / 49,8 / 56,1 cm; error de escala, recta con < 4 mm de residuo). z (modelo) = Z_VISION_A + Z_VISION_B · z visión.
@@ -658,7 +659,11 @@ def agarrar(placa, vision, tf, seg, mover, timeout, confirmar=True):
         return False
     x, y, z_vis = ajc.camara_a_cinematica(R, t, cara, RADIO_LIMON)
     z = Z_VISION_A + Z_VISION_B * float(z_vis)
-    limon = (round(float(x)), round(float(y)), round(float(z) + AGARRAR_DZ))
+    # Entrar AGARRAR_ADELANTE más allá del centro, en la dirección de entrada (desde J1): 18/11 la pinza quedaba ~4 cm
+    # corta (la punta del modelo está adelante de donde cierran los dedos)
+    r = math.hypot(float(x), float(y))
+    x, y = float(x) * (r + AGARRAR_ADELANTE) / r, float(y) * (r + AGARRAR_ADELANTE) / r
+    limon = (round(x), round(y), round(float(z) + AGARRAR_DZ))
     print(f"  cámara (cara): x {cara[0]:+.0f}  y {cara[1]:+.0f}  z {cara[2]:.0f} mm  ({n} posiciones, dispersión "
           f"{disp:.1f} mm)")
     print(f"  limón (centro): x {limon[0]}  y {limon[1]}  z {z:.0f} mm (visión {float(z_vis):.0f}, corregida: ~"
