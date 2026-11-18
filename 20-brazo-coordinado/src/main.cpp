@@ -436,6 +436,9 @@ struct {
   // asentamiento, y al llegar la referencia arranca solo el mv a "final" (el único que da LLEGO)
   bool intermedio = false;
   float final[N];
+  // "mvp" (2026-11-18): punto DE PASO, sin aproximación ni espera a quedar firmes: al terminar la trayectoria sostiene
+  // la referencia y avisa PASO (no LLEGO), para encadenar el siguiente mv enseguida (soltar en la canasta: 60 -> ~25 s)
+  bool dePaso = false;
 } mv;
 
 // Duración del perfil quíntico para que ninguna pase su velocidad ni su aceleración (con el factor de "mv"):
@@ -530,7 +533,7 @@ void mvIniciar(const float obj[N], bool intermedio = false, const float *final =
     // frenar y quedaba 0,25° arriba; con el último tramo lento desde abajo, 0,00°. La que ya está dentro de su tolPos
     // no se mueve (2026-11-03, antes 0,05°: en la 1b J2 a 0,137° hacía 2° abajo y vuelta en cada mv de J1, se trababa
     // y se pasaba 0,72°; sostener() con el mismo objetivo no hace nada)
-    mv.aprox[i] = !intermedio && fabsf(obj[i] - art[i].q()) > art[i].cfg().tolPos;
+    mv.aprox[i] = !intermedio && !mv.dePaso && fabsf(obj[i] - art[i].q()) > art[i].cfg().tolPos;
     // Del lado del que llega: desde abajo (+1) o, con APROX_MISMO_SENTIDO, del lado del que viene. Si en el mismo
     // sentido está más cerca que el tramo, no retrocede: hace todo en la aproximación (si no, invertía el sentido)
     const float lado = (APROX_MISMO_SENTIDO[i] && obj[i] < art[i].q()) ? -1.0f : 1.0f;
@@ -620,6 +623,12 @@ void mvPaso() {
         float fin[N];
         for (int i = 0; i < N; i++) fin[i] = mv.final[i];
         mvIniciar(fin);
+      } else if (mv.dePaso) {
+        // De paso: termina acá, sosteniendo donde quedó la referencia (sin salto), sin esperar a que queden firmes
+        for (auto &a : art)
+          if (a.modo() == Articulacion::Modo::Seguir) a.sostener(a.referencia());
+        mv.activo = false;
+        msg("PASO,%lu,%.3f,%.3f,%.3f", (unsigned long)millis(), art[I1].q(), art[I2].q(), art[I3].q());
       }
     }
     return;
@@ -693,7 +702,7 @@ bool buscarIntermedio(float s2, float s3, float o2, float o3, float tolerado, fl
 
 // "mv <q1> <q2> <q3>": valida el destino (límites con margen, franja con MARGEN_FRANJA) y el camino de J2 y J3 (recta
 // hasta el punto previo de la aproximación y el último tramo, como en mvIniciar()) dentro de la franja
-void comandoMv(const char *args) {
+void comandoMv(const char *args, bool dePaso = false) {
   float obj[N];
   if (sscanf(args, "%f %f %f", &obj[I1], &obj[I2], &obj[I3]) != 3) {
     msg("Uso: mv <q1> <q2> <q3>  (grados)");
@@ -748,6 +757,7 @@ void comandoMv(const char *args) {
   // Todo el camino a MARGEN_CAMINO del borde; si arranca más cerca, que no se acerque más (2026-11-05)
   const float tolerado = fmaxf(-MARGEN_CAMINO, excesoFranjaAhora());
   if (excesoMv(s2, s3, obj[I2], obj[I3]) <= tolerado) {
+    mv.dePaso = dePaso;
     mvIniciar(obj);
     return;
   }
@@ -760,6 +770,7 @@ void comandoMv(const char *args) {
   }
   const float p[N] = {art[I1].q(), p2, p3};
   msg(">> El camino recto sale de la franja: pasa por J2 %+.1f° J3 %+.1f°.", p2, p3);
+  mv.dePaso = dePaso;
   mvIniciar(p, true, obj);
 }
 
@@ -773,6 +784,7 @@ void ayuda() {
   msg("  mv <q1> <q2> <q3>  las tres a la vez, terminan juntas (recta en q2-q3), llegan con el ángulo creciendo;");
   msg("               al asentarse: LLEGO,t,q1,q2,q3,e1,e2,e3. Caja: con J1 >= %.0f°, J3 con tope según J2",
       CAJA_J1_MIN);
+  msg("  mvp <q1> <q2> <q3>  como mv pero DE PASO: sin aproximación ni esperar firmes; al terminar: PASO,t,q1,q2,q3");
   msg("  jv <a1> <a2> <a3>  joystick: cada eje (-1 a 1) es la velocidad de su articulación; repetir cada");
   msg("               < %lu ms (si no, frena); al soltar se sostiene. tools/joystick.py --placa 20",
       (unsigned long)JOY_HOMBRE_MUERTO_MS);
@@ -1185,6 +1197,8 @@ void ejecutar(char *l) {
     comandoMover(l + 2);
   } else if (esJoy) {
     comandoJoy(l + 3);
+  } else if (strncmp(l, "mvp ", 4) == 0) {
+    comandoMv(l + 4, true);
   } else if (strncmp(l, "mv ", 3) == 0) {
     comandoMv(l + 3);
   } else if (strncmp(l, "zq ", 3) == 0) {

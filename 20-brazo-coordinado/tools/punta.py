@@ -290,6 +290,11 @@ class Placa:
         self.s.port, self.s.baudrate, self.s.timeout = puerto, 115200, 0.1
         self.s.dtr = self.s.rts = False  # como tools/monitor.sh (igual puede reiniciarse al abrir)
         self.s.open()
+        # Todo lo que va y viene, con la hora, en ~/logs/punta_<fecha>.log (18/11: para ver los tiempos de cada mv)
+        ruta = Path.home() / "logs" / time.strftime("punta_%Y%m%d_%H%M%S.log")
+        ruta.parent.mkdir(exist_ok=True)
+        self.archivo = open(ruta, "a", buffering=1)
+        print(f"[log: {ruta}]")
         self.lineas = queue.Queue()
         self.vivo = True
         threading.Thread(target=self._leer, daemon=True).start()
@@ -305,13 +310,21 @@ class Placa:
             if not l or l.startswith("T,"):
                 continue
             print(l)
+            self.log(l)
             self.lineas.put(l)
+
+    def log(self, texto):
+        try:
+            self.archivo.write(f"{time.strftime('%H:%M:%S')}.{int(time.time() * 1000) % 1000:03d} {texto}\n")
+        except ValueError:   # cerrado
+            pass
 
     def vaciar(self):
         while not self.lineas.empty():
             self.lineas.get_nowait()
 
     def mandar(self, c):
+        self.log(f"<< {c}")
         self.s.write(f"{c}\n".encode())
 
     def esperar(self, prefijos, segundos):
@@ -350,18 +363,22 @@ class Placa:
         return q["J1"], q["J2"], q["J3"]
 
 
-FIN_MV = ("LLEGO", "MV_ERROR", "Fuera de", "J2 y J3 fuera", "Uso:", "Hardware sin", ">> El camino recto sale")
-RECHAZO = ("Fuera de", "J2 y J3 fuera", "Uso:", "Hardware sin")
+FIN_MV = ("LLEGO", "PASO", "MV_ERROR", "Fuera de", "J2 y J3 fuera", "Uso:", "Hardware sin", ">> El camino recto sale",
+          "J1 pasada", "Sobre la caja")
+RECHAZO = ("Fuera de", "J2 y J3 fuera", "Uso:", "Hardware sin", "J1 pasada", "Sobre la caja")
 
 
-def ejecutar(placa, plan, timeout, reintentos=1):
+def ejecutar(placa, plan, timeout, reintentos=1, de_paso=False):
     """Manda los mv de a uno esperando LLEGO. Si uno corta por "no quedan firmes" (J2 sin fuerza con carga, 11/11), lo
-    repite hasta reintentos veces desde donde quedó."""
-    for q in plan:
-        c = f"mv {q[0]:.2f} {q[1]:.2f} {q[2]:.2f}"
+    repite hasta reintentos veces desde donde quedó. de_paso: todos menos el último con "mvp" (sin aproximación ni
+    esperar firmes, responde PASO): para puntos intermedios que no necesitan precisión (18/11)."""
+    for k, q in enumerate(plan):
+        cmd = "mvp" if de_paso and k < len(plan) - 1 else "mv"
+        c = f"{cmd} {q[0]:.2f} {q[1]:.2f} {q[2]:.2f}"
         for intento in range(reintentos + 1):
             placa.vaciar()
             print(f"<< {c}" + (f"   (reintento {intento})" if intento else ""))
+            t_mv = time.time()
             placa.mandar(c)
             try:
                 l = placa.esperar(FIN_MV + tuple(f"{j} sin cero" for j in ("J1", "J2", "J3")), timeout)
@@ -377,7 +394,9 @@ def ejecutar(placa, plan, timeout, reintentos=1):
                 placa.mandar("s")
                 print("[el firmware eligió otro camino (no revisado contra la caja): \"s\". Probar otro punto]")
                 return False
-            if l.startswith("LLEGO"):
+            if l.startswith(("LLEGO", "PASO")):
+                print(f"[mv: {time.time() - t_mv:.1f} s]")
+                placa.log(f"[mv: {time.time() - t_mv:.1f} s]")
                 break
             if l.startswith("MV_ERROR") and "no quedan firmes" in l and intento < reintentos:
                 time.sleep(0.5)
@@ -399,23 +418,27 @@ REPOSO = (3.0, 17.0, 4.0)
 # J3 80 y no 81,7 (la del joystick): con "mv" J3 se cortó en 80,94 por "sin cuentas" (cerca del punto muerto del cuatro
 # barras está dura y la aproximación final va lenta); 80 sigue siendo "plegado" (>= 78)
 CANASTA = (130.0, 46.7, 80.0)
-CAMINO_CANASTA = [(86.0, 17.0, 4.0), (86.0, 46.7, 40.0), (86.0, 46.7, 80.0), CANASTA]
+# 18/11: con 4 "mv" (esperando firmes en cada uno) soltar tardaba ~30 s y la vuelta otro tanto. Ahora J1 gira al frente
+# mientras suben J2/J3 (J1 100 < 115: no hace falta plegado) y los intermedios van "de paso" (mvp)
+CAMINO_CANASTA = [(100.0, 46.7, 40.0), (100.0, 46.7, 80.0), CANASTA]
 
 
 def soltar(placa, timeout, volver=True):
     """Lleva el limón a la canasta, abre la pinza y (con volver) regresa al reposo. True si todo anduvo."""
     print("== soltar en la canasta")
     t0 = time.time()
-    if not ejecutar(placa, CAMINO_CANASTA, timeout):
+    if not ejecutar(placa, CAMINO_CANASTA, timeout, de_paso=True):
         return False
     if not servo(placa, "pz a"):
         return False
     time.sleep(0.5)   # que caiga
     print(f"[soltado a los {time.time() - t0:.1f} s]")
+    placa.log(f"[soltado a los {time.time() - t0:.1f} s]")
     if volver:
         print("== volver al reposo")
-        ok = ejecutar(placa, CAMINO_CANASTA[-2::-1] + [REPOSO], timeout)
+        ok = ejecutar(placa, CAMINO_CANASTA[-2::-1] + [REPOSO], timeout, de_paso=True)
         print(f"[soltar: {time.time() - t0:.1f} s en total, con la vuelta]")
+        placa.log(f"[soltar: {time.time() - t0:.1f} s en total, con la vuelta]")
         return ok
     return True
 
