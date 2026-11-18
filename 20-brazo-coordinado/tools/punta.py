@@ -599,6 +599,7 @@ def con_margen(margen, f, *a):
 # Desprender el limón (18/11, pedido del usuario): después de cerrar, tirar TIRON_MM hacia atrás, girar la muñeca
 # (TIRON_MUNECA) y girar J1 TIRON_J1 grados hacia el lado del giro, arrastrando la rama; recién ahí salir. El signo de
 # TIRON_J1 respecto del giro de la muñeca está SIN PROBAR: si arrastra hacia el otro lado, cambiarlo de signo
+ENTRADA_MM = (100.0, 70.0, 50.0)   # entrar de frente desde acá (el primero que se pueda)
 TIRON_MM = 20.0
 TIRON_MUNECA = "mn a"      # 90° horario
 TIRON_J1 = 5.0             # ° (a ~60 cm de J1: ~5 cm de costado)
@@ -607,11 +608,20 @@ TIRON_J1 = 5.0             # ° (a ~60 cm de J1: ~5 cm de costado)
 def planear_agarre(s, limon):
     """De los ángulos s: entrar de frente al limón, cerrar, tirar, girar la muñeca, arrastrar de costado con J1,
     salir lo más posible y al reposo. (pasos, motivos)."""
-    pa, m = planear_frente(s, *limon)
+    # Entrada de frente desde 10 cm; si el punto previo no entra (limón bajo y cerca de J1, 18/11: a 33 cm del piso y
+    # 53 cm de J1), desde 7 y 5 cm
+    for d in ENTRADA_MM:
+        pa, m = planear_frente(s, *limon, d=d)
+        if pa is not None:
+            break
     if pa is None:
         r = math.hypot(limon[0], limon[1])
         extra = f" (r {r:.0f} mm: el ap de 10 cm necesita r >~ 500)" if r < 500 else ""
         return None, ["hacia el limón: " + "; ".join(m) + extra]
+    if d != ENTRADA_MM[0]:
+        m_ent = [f"entra de frente desde {d / 10:.0f} cm (desde {ENTRADA_MM[0] / 10:.0f} no llega)"]
+    else:
+        m_ent = []
     ti, m_ti = con_margen(MARGEN_SALIDA_CARGA, planear_salida, pa[-1], TIRON_MM)
     if ti is None:
         return None, ["tirar: " + "; ".join(m_ti)]
@@ -629,7 +639,7 @@ def planear_agarre(s, limon):
     return [("cmd", "pz w 0"), ("cmd", "mn w 0"),   # servos a su velocidad máxima (salto directo)
             ("servo", "pz a"), ("ir frente al limón", pa[:-1]), ("entrar de frente", pa[-1:]),
             ("servo", f"pz {AGARRAR_PINZA_US}"), ("tirar", ti), ("servo", TIRON_MUNECA), ("arrastrar con J1", [de]),
-            ("salir de frente", sa), ("servo", "mn 0"), ("reposo", rp)], m_ret
+            ("salir de frente", sa), ("servo", "mn 0"), ("reposo", rp)], m_ent + m_ret
 
 
 def agarrar(placa, vision, tf, seg, mover, timeout, confirmar=True):
