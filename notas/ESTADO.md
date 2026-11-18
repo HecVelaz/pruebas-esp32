@@ -33,7 +33,7 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
   puerto by-id: vuelve a veces como `ttyACM1`). Agente: `bash ~/scripts/agente_base.sh`; comandos: `bash ~/scripts/base.sh "<cmd>"` (`sens`, `e`, `cal`,
   `odo0`, `armar`, `r`). Con micro-ROS el watchdog es 300 ms: mover solo con `/cmd_vel` continuo.
 - **S3 con `base_ros_20261117_imu`** (18/11): **la IMU se recupera sola** de un I2C colgado (probado: la seta corta los
-  5 V de la IMU → `imu_rec=1` al soltarla). Cambios de `recolector_de_frutas/firmware/base` sin commit en ese repo.
+  5 V de la IMU → `imu_rec=1` al soltarla). Commit `cc96d1f` en `recolector_de_frutas`.
 - **Seguridad con motores probada (18/11, `25-teleop-pi/README.md`):** frena solo el HC-SR04 del medio (tope lineal
   50 → 20 cm; en el piso para a 20 cm justos); bumpers, seta y vuelco (25°) OK, enclavados (`r` por `/base/comando`).
   Los tres HC-SR04 andan (derecho cambiado); los de las esquinas solo publican (decisión del usuario, por ahora).

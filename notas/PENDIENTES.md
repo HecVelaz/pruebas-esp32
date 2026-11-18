@@ -5,8 +5,8 @@
 
 ## Lo inmediato
 
-1. **Commit de la recuperación de la IMU en `recolector_de_frutas/firmware/base`** (probada en placa el 18/11:
-   `imu_rec=1`; `test_base` 20/20). Después, en el pasto: que no se tranque con SIN_DATOS. Opcional: cables del I2C
+1. ~~Commit de la recuperación de la IMU~~ (`recolector_de_frutas` `cc96d1f`, 18/11). En uso: que no se tranque con
+   SIN_DATOS (mirar `imu_rec`). Opcional: cables del I2C
    cortos y trenzados, lejos de los motores; si sigue, I2C a 100 kHz.
 2. **Cortes del enlace USB de la S3** (3 el 18/11, con la seta y moviendo la base): cable, ferrita, alimentación; y
    por qué la Pi se reinició sola (~12:16 del 18/11).
