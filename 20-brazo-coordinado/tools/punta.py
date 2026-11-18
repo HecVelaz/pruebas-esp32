@@ -54,7 +54,17 @@ import time
 
 from pathlib import Path
 
+import builtins
+
 import numpy as np
+
+_LOG = None
+
+
+def print(*a, **kw):   # noqa: A001 - como el print de siempre, y además al log de la sesión (si hay placa)
+    builtins.print(*a, **kw)
+    if _LOG is not None and kw.get("file") is None:
+        _LOG(" ".join(str(x) for x in a))
 
 import ajuste_camara as ajc
 import cinematica as k
@@ -294,6 +304,8 @@ class Placa:
         ruta = Path.home() / "logs" / time.strftime("punta_%Y%m%d_%H%M%S.log")
         ruta.parent.mkdir(exist_ok=True)
         self.archivo = open(ruta, "a", buffering=1)
+        global _LOG
+        _LOG = self.log   # desde acá, todo lo que imprime punta.py también va al log (18/11)
         print(f"[log: {ruta}]")
         self.lineas = queue.Queue()
         self.vivo = True
@@ -309,7 +321,7 @@ class Placa:
                 return
             if not l or l.startswith("T,"):
                 continue
-            print(l)
+            builtins.print(l)   # la línea de la placa va una sola vez al log
             self.log(l)
             self.lineas.put(l)
 
@@ -396,7 +408,6 @@ def ejecutar(placa, plan, timeout, reintentos=1, de_paso=False, ultimo_de_paso=F
                 return False
             if l.startswith(("LLEGO", "PASO")):
                 print(f"[mv: {time.time() - t_mv:.1f} s]")
-                placa.log(f"[mv: {time.time() - t_mv:.1f} s]")
                 break
             if l.startswith("MV_ERROR") and "no quedan firmes" in l and intento < reintentos:
                 time.sleep(0.5)
@@ -434,12 +445,10 @@ def soltar(placa, timeout, volver=True):
         return False
     time.sleep(0.5)   # que caiga
     print(f"[soltado a los {time.time() - t0:.1f} s]")
-    placa.log(f"[soltado a los {time.time() - t0:.1f} s]")
     if volver:
         print("== volver al reposo")
         ok = ejecutar(placa, CAMINO_CANASTA[-2::-1] + [REPOSO], timeout, de_paso=True)
         print(f"[soltar: {time.time() - t0:.1f} s en total, con la vuelta]")
-        placa.log(f"[soltar: {time.time() - t0:.1f} s en total, con la vuelta]")
         return ok
     return True
 
