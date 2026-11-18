@@ -471,7 +471,7 @@ def planear_tarea(s, A, B):
 
 def imprimir_tarea(pasos):
     for nombre, cosa in pasos:
-        if nombre == "servo":
+        if nombre in ("servo", "cmd"):
             print(f"  [{cosa}]")
             continue
         print(f"  {nombre}:")
@@ -492,11 +492,22 @@ def servo(placa, cmd, timeout=8.0):
     return True
 
 
+# Tramos que van "de paso" (mvp: sin aproximación ni esperar firmes) -> (intermedios, también el último). 18/11: a
+# velocidad 1, la salida con el limón cortó ("J2 se mueve al revés": bajaba rápido y la aproximación desde abajo la
+# invertía con la carga). Entrar al limón sigue preciso (mv); el punto frente al limón también (de él sale la recta)
+DE_PASO = {"ir frente al limón": (True, False), "salir de frente": (True, True), "reposo": (True, False),
+           "tirar": (True, True), "arrastrar con J1": (True, True)}
+
+
 def correr_tarea(placa, pasos, timeout):
     t0 = time.time()
     tiempos = []
     for nombre, cosa in pasos:
         t = time.time()
+        if nombre == "cmd":   # sin respuesta que esperar (pz w / mn w)
+            placa.mandar(cosa)
+            time.sleep(0.2)
+            continue
         if nombre == "servo":
             if not servo(placa, cosa):
                 placa.mandar("s")
@@ -504,7 +515,8 @@ def correr_tarea(placa, pasos, timeout):
             tiempos.append((cosa, time.time() - t))
             continue
         print(f"== {nombre}")
-        if not ejecutar(placa, cosa, timeout):
+        de_paso, ultimo = DE_PASO.get(nombre, (False, False))
+        if not ejecutar(placa, cosa, timeout, de_paso=de_paso, ultimo_de_paso=ultimo):
             print(f"[tarea cortada en: {nombre}]")
             return False
         tiempos.append((f"{nombre} ({len(cosa)} mv)", time.time() - t))
@@ -580,21 +592,40 @@ def con_margen(margen, f, *a):
         MARGEN_CAMINO = viejo
 
 
+# Desprender el limón (18/11, pedido del usuario): después de cerrar, tirar TIRON_MM hacia atrás, girar la muñeca
+# (TIRON_MUNECA) y girar J1 TIRON_J1 grados hacia el lado del giro, arrastrando la rama; recién ahí salir. El signo de
+# TIRON_J1 respecto del giro de la muñeca está SIN PROBAR: si arrastra hacia el otro lado, cambiarlo de signo
+TIRON_MM = 20.0
+TIRON_MUNECA = "mn a"      # 90° horario
+TIRON_J1 = 5.0             # ° (a ~60 cm de J1: ~5 cm de costado)
+
+
 def planear_agarre(s, limon):
-    """De los ángulos s: entrar de frente al limón, salir lo más posible y al reposo. (pasos, motivos)."""
+    """De los ángulos s: entrar de frente al limón, cerrar, tirar, girar la muñeca, arrastrar de costado con J1,
+    salir lo más posible y al reposo. (pasos, motivos)."""
     pa, m = planear_frente(s, *limon)
     if pa is None:
         r = math.hypot(limon[0], limon[1])
         extra = f" (r {r:.0f} mm: el ap de 10 cm necesita r >~ 500)" if r < 500 else ""
         return None, ["hacia el limón: " + "; ".join(m) + extra]
-    sa, m_ret = con_margen(MARGEN_SALIDA_CARGA, planear_salida_max, pa[-1])
+    ti, m_ti = con_margen(MARGEN_SALIDA_CARGA, planear_salida, pa[-1], TIRON_MM)
+    if ti is None:
+        return None, ["tirar: " + "; ".join(m_ti)]
+    q = ti[-1]
+    de = (round(q[0] + TIRON_J1, 2), q[1], q[2])
+    m_de = k.problemas(*de) + revisar_camino(q, de)
+    if m_de:
+        return None, ["arrastrar con J1: " + "; ".join(m_de)]
+    sa, m_ret = con_margen(MARGEN_SALIDA_CARGA, planear_salida_max, de)
     if sa is None:
         return None, ["salida: " + "; ".join(m_ret)]
     rp, m = con_margen(MARGEN_SALIDA_CARGA, planear_q, sa[-1], REPOSO)
     if rp is None:
         return None, ["al reposo: " + "; ".join(m)]
-    return [("servo", "pz a"), ("ir frente al limón", pa[:-1]), ("entrar de frente", pa[-1:]),
-            ("servo", f"pz {AGARRAR_PINZA_US}"), ("salir de frente", sa), ("reposo", rp)], m_ret
+    return [("cmd", "pz w 0"), ("cmd", "mn w 0"),   # servos a su velocidad máxima (salto directo)
+            ("servo", "pz a"), ("ir frente al limón", pa[:-1]), ("entrar de frente", pa[-1:]),
+            ("servo", f"pz {AGARRAR_PINZA_US}"), ("tirar", ti), ("servo", TIRON_MUNECA), ("arrastrar con J1", [de]),
+            ("salir de frente", sa), ("servo", "mn 0"), ("reposo", rp)], m_ret
 
 
 def agarrar(placa, vision, tf, seg, mover, timeout, confirmar=True):
