@@ -5,20 +5,22 @@
 
 ## Lo inmediato
 
-1. ~~Commit de la recuperación de la IMU~~ (`recolector_de_frutas` `cc96d1f`, 18/11). En uso: que no se tranque con
-   SIN_DATOS (mirar `imu_rec`). Opcional: cables del I2C
-   cortos y trenzados, lejos de los motores; si sigue, I2C a 100 kHz.
-2. **Cortes del enlace USB de la S3** (3 el 18/11, con la seta y moviendo la base): cable, ferrita, alimentación; y
-   por qué la Pi se reinició sola (~12:16 del 18/11).
-3. Frenado en el piso a 0,20 m/s (`prueba_odom.py recto 1.5 0.20`, caja a ~1 m): cuánto se pasa de 20 cm. Encoder
-   izquierdo: si vuelve el `atasco`, revisar el Dupont (GPIO 15/16).
-4. Hotspot: fijar la IP de la Pi en el hotspot o arrancar el teleop solo al encender (servicio systemd); país del wifi
+1. **Flashear `~/firmware/brazo20_serie_20261118g.bin`** (velocidad 1 por defecto) y **probar `agarrar` a esa
+   velocidad** (que J2/J3 no se pasen al arrimarse al limón); después `recolectar.py` completo (agarrar → canasta).
+2. **Probar RODEAR** (`ir_a_parada.py --rodear 1`, solo la base; afuera `--auto 15` con `nohup`): marcas 0–3 ya
+   pegadas; medir con cinta la parada siguiente (70 cm a la izquierda de J1, +15 cm). Después `--rodear 3` y
+   `recolectar.py --paradas 4`.
+3. **Cortes del enlace USB de la S3** (3 el 18/11, con la seta y moviendo la base): cable, ferrita, alimentación; y
+   por qué la Pi se reinició sola (~12:16 del 18/11). Encoder izquierdo: si vuelve el `atasco`, revisar el Dupont.
+4. Brazo: J3 propio en 125° es PROVISORIO (medir con `fr 0` si en la pose plegada llega a ~120 sin trabarse, o volver
+   a 101,5); `cinematica.py` sin la zona plegada (Q1 ≤ 115, Q3 ≤ 98,5); llevar a `recolector_de_frutas/firmware/brazo`
+   la pose plegada, `mvp`, la pinza RDS3218 (cerrada 1200) y las velocidades; el env `ros` (teleop) tampoco las tiene.
+5. Hotspot: fijar la IP de la Pi en el hotspot o arrancar el teleop solo al encender (servicio systemd); país del wifi
    `cfg80211.ieee80211_regdom=PY` en `/boot/firmware/cmdline.txt` para usar el hotspot en 2,4 GHz.
-5. Pinza: llevar el cierre a 1400 µs al firmware (`PINZA_CERRADO_US` en `20/include/config.h`) si sirve también para
-   `agarrar` (hoy 1300); `servos_rapido.py` sin probar.
 
-Hecho el 18/11: HC-SR04 derecho cambiado; seguridad de la base con motores (frente, bumpers, seta, vuelco); recuperación
-de la IMU en placa.
+Hecho el 18/11: HC-SR04 derecho cambiado; seguridad de la base con motores (frente, bumpers, seta, vuelco, también a
+0,20 m/s); recuperación de la IMU en placa (commit `cc96d1f`); **canasta sobre la tapa y `soltar`** (12,5–14 s, 28–30
+s ida y vuelta); pinza con el servo RDS3218 (abierta 500, cerrada 1200); RODEAR programado.
 
 ## Recolección autónoma
 
@@ -27,8 +29,7 @@ de la IMU en placa.
 2. **RODEAR**: pegar las marcas ID 1–3 en las otras caras de la maceta (antihorario, centro a ~20–30 cm del piso,
    cartón plano, a 16–17 cm del tronco), y después de agarrar en una parada ir a la siguiente (arco de 90° alrededor
    del árbol con el árbol a la izquierda; corregir con la marca de esa cara). Varios limones por parada.
-3. **Soltar el limón**: dónde (caja / depósito sobre la tapa, sin decidir: ver "Dónde dejar el limón" en Brazo) y
-   agregarlo al final de `agarrar`.
+3. ~~Soltar el limón~~ (18/11: canasta sobre la tapa, `punta.soltar`, lo hace `recolectar.py` después de agarrar).
 4. ~~Seguridad de la base andando~~ (18/11, OK; los cortes del USB pasaron a "Lo inmediato"). Si se esquiva al
    buscar: que los HC-SR04 de las esquinas también frenen o corten el giro (hoy solo publican).
 5. **Al robot (ROS):** la misión de `recolector_de_frutas` con lo de hoy (marca → parada → agarrar → rodear), primero en
