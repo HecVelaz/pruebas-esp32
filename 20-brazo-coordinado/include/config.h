@@ -160,6 +160,8 @@ constexpr bool MV_DURACION_PROPIA[3] = {true, false, false};
 // sostener la volvía (una inversión). Los mv de 40° frenan a ~10 °/s² y no se pasan. No toca el aMax de J1 (lo usan
 // el sostener, "j" y el joystick) ni la aproximación
 constexpr float MV_ACEL_MAX[3] = {10.0f, 0.0f, 0.0f};
+// En los "mvp" (de paso, 2026-11-18) no importa pasarse unas décimas al llegar: J1 hasta 25 °/s² (soltar más rápido)
+constexpr float MV_ACEL_MAX_PASO[3] = {25.0f, 0.0f, 0.0f};
 constexpr float MV_ERROR_MAX = 5.0f;       // ° entre la referencia y la medición: corta (no sigue la trayectoria)
 constexpr uint32_t MV_LLEGADA_MAX_MS = 20000;  // después de la trayectoria, tiempo para quedar las tres firmes
 

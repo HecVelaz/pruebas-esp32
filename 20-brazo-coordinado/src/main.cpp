@@ -455,7 +455,8 @@ float duracion(const float d[N], float factorVel, float velFija) {
     if (D < 1e-3f) continue;
     const float v = velFija > 0.0f ? velFija : factorVel * art[i].cfg().vMax;
     float a = factorVel * art[i].cfg().aMax;
-    if (velFija <= 0.0f && MV_ACEL_MAX[i] > 0.0f) a = fminf(a, MV_ACEL_MAX[i]);  // recorrido: tope propio
+    const float tope = mv.dePaso ? MV_ACEL_MAX_PASO[i] : MV_ACEL_MAX[i];
+    if (velFija <= 0.0f && tope > 0.0f) a = fminf(a, tope);  // recorrido: tope propio (más alto de paso)
     T = fmaxf(T, fmaxf(1.875f * D / v, sqrtf(5.774f * D / a)));
   }
   return T;

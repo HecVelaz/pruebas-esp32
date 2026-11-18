@@ -368,12 +368,12 @@ FIN_MV = ("LLEGO", "PASO", "MV_ERROR", "Fuera de", "J2 y J3 fuera", "Uso:", "Har
 RECHAZO = ("Fuera de", "J2 y J3 fuera", "Uso:", "Hardware sin", "J1 pasada", "Sobre la caja")
 
 
-def ejecutar(placa, plan, timeout, reintentos=1, de_paso=False):
+def ejecutar(placa, plan, timeout, reintentos=1, de_paso=False, ultimo_de_paso=False):
     """Manda los mv de a uno esperando LLEGO. Si uno corta por "no quedan firmes" (J2 sin fuerza con carga, 11/11), lo
     repite hasta reintentos veces desde donde quedó. de_paso: todos menos el último con "mvp" (sin aproximación ni
     esperar firmes, responde PASO): para puntos intermedios que no necesitan precisión (18/11)."""
     for k, q in enumerate(plan):
-        cmd = "mvp" if de_paso and k < len(plan) - 1 else "mv"
+        cmd = "mvp" if de_paso and (k < len(plan) - 1 or ultimo_de_paso) else "mv"
         c = f"{cmd} {q[0]:.2f} {q[1]:.2f} {q[2]:.2f}"
         for intento in range(reintentos + 1):
             placa.vaciar()
@@ -420,14 +420,15 @@ REPOSO = (3.0, 17.0, 4.0)
 CANASTA = (130.0, 46.7, 80.0)
 # 18/11: con 4 "mv" (esperando firmes en cada uno) soltar tardaba ~30 s y la vuelta otro tanto. Ahora J1 gira al frente
 # mientras suben J2/J3 (J1 100 < 115: no hace falta plegado) y los intermedios van "de paso" (mvp)
-CAMINO_CANASTA = [(100.0, 46.7, 40.0), (100.0, 46.7, 80.0), CANASTA]
+# Segunda versión: J3 ya sube a 50 mientras gira J1 (sigue dentro de la franja) y la canasta también de paso
+CAMINO_CANASTA = [(100.0, 46.7, 50.0), (100.0, 46.7, 80.0), CANASTA]
 
 
 def soltar(placa, timeout, volver=True):
     """Lleva el limón a la canasta, abre la pinza y (con volver) regresa al reposo. True si todo anduvo."""
     print("== soltar en la canasta")
     t0 = time.time()
-    if not ejecutar(placa, CAMINO_CANASTA, timeout, de_paso=True):
+    if not ejecutar(placa, CAMINO_CANASTA, timeout, de_paso=True, ultimo_de_paso=True):
         return False
     if not servo(placa, "pz a"):
         return False
