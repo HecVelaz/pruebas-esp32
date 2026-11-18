@@ -14,6 +14,10 @@ En la Pi, con start_limon.sh (cámaras) y el agente de la base corriendo:
      la marca se ve. Después: "veragarrar" en punta.py.
 
 Uso: python3 tools/ir_a_parada.py [--radio-maceta 165] [--parada 700 150] [--sin-orientacion] [--simular X Y MIRA]
+     [--rodear N] [--observar 1100 150]
+     --rodear N: después de la parada, N rodeos (planear_rodeo: 90° antihorario alrededor del tronco hasta donde se ve
+     la marca siguiente, y de ahí a su parada), solo la base: para probar sin el brazo.
+     --auto S: sin Enter (sin red cerca): espera S s y hace todo solo; correrlo con nohup y parar con la seta.
      --simular: sin ROS, el plan para un tronco en (X, Y) mm con la marca mirando a MIRA° (para probar la cuenta).
 """
 import argparse
@@ -65,6 +69,32 @@ def planear(tronco, mira_deg, parada, orientar=True):
     if abs(fin) >= MIN_GIRO:
         pasos.append(("giro", fin))
     return pasos
+
+
+def planear_rodeo(tronco, observar):
+    """RODEAR: desde la parada (tronco en (x, y) mm, la marca de esta cara de frente), los pasos hasta el punto de
+    observación de la cara siguiente, 90° antihorario alrededor del tronco (el robot avanza con el árbol a la
+    izquierda). observar = dónde queda el tronco respecto de J1 al llegar, más lejos que la parada para que la marca
+    siguiente se vea entera (a 70 cm queda cortada abajo); desde ahí medir_y_planear corrige como en la primera.
+    La cara siguiente mira 90° a la izquierda de la actual: mira = +90°."""
+    return planear(tronco, 90.0, observar)
+
+
+def distancia_minima(tronco, pasos, n=50):
+    """mm: lo más cerca que pasa J1 del tronco siguiendo los pasos (ideal), para ver que no roce la maceta."""
+    h, c = 0.0, CENTRO_GIRO.copy()
+    t = np.asarray(tronco, float)
+    dmin = float(np.linalg.norm(t))
+    for tipo, val in pasos:
+        if tipo == "giro":
+            h += math.radians(val)
+            continue
+        for k in range(1, n + 1):
+            ck = c + val * k / n * np.array([-math.sin(h), math.cos(h)])
+            j1 = ck - rot(h) @ CENTRO_GIRO
+            dmin = min(dmin, float(np.linalg.norm(t - j1)))
+        c = c + val * np.array([-math.sin(h), math.cos(h)])
+    return dmin
 
 
 def simular_pasos(tronco, pasos):
@@ -147,8 +177,15 @@ def main():
     ap.add_argument("--parada", type=float, nargs=2, default=[700.0, 150.0], metavar=("D", "Y"))
     ap.add_argument("--sin-orientacion", action="store_true", help="no girar para quedar de frente a la marca")
     ap.add_argument("--simular", type=float, nargs=3, metavar=("X", "Y", "MIRA"))
+    ap.add_argument("--rodear", type=int, default=0, metavar="N",
+                    help="después de la parada, rodear N veces (90° antihorario cada una) sin el brazo")
+    ap.add_argument("--observar", type=float, nargs=2, default=[1100.0, 150.0], metavar=("D", "Y"),
+                    help="al rodear: tronco a D mm a la izquierda de J1 e Y adelante (donde se mira la marca)")
+    ap.add_argument("--auto", type=float, default=None, metavar="S",
+                    help="sin Enter: espera S segundos (para alejarse) y hace todo solo; parar con la seta")
     a = ap.parse_args()
     parada = (-a.parada[0], a.parada[1])
+    observar = (-a.observar[0], a.observar[1])
 
     if a.simular:
         tronco, mira = a.simular[:2], a.simular[2]
@@ -168,13 +205,34 @@ def main():
     try:
         base.esperar_datos()
         pasos = medir_y_planear(base, marcas, a.radio_maceta, parada, not a.sin_orientacion)
-        if not pasos:
+        if pasos is None or (not pasos and not a.rodear):
             return
-        if input("Enter para ir (cualquier otra cosa cancela): ").strip():
+        if a.auto is not None:
+            for k in range(int(a.auto), 0, -1):
+                print(f"  arranca solo en {k} s (parar: seta)", flush=True)
+                base.girar_ros(1.0)
+        elif input("Enter para ir (cualquier otra cosa cancela): ").strip():
             print("cancelado")
             return
-        if ejecutar(base, pasos):
+        if pasos and not ejecutar(base, pasos):
+            return
+        mirar_al_llegar(base, marcas, a.radio_maceta, parada)
+        for k in range(a.rodear):
+            if a.auto is not None:
+                print(f"rodear a la parada {k + 2} en 3 s", flush=True)
+                base.girar_ros(3.0)
+            elif input(f"Enter para rodear a la parada {k + 2} (cualquier otra cosa termina): ").strip():
+                return
+            pasos = planear_rodeo(parada, observar)
+            print(f"== rodear: {texto(pasos)} (J1 a {distancia_minima(parada, pasos) / 10:.0f} cm del tronco)")
+            if not ejecutar(base, pasos):
+                return
+            base.girar_ros(1.0)
+            pasos = medir_y_planear(base, marcas, a.radio_maceta, parada, not a.sin_orientacion)
+            if pasos is None or (pasos and not ejecutar(base, pasos)):
+                return
             mirar_al_llegar(base, marcas, a.radio_maceta, parada)
+        if not a.rodear:
             print("siguiente: en punta.py, \"veragarrar\" y \"agarrar\"  (o todo junto: tools/recolectar.py)")
     except KeyboardInterrupt:
         base.frenar()

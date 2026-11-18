@@ -1397,3 +1397,34 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
 - Rearmar por ROS: `ros2 topic pub --once /base/comando std_msgs/msg/String "data: r"`; respuestas en
   `ros2 topic echo /base/respuesta --field data` (`e` = estado con rpm y vueltas de cada rueda, `odo0`, `d <izq> <der>`
   repetido a 10 Hz = lazo abierto). Scripts de la Pi en `~/scripts/25-teleop-pi/tools/` (no en `~/scripts/`).
+
+## 2026-11-18 (tarde) — frenado a 0,20 m/s; RODEAR (sin probar); pose plegada y canasta del limón
+
+- **Frenado en el piso a 0,20 m/s:** también para a 20 cm (el usuario: "no se pasa").
+- **RODEAR (27, sin probar en el robot):** `ir_a_parada.planear_rodeo` (desde la parada, ir con la odometría al punto
+  de observación de la cara siguiente: 90° antihorario alrededor del tronco, tronco a 1,1 m / +15 cm de J1, donde la
+  marca se ve entera; después `medir_y_planear` corrige como en la primera). Simulado: girar 25° izq., avanzar 1,47 m,
+  girar 65° izq.; J1 pasa a ≥ 56 cm del tronco. `ir_a_parada.py --rodear N [--auto S]` (solo la base; `--auto`: sin
+  Enter, para correrlo con `nohup` afuera y parar con la seta) y `recolectar.py --paradas N`. Marcas 1–3 pegadas por el
+  usuario; `ver_marcas.py` vio la ID 3 a 1,97 m. Visión se lanza con `bash ~/scripts/vision.sh` (desde cualquier
+  carpeta). N3 de la guía: detención ✓ (hoy), seguimiento ≈ RODEAR (interpretación nuestra, confirmar con la
+  cátedra), evitación reactiva sin hacer.
+- **WROOM: `brazo20_serie.bin` es una imagen COMPLETA (0x0)**; la nota de ESTADO decía 0x10000 y quedó en bucle de
+  `rst:0x3 (SW_RESET)` (se recuperó con `respaldo_wroom_20261112.bin` en 0x0). `esptool image-info` lo detecta
+  (magic 0xff). Imágenes nuevas con `esptool merge-bin` en la Pi.
+- **Dónde soltar el limón: canasta sobre la tapa** (foto del usuario, no versionada: aparece una persona). Con
+  `cinematica.py`, lo que no dejaba llegar sobre la tapa era el borde de arriba de la franja (no la regla de la caja).
+  Con el joystick sin franja (`joystick.py --placa 20 --sin-franja`, ahora en la Pi) llegó bien a (J1 115, J2 45,5,
+  J3 82,3), (115; 50,2; 85,3) y (130,1; 46,7; 81,7) (`20/resultados/limites_20261118_*.csv`): en J2 ~45 la franja
+  vieja daba 51,9 (arrastre del 10/11). **Firmware 20 (`brazo20_serie_20261118b.bin`, flasheado):** zona plegada
+  `SOLTAR_*` (J2 42–51: borde de arriba de la franja 85; J1 hasta 133 (130 con margen; el usuario: no topa) solo con
+  J2 en la zona y J3 ≥ 78, y con J1 > 115 J2/J3 no salen de ahí; freno `>> PLEGADO`; `mv` que pase J1 de 115 exige
+  plegado al salir y al llegar). J3 propio 101,5 → 125 PROVISORIO (el usuario quería ~120 para más recorrido; no se
+  midió: con la canasta no hizo falta).
+- **`soltar` (punta.py; recolectar.py lo hace después de cada agarre, `--sin-soltar` no):** reposo → (86, 17, 4) →
+  (86; 46,7; 40) → (86; 46,7; 80) → (130; 46,7; 80) → `pz a` → vuelta al revés. Con J3 81,7 el `mv` cortó J3 en 80,94
+  por "sin cuentas" (cuatro barras duro cerca del punto muerto, aproximación lenta) → 80. **Probado con limón: cae en
+  la canasta y vuelve al reposo.**
+- Joystick (17): botones de pinza (abrir / `pz 1400`), muñeca (a / 0 / b) y "Servos: suaves / RÁPIDOS", como el teleop.
+- Pendiente: `cinematica.py` sigue con Q1 ≤ 115, Q3 ≤ 98,5 y la franja sin la zona plegada (los planes de `p`/`ap` no
+  la usan); medir J3 > 100 en la zona antes de dejar el 125; el env `ros` (teleop) no tiene la pose plegada.

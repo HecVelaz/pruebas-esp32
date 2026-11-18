@@ -85,6 +85,16 @@
     <label>Escala <input type="range" id="escala" min="20" max="100" value="60"> <span id="escalaV">60 %</span></label>
     <span class="con">Placa: <b id="con">sin datos</b> · <span id="pad">sin gamepad</span></span>
   </div>
+  <div class="anotar" id="servos" style="display:none">
+    <b>Pinza</b>
+    <button data-srv="pz a">Abrir</button>
+    <button data-srv="pz 1400">Cerrar</button>
+    <b>Muñeca</b>
+    <button data-srv="mn a">a</button>
+    <button data-srv="mn 0">0</button>
+    <button data-srv="mn b">b</button>
+    <button id="wServos">Servos: suaves</button>
+  </div>
   <div class="anotar">
     <input id="nota" placeholder="nota (por ejemplo: J3 toca la barra verde)">
     <button id="anotarB">Anotar q1 q2 q3</button>
@@ -127,6 +137,7 @@ let frenado = false;
 let placa = null;
 const CLASE_20 = { FIRME: "OK", MOV: "OK", FRENADA: "OK", "LLEGÓ": "OK", YENDO: "OK", HOMING: "FC", SUELTA: "LIM" };
 function modo20() {
+  document.getElementById("servos").style.display = "";
   document.getElementById("sub").textContent = "Firmware de 20, lazo cerrado: cada barra es la VELOCIDAD de su " +
     "articulación (a fondo J1 12 °/s, J2 y J3 8 °/s); al soltarla frena y se sostiene donde quedó. Primero " +
     "“Homing” con el brazo abajo y recogido. No pasa los límites ni la franja (3° de margen). Alejarse del final " +
@@ -223,6 +234,21 @@ document.getElementById("cero").onclick = () => post("/cero").then(mostrar).catc
 document.getElementById("anotarB").onclick = () => {
   const nota = document.getElementById("nota");
   post("/anotar", nota.value).then(s => { nota.value = ""; mostrar(s); }).catch(() => {});
+};
+// Pinza y muñeca (solo --placa 20), como el teleop de 25 (17/11): "Cerrar" = pz 1400 (20 % más que pz c);
+// "Servos: RÁPIDOS" = rampa 0 (salto directo, a la velocidad del servo), "suaves" = 45 °/s
+document.querySelectorAll("[data-srv]").forEach(b => b.onclick = () =>
+  post("/servo", b.dataset.srv).then(mostrar).catch(() => {}));
+let servosRapidos = false;
+document.getElementById("wServos").onclick = async () => {
+  servosRapidos = !servosRapidos;
+  const w = servosRapidos ? 0 : 45;
+  await post("/servo", `pz w ${w}`).catch(() => {});
+  post("/servo", `mn w ${w}`).then(mostrar).catch(() => {});
+  const b = document.getElementById("wServos");
+  b.textContent = servosRapidos ? "Servos: RÁPIDOS" : "Servos: suaves";
+  b.style.background = servosRapidos ? "#c0392b" : "";
+  b.style.color = servosRapidos ? "#fff" : "";
 };
 document.getElementById("borrarB").onclick = () => {
   if (confirm("¿Borrar la última fila anotada?")) post("/borrar").then(mostrar).catch(() => {});

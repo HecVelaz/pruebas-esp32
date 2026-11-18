@@ -44,8 +44,10 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
 
 ## Brazo (`20-brazo-coordinado`, WROOM)
 
-- **La WROOM de la Pi tiene el env `ros`** (teleop, 17/11). Para `punta.py` / `recolectar.py`: `write-flash 0x10000
-  ~/firmware/brazo20_serie.bin` (env `brazo`); de vuelta: `write-flash 0x0 ~/firmware/respaldo_wroom_20261112.bin`.
+- **WROOM de la Pi: env `brazo` con la pose plegada (18/11, `~/firmware/brazo20_serie_20261118b.bin`)**: J1 hasta 130
+  solo plegado (J2 42–51, J3 78–85; si no, 115), J3 propio 125 (provisorio). **`soltar`** (punta.py y recolectar.py):
+  canasta en J1 130 / J2 46,7 / J3 80, probado con limón. Imágenes completas: `write-flash 0x0` (en 0x10000, bucle).
+  Teleop: `write-flash 0x0 ~/firmware/respaldo_wroom_20261112.bin` (env `ros` viejo, sin la pose plegada).
 - **Abrir el puerto serie reinicia la WROOM** (cero perdido): siempre `h` después (los scripts lo hacen).
 - `punta.py`: `p`, `ap`, `ret`, `tarea`, `anotar`, **`agarrar` / `veragarrar`** (pinza 1300 us, 1 cm más abajo, 3° de
   margen a la franja); `punta.agarrar` y `Vision` se usan desde otros programas.
@@ -61,16 +63,12 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
 - En 20 (`pz`, `mn`): pinza GPIO 4 (abierta 500 µs, cerrada 1250; `agarrar` 1300; el teleop 1400), muñeca GPIO 14
   (cero 1500, ±90° en 860 / 2150 µs). El brazo del servo de la pinza está ~45° corrido (recalzar ~3 dientes).
 
-## Visión (Pi)
-
-- `bash ~/scripts/vision.sh` = `start_limon.sh` con el v3 (`/limon/posicion`); no arranca sola. Ubica limones a 0,40–0,95 m.
-
 ## Máquinas
 
 - Pi 5 `r2d2@100.116.96.71` (Tailscale): las dos placas por USB (S3 `/dev/ttyACM0`, WROOM CH340 `/dev/ttyUSB0`), el GPS
   por la UART0. Se compila en la notebook y se flashea con `~/venvs/esptool/bin/esptool` desde la Pi. Scripts en
   `~/scripts/` (copias en el repo), logs en `~/logs/`. Al apagar: `sudo shutdown now` (sin `now` espera 1 min).
-  Después de reiniciar: `agente_base.sh` y `vision.sh` a mano. `pgrep -f` por ssh se encuentra a sí mismo.
+  Después de reiniciar: `agente_base.sh` y `vision.sh` (`start_limon.sh` v3, `/limon/posicion`, 0,40–0,95 m) a mano.
 - Binarios en `~/firmware/`: WROOM `respaldo_wroom_20261112.bin` (20 `ros`), `brazo20_serie.bin` (20 `brazo`),
   `brazo/respaldo_20261001_183959.bin` (robot); S3 `base_ros_20261113`, `base_ros_20261117_imu` (cargado), `hcsr04_03*`.
 

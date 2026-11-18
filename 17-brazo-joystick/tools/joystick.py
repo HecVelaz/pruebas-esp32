@@ -38,6 +38,9 @@ PAGINA = Path(__file__).absolute().parent / "joystick.html"
 RESULTADOS = Path(__file__).absolute().parent.parent / "resultados"
 RESULTADOS_20 = Path(__file__).absolute().parent.parent.parent / "20-brazo-coordinado" / "resultados"
 # 20: estado de la telemetría (columna "estado" de cada una) y límites de su config.h (con 3° de margen en jv)
+# Pinza y muñeca (solo --placa 20; los botones de la página, como el teleop de 25): "pz 1400" cierra 20 % más que
+# "pz c"; "w 0" = servos rápidos (salto directo), "w 45" = suaves
+SERVOS = {"pz a", "pz 1400", "mn a", "mn 0", "mn b", "pz w 0", "mn w 0", "pz w 45", "mn w 45"}
 ESTADOS_20 = {0: "SUELTA", 1: "YENDO", 2: "LLEGÓ", 3: "FIRME", 4: "FRENADA", 5: "MOV", 6: "HOMING"}
 LIMITES_20 = [[0.0, 118.0], [0.0, 83.0], [0.0, 101.5]]  # 2026-11-04: J2/J3 con la manivela de 95 mm
 RE_C_20 = re.compile(r"^(J[123])\s.*\| final de carrera (apretado|suelto) \| (con cero|SIN CERO)")
@@ -266,6 +269,11 @@ def main():
                     self.send_error(400)
                     return
                 enviar(f"I {n}")
+            elif self.path == "/servo":
+                if not p20 or cuerpo.strip() not in SERVOS:
+                    self.send_error(400)
+                    return
+                enviar(cuerpo.strip())
             elif self.path == "/anotar":
                 anotar(cuerpo.strip().replace("\n", " ")[:200])
             elif self.path == "/borrar":

@@ -392,6 +392,28 @@ TAREA_A = (-550.0, 100.0, 100.0)
 PINZA_AGARRE_US = 1250   # = pz c. 11/11: con 1250 una vez a J2 no le alcanzó para salir (con 1150 sí, pero agarra flojo)
 TAREA_B = (-450.0, 350.0, 100.0)
 REPOSO = (3.0, 17.0, 4.0)
+# Soltar el limón en la canasta sobre la tapa (2026-11-18, con el joystick: Imágenes/brazo/Pos_canasta.jpeg). Pose
+# plegada del firmware (config.h SOLTAR_*: J1 > 115 solo con J2 42-51 y J3 >= 78). Camino desde el reposo: J1 al
+# frente (no plegar del lado del árbol), J2/J3 a una pose intermedia dentro de la franja, plegar J3 y girar J1 hasta
+# la canasta; la vuelta, al revés. Modelo: sin choques; la pinza a ~14 cm del mástil con J1 en 130
+# J3 80 y no 81,7 (la del joystick): con "mv" J3 se cortó en 80,94 por "sin cuentas" (cerca del punto muerto del cuatro
+# barras está dura y la aproximación final va lenta); 80 sigue siendo "plegado" (>= 78)
+CANASTA = (130.0, 46.7, 80.0)
+CAMINO_CANASTA = [(86.0, 17.0, 4.0), (86.0, 46.7, 40.0), (86.0, 46.7, 80.0), CANASTA]
+
+
+def soltar(placa, timeout, volver=True):
+    """Lleva el limón a la canasta, abre la pinza y (con volver) regresa al reposo. True si todo anduvo."""
+    print("== soltar en la canasta")
+    if not ejecutar(placa, CAMINO_CANASTA, timeout):
+        return False
+    if not servo(placa, "pz a"):
+        return False
+    time.sleep(0.5)   # que caiga
+    if volver:
+        print("== volver al reposo")
+        return ejecutar(placa, CAMINO_CANASTA[-2::-1] + [REPOSO], timeout)
+    return True
 
 
 def planear_tarea(s, A, B):
@@ -609,7 +631,7 @@ def sesion(args):
     placa = Placa(args.puerto)
     vision, tf = None, None
     time.sleep(2.0)  # saludo y ayuda si se reinició al abrir
-    print("[punta.py: \"p x y z\", \"ver x y z\", \"ap x y z\", \"verap x y z\", \"ret\", \"donde\", \"anotar\", \"salir\"; lo demás "
+    print("[punta.py: \"p x y z\", \"ver x y z\", \"ap x y z\", \"verap x y z\", \"ret\", \"soltar [quedar]\", \"donde\", \"anotar\", \"salir\"; lo demás "
           "va a la placa (pz, mn, mv, c, s...). Primero \"h\"]")
     try:
         while placa.vivo:
@@ -636,6 +658,8 @@ def sesion(args):
                 plan = mostrar_plan(s, x, y, z)
                 if plan and w[0] == "p":
                     ejecutar(placa, plan, args.timeout)
+            elif w[0] == "soltar":
+                soltar(placa, args.timeout, volver=not (len(w) > 1 and w[1] == "quedar"))
             elif w[0] in ("ap", "verap", "ret"):
                 try:
                     v = [float(t) for t in w[1:]]

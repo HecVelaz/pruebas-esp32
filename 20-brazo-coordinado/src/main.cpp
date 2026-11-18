@@ -72,8 +72,8 @@ bool cerosJ2J3() { return cero[I2] && cero[I3]; }
 // ---------- Franja del cuatro barras (config.h, 2026-11-04): q2 - Q2_MENOS_Q3_MAX <= q3 <= q3MaxFranja(q2) ----------
 constexpr int N_FRANJA = sizeof(FRANJA_ARRIBA) / sizeof(FRANJA_ARRIBA[0]);
 
-// Borde de arriba: q3 máximo con J2 en q2 (tabla interpolada; fuera de la tabla, el valor del extremo)
-float q3MaxFranja(float q2) {
+// Borde de arriba de la TABLA: q3 máximo con J2 en q2 (interpolada; fuera de la tabla, el valor del extremo). Crece
+float q3MaxTablaArriba(float q2) {
   if (q2 <= FRANJA_ARRIBA[0].q2) return FRANJA_ARRIBA[0].q3Max;
   for (int k = 1; k < N_FRANJA; k++) {
     const PuntoFranja &a = FRANJA_ARRIBA[k - 1], &b = FRANJA_ARRIBA[k];
@@ -81,9 +81,24 @@ float q3MaxFranja(float q2) {
   }
   return FRANJA_ARRIBA[N_FRANJA - 1].q3Max;
 }
+// Pose plegada para soltar (config.h, 2026-11-18): J2 en la zona (y J3 alta, para J1 más allá de J1_MAX_NORMAL)
+bool q2EnZonaSoltar(float q2) { return q2 >= SOLTAR_Q2_MIN && q2 <= SOLTAR_Q2_MAX; }
+bool plegado(float q2lo, float q2hi, float q3lo) {
+  return q2lo >= SOLTAR_Q2_MIN && q2hi <= SOLTAR_Q2_MAX && q3lo >= SOLTAR_Q3_MIN;
+}
+// Borde de arriba de la franja: la tabla, y en la zona de soltar al menos SOLTAR_Q3_MAX (ya no crece siempre)
+float q3MaxFranja(float q2) {
+  const float t = q3MaxTablaArriba(q2);
+  return q2EnZonaSoltar(q2) ? fmaxf(t, SOLTAR_Q3_MAX) : t;
+}
+// El más bajo con J2 entre a y b (a <= b): la tabla crece, así que es la de a, salvo que todo el tramo esté en la zona
+float q3MaxFranjaEntre(float a, float b) {
+  const float t = q3MaxTablaArriba(a);
+  return (q2EnZonaSoltar(a) && q2EnZonaSoltar(b)) ? fmaxf(t, SOLTAR_Q3_MAX) : t;
+}
 
-// Al revés: el q2 mínimo para que q3 quede debajo del borde de arriba (la tabla crece). -inf si cualquier q2 sirve,
-// +inf si ninguno (q3 más alto que el último punto)
+// Al revés, con la TABLA (sin la zona de soltar): el q2 mínimo para que q3 quede debajo del borde de arriba (la tabla
+// crece). -inf si cualquier q2 sirve, +inf si ninguno (q3 más alto que el último punto)
 float q2MinFranja(float q3) {
   if (q3 <= FRANJA_ARRIBA[0].q3Max) return -INFINITY;
   for (int k = 1; k < N_FRANJA; k++) {
@@ -219,6 +234,7 @@ void homingCortar(const char *causa) {
 // La medición de J2/J3 salió de la franja (la tarea frena una vez por episodio; "zq" lo pone si ya empieza afuera)
 bool fueraFranja = false;
 bool fueraCaja = false;  // ya avisado (una vez por episodio)
+bool fueraPlegado = false;  // J1 más allá de J1_MAX_NORMAL sin el brazo plegado: ya avisado
 
 bool fueraFranjaAhora() {
   return cerosJ2J3() && excesoFranjaAhora() > FRANJA_HOLGURA;
@@ -694,6 +710,15 @@ void comandoMv(const char *args) {
         q3MaxCaja(obj[I2]) - MARGEN_FRANJA);
     return;
   }
+  // J1 más allá de J1_MAX_NORMAL (o volviendo de ahí): J2 y J3 plegadas al salir y al llegar (el camino entre dos
+  // poses plegadas queda adentro: la zona es un rectángulo y J2/J3 van en recta)
+  if (fmaxf(obj[I1], art[I1].q()) > J1_MAX_NORMAL - MARGEN_LIMITE &&
+      (!plegado(obj[I2], obj[I2], obj[I3]) || !plegado(art[I2].q(), art[I2].q(), art[I3].q()))) {
+    msg("J1 pasada %.0f° solo con el brazo plegado al salir y al llegar: J2 entre %.0f° y %.0f°, J3 desde %.0f° "
+        "(primero mv a la pose plegada con J1 <= %.0f°).", J1_MAX_NORMAL - MARGEN_LIMITE, SOLTAR_Q2_MIN, SOLTAR_Q2_MAX,
+        SOLTAR_Q3_MIN, J1_MAX_NORMAL - MARGEN_LIMITE);
+    return;
+  }
   if (fueraFranjaAhora()) {
     msg("J2 y J3 fuera de la franja ahora (%.2f° afuera): volver adentro con \"j\" antes.", excesoFranjaAhora());
     return;
@@ -807,6 +832,25 @@ void rangoCaja(int i, float &mn, float &mx) {
   mn = fmaxf(mn, b);
 }
 
+// J1 más allá de J1_MAX_NORMAL solo con el brazo plegado (config.h, 2026-11-18); con J1 ahí, J2 y J3 no salen de la
+// pose plegada. Siempre activa (también con "fr 0"). Las otras, en el peor caso entre su medido y su referencia
+void rangoPlegado(int i, float &mn, float &mx) {
+  const auto lo = [](int k) { return fminf(art[k].q(), art[k].referencia()); };
+  const auto hi = [](int k) { return fmaxf(art[k].q(), art[k].referencia()); };
+  const float j1Normal = J1_MAX_NORMAL - MARGEN_LIMITE;
+  if (i == I1) {
+    if (!plegado(lo(I2), hi(I2), lo(I3))) mx = fminf(mx, j1Normal);
+    return;
+  }
+  if (hi(I1) <= j1Normal + 0.5f) return;
+  if (i == I2) {
+    mn = fmaxf(mn, SOLTAR_Q2_MIN + 0.3f);
+    mx = fminf(mx, SOLTAR_Q2_MAX - 0.3f);
+  } else {
+    mn = fmaxf(mn, SOLTAR_Q3_MIN + 0.3f);
+  }
+}
+
 bool rango(int i, float &mn, float &mx) {
   const ConfigArticulacion &c = art[i].cfg();
   mn = c.limNeg + MARGEN_LIMITE;
@@ -819,14 +863,26 @@ bool rango(int i, float &mn, float &mx) {
     const float lo = fminf(qo1, qo2), hi = fmaxf(qo1, qo2);
     // (la tabla del borde de arriba crece: el peor caso de la otra es su valor más alto o más bajo)
     if (i == I2) {  // q2 entre q2MinFranja(q3) y q3 + Q2_MENOS_Q3_DESTINO
-      mn = fmaxf(mn, q2MinFranja(hi + MARGEN_FRANJA));
+      const float mnTabla = q2MinFranja(hi + MARGEN_FRANJA), q2 = art[I2].q();
+      if (mnTabla > SOLTAR_Q2_MIN + MARGEN_FRANJA && hi + MARGEN_FRANJA <= SOLTAR_Q3_MAX &&
+          q2 >= SOLTAR_Q2_MIN - 0.5f && q2 <= SOLTAR_Q2_MAX + 0.5f) {
+        // J3 más alta que la tabla y J2 en la zona de soltar: J2 no sale de la zona (salvo hacia arriba si la tabla
+        // ya deja a J3 antes del final de la zona)
+        mn = fmaxf(mn, SOLTAR_Q2_MIN + MARGEN_FRANJA);
+        if (mnTabla > SOLTAR_Q2_MAX - MARGEN_FRANJA) mx = fminf(mx, SOLTAR_Q2_MAX - MARGEN_FRANJA);
+      } else {
+        mn = fmaxf(mn, mnTabla);
+      }
       mx = fminf(mx, fminf(lo + Q2_MENOS_Q3_DESTINO, q2MaxTabla(lo)) - MARGEN_FRANJA);
     } else {        // q3 entre q2 - Q2_MENOS_Q3_DESTINO y q3MaxFranja(q2)
       mn = fmaxf(mn, q3MinDestino(hi) + MARGEN_FRANJA);
-      mx = fminf(mx, q3MaxFranja(lo) - MARGEN_FRANJA);
+      mx = fminf(mx, q3MaxFranjaEntre(lo, hi) - MARGEN_FRANJA);
     }
   }
-  if (cero[I1] && cerosJ2J3()) rangoCaja(i, mn, mx);
+  if (cero[I1] && cerosJ2J3()) {
+    rangoCaja(i, mn, mx);
+    rangoPlegado(i, mn, mx);
+  }
   return true;
 }
 
@@ -1222,6 +1278,22 @@ void control(void *) {
       }
       fueraCaja = fuera;
     }
+    // J1 más allá de J1_MAX_NORMAL sin el brazo plegado (con holgura): frenar las tres (las del joystick no: rango() no
+    // las deja salir). Una vez por episodio
+    if (cero[I1] && cerosJ2J3()) {
+      const bool fuera = art[I1].q() > J1_MAX_NORMAL + FRANJA_HOLGURA &&
+                         !plegado(art[I2].q() + FRANJA_HOLGURA, art[I2].q() - FRANJA_HOLGURA,
+                                  art[I3].q() + FRANJA_HOLGURA);
+      if (fuera && !fueraPlegado) {
+        if (hm.activo) homingCortar("J1 pasada sin el brazo plegado");
+        if (mv.activo) mvCortar("J1 pasada sin el brazo plegado");
+        for (int i = 0; i < N; i++)
+          if (!joy.mueve[i] && art[i].modo() != Articulacion::Modo::Suelta) art[i].frenarAqui();
+        msg(">> PLEGADO: J1 %+.2f° pasada %.0f° sin el brazo plegado (J2 %+.2f°, J3 %+.2f°). Frenadas: volver J1 con "
+            "\"j\".", art[I1].q(), J1_MAX_NORMAL, art[I2].q(), art[I3].q());
+      }
+      fueraPlegado = fuera;
+    }
     // Cortes y avisos de cada una (una vez)
     for (int i = 0; i < N; i++) {
       const char *e = art[i].error();
@@ -1322,7 +1394,8 @@ void setup() {
   for (const PuntoFranja &p : CAJA_ARRIBA) out->printf(" %.0f->%.1f", p.q2, p.q3Max);
   out->printf("; abajo, además, tabla:");
   for (const PuntoFranjaAbajo &p : FRANJA_ABAJO) out->printf(" %.0f->%.1f", p.q2, p.q3Min);
-  out->printf(". J1 0-%.0f° (PROVISORIO: estirado choca antes), J2 0-%.0f°, J3 0-%.1f°.\n", CFG_J1.limPos,
+  out->printf(". J1 0-%.0f° (0-%.0f° solo plegado: J2 %.0f-%.0f°, J3 desde %.0f°), J2 0-%.0f°, J3 0-%.1f°.\n",
+              J1_MAX_NORMAL, CFG_J1.limPos, SOLTAR_Q2_MIN, SOLTAR_Q2_MAX, SOLTAR_Q3_MIN,
                 CFG_J2.limPos, CFG_J3.limPos);
   if (!servosIniciar()) out->println("ERROR: no se pudo configurar el LEDC de la pinza o de la muñeca.");
   if (!hwOk) out->println("ERROR: no se pudo configurar algún PWM o encoder.");

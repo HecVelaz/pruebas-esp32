@@ -9,12 +9,16 @@ Orden (lo va pidiendo el programa):
   1. 12 V APAGADOS, brazo abajo y recogido: abre el puerto de la WROOM (eso la reinicia).
   2. "Encendé los 12 V" + Enter -> homing del brazo (h) y reposo (mv 3 17 4).
   3. Mira la marca de la maceta (hace falta verla a ~0,9–4 m a la izquierda) y muestra el plan de la base.
-  4. Enter -> la base va a la parada, mide el limón 5 s y lo agarra (sin más preguntas). Queda con el limón en la
-     pinza, en el reposo.
+  4. Enter -> la base va a la parada, mide el limón 5 s, lo agarra y lo lleva a la canasta sobre la tapa
+     (punta.soltar: pose plegada con J1 en 130, abre la pinza y vuelve al reposo; --sin-soltar lo deja en la pinza).
+  5. Con --paradas N > 1, RODEAR: Enter -> va con la
+     odometría al punto de observación de la cara siguiente (90° antihorario alrededor del tronco, el árbol a la
+     izquierda, tronco a --observar del J1: ahí la marca se ve entera), mira esa marca, corrige hasta la parada como
+     en el paso 4 y agarra. Así hasta N paradas (las marcas 0, 1, 2, 3 en sentido antihorario).
 Ctrl+C en cualquier momento: frena la base y manda "s" al brazo. Al final: "pz a" en punta.py suelta el limón.
 
-Uso: python3 tools/recolectar.py [--radio-maceta 165] [--parada 700 150] [--sin-orientacion]
-     (siempre hace el homing: abrir el puerto reinicia la WROOM y pierde el cero)
+Uso: python3 tools/recolectar.py [--paradas 1] [--radio-maceta 165] [--parada 700 150] [--observar 1100 150]
+     [--sin-orientacion]   (siempre hace el homing: abrir el puerto reinicia la WROOM y pierde el cero)
 """
 import argparse
 import sys
@@ -51,14 +55,36 @@ def homing(placa):
     return True
 
 
+def rodear(base, marcas, placa, a, parada, observar, k):
+    """Va al punto de observación de la cara siguiente y mira la marca. Devuelve los pasos hasta la
+    parada siguiente ([] si ya está) o None si hay que cortar."""
+    if not preguntar(f"5) Enter para rodear a la parada {k + 1} (cualquier otra cosa termina): "):
+        print("terminado")
+        return None
+    pasos = iap.planear_rodeo(parada, observar)   # el tronco está donde lo dejó la parada (según la odometría)
+    print(f"== rodear: {iap.texto(pasos)} (J1 a {iap.distancia_minima(parada, pasos) / 10:.0f} cm del tronco como "
+          f"mínimo)")
+    if not iap.ejecutar(base, pasos):
+        return None
+    base.girar_ros(1.0)   # quieta antes de mirar (la marca que ve tiene que ser la siguiente: IDs antihorario)
+    return iap.medir_y_planear(base, marcas, a.radio_maceta, parada, not a.sin_orientacion)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--radio-maceta", type=float, default=165.0, help="mm del eje del tronco a la cara de la marca")
     ap.add_argument("--parada", type=float, nargs=2, default=[700.0, 150.0], metavar=("D", "Y"))
+    ap.add_argument("--observar", type=float, nargs=2, default=[1100.0, 150.0], metavar=("D", "Y"),
+                    help="al rodear: tronco a D mm a la izquierda de J1 e Y adelante (más lejos que la parada)")
+    ap.add_argument("--paradas", type=int, default=1, help="cuántas caras recorrer (1 = solo la primera, máx 4)")
     ap.add_argument("--sin-orientacion", action="store_true")
+    ap.add_argument("--sin-soltar", action="store_true", help="no llevar el limón a la canasta (queda en la pinza)")
     ap.add_argument("--puerto", default=None, help="puerto de la WROOM (def. el de punta.py)")
     a = ap.parse_args()
     parada = (-a.parada[0], a.parada[1])
+    observar = (-a.observar[0], a.observar[1])
+    if not 1 <= a.paradas <= 4:
+        sys.exit("--paradas entre 1 y 4")
 
     import rclpy
     import punta
@@ -94,15 +120,28 @@ def main():
             print("cancelado")
             return
         t0 = time.time()
-        if pasos and not iap.ejecutar(base, pasos):
-            return
-        iap.mirar_al_llegar(base, marcas, a.radio_maceta, parada)
-        print("== agarrar el limón")
-        base.girar_ros(1.0)   # que la base quede quieta antes de medir
-        if punta.agarrar(placa, vision, tf, 5.0, True, TIMEOUT_MV, confirmar=False):
-            print(f"LISTO: limón agarrado en {time.time() - t0:.0f} s desde que arrancó la base. \"pz a\" lo suelta.")
-        else:
-            print("el agarre no se hizo (ver arriba por qué); el robot quedó en la parada")
+        for k in range(a.paradas):
+            if k > 0:
+                pasos = rodear(base, marcas, placa, a, parada, observar, k)
+                if pasos is None:
+                    return
+            if pasos and not iap.ejecutar(base, pasos):
+                return
+            pasos = None
+            iap.mirar_al_llegar(base, marcas, a.radio_maceta, parada)
+            print(f"== agarrar el limón (parada {k + 1} de {a.paradas})")
+            base.girar_ros(1.0)   # que la base quede quieta antes de medir
+            if punta.agarrar(placa, vision, tf, 5.0, True, TIMEOUT_MV, confirmar=False):
+                print(f"limón agarrado en {time.time() - t0:.0f} s desde que arrancó la base")
+                if a.sin_soltar:
+                    print("(--sin-soltar: queda en la pinza; \"pz a\" lo suelta)")
+                elif punta.soltar(placa, TIMEOUT_MV):
+                    print(f"LISTO: limón en la canasta a los {time.time() - t0:.0f} s")
+                else:
+                    print("no se pudo soltar en la canasta (ver arriba); el brazo quedó donde está")
+                    return
+            else:
+                print("el agarre no se hizo (ver arriba por qué); el robot quedó en la parada")
     except KeyboardInterrupt:
         base.frenar()
         placa.mandar("s")

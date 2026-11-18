@@ -73,6 +73,19 @@ constexpr PuntoFranja CAJA_ARRIBA[] = {
     {78.0f, 72.7f}, {79.0f, 73.2f}, {80.0f, 74.2f}, {81.0f, 74.7f}, {82.0f, 75.7f}, {83.0f, 76.2f},
 };
 
+// ---------- Pose plegada para soltar el limón sobre la tapa (2026-11-18) ----------
+// Con el joystick sin franja (fr 0), J1 en 115 y (J2 45,5; J3 82,3) la pinza queda sobre la tapa y el usuario dice
+// que llega bien (resultados/limites_20261118_143940.csv). Esa zona está FUERA de FRANJA_ARRIBA (con J2 en 45 la tabla
+// da J3 51,9, arrastre del 10/11): dentro de [SOLTAR_Q2_MIN, SOLTAR_Q2_MAX] el borde de arriba de la franja sube a
+// SOLTAR_Q3_MAX. Y J1 pasa de J1_MAX_NORMAL (el tope de siempre) hasta CFG_J1.limPos SOLO con el brazo plegado
+// (J2 en la zona y J3 >= SOLTAR_Q3_MIN); mientras J1 esté más allá, J2 y J3 no pueden salir de ahí (estirado choca con
+// el soporte de la visión). Modelo (cinematica.py, extrapolado): J1 125 -> pinza a ~23 cm de J1, ~19 cm sobre la tapa,
+// ~16 cm del mástil
+constexpr float SOLTAR_Q2_MIN = 42.0f, SOLTAR_Q2_MAX = 51.0f;  // 51: (50,2; 85,3) también llega bien (18/11)
+constexpr float SOLTAR_Q3_MIN = 78.0f;   // desde acá el brazo cuenta como plegado (para J1 > J1_MAX_NORMAL)
+constexpr float SOLTAR_Q3_MAX = 85.0f;   // borde de arriba de la franja en la zona (82,3 alcanzado + ~3)
+constexpr float J1_MAX_NORMAL = 118.0f;  // tope de J1 fuera de la pose plegada (el de antes)
+
 constexpr float FRANJA_HOLGURA = 0.5f;  // el control frena todo si la medición sale de la franja más que esto
 // Margen a la franja para los destinos de "j", "mv" y el joystick (el de los límites propios es MARGEN_LIMITE). Con
 // 3° como los límites, "mv 3 3 3" y el reposo del homing quedaban afuera (en q2 = 3 el codo llega a 4,7°)
@@ -164,7 +177,9 @@ constexpr ConfigArticulacion CFG_J1 = {
     // Límites: 0-118° medidos con el brazo RECOGIDO; estirado choca antes con el soporte de la visión (sin medir).
     // 2026-11-03: 90 -> 118° PROVISORIO, para medir con el joystick hasta dónde llega (el usuario espera 120-130°);
     // ojo con el brazo estirado: ni "mv" ni el joystick esquivan el soporte. Con MARGEN_LIMITE, hasta 115°
-    0.0f, 118.0f, 70.0f,
+    // 2026-11-18: 118 -> 133° (130 con margen; el usuario: "a 130 no topa con nada") solo con el brazo plegado
+    // (SOLTAR_*); si no, J1_MAX_NORMAL (118)
+    0.0f, 133.0f, 70.0f,
     0.549f, 4.0f,                         // PI de velocidad de 12 (terminada)
     17.0f, 17.0f, 17.0f, 17.0f, 0.0f,     // feedforward de 12 (sin gravedad)
     2.0f, 30.0f, 60.0f, 3.0f, 0.3f, 0.6f, 200,
@@ -221,7 +236,10 @@ constexpr ConfigArticulacion CFG_J3 = {
     16.0f * 4.0f * 139.0f * (75.0f / 15.0f) / 360.0f,
     false, true,                          // 19: motor y encoder invertidos juntos
     // 2026-11-04 (manivela de 95 mm): 113 -> 101,5°, el borde de la franja en q2 = 105 (traba en 103,6° - 2°)
-    0.0f, 101.5f, 70.0f,
+    // 2026-11-18: 101,5 -> 125° PROVISORIO, para medir con "fr 0" si en la pose plegada (J2 ~45-50) J3 llega a ~120
+    // (pedido del usuario: más recorrido sobre la caja). Con la franja prendida, fuera de la zona plegada la tabla sigue
+    // dejando J3 <= 88; dentro, SOLTAR_Q3_MAX
+    0.0f, 125.0f, 70.0f,
     0.549f, 4.0f,
     20.0f, 10.0f, 40.0f, 30.0f, 0.0f,     // PROVISORIO (sin medir)
     // tolPos 0,3 -> 0,15 (2026-10-31: repite en 0,03° en vez de 0,30°) -> 0,20 (2026-11-05): "firme" con el mismo umbral
