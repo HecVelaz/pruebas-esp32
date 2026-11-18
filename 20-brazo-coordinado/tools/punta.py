@@ -537,7 +537,11 @@ DISPERSION_MAX = 10.0   # mm: más que esto, el limón se movió o la visión du
 MIN_POSICIONES = 3
 RADIO_LIMON = 25.0      # mm (limón de juguete de 5 cm; uno real: ~30)
 AGARRAR_PINZA_US = 1200 # 18/11, RDS3218: pz c (con el MG996R 1300, un poco más que su pz c 1250)
-AGARRAR_DZ = -10.0      # mm: 13/11, agarrar siempre 1 cm más abajo de lo que da la visión
+AGARRAR_DZ = 0.0        # mm: 13/11 -10 (1 cm más abajo de lo que da la visión); 18/11 0: lo corrige Z_VISION_*
+# Altura de la visión corregida (18/11, 3 limones medidos con cinta a 33 / 46 / 51 cm del piso: la visión daba
+# 31,2 / 49,8 / 56,1 cm; error de escala, recta con < 4 mm de residuo). z (modelo) = Z_VISION_A + Z_VISION_B · z visión.
+# Con piso ≈ 256 + 1,43·z (cinta, 12/11). Rehacer si se mueve una cámara o se recalibra cámara -> brazo
+Z_VISION_A, Z_VISION_B = 23.1, 0.718
 
 
 class Vision:
@@ -642,11 +646,13 @@ def agarrar(placa, vision, tf, seg, mover, timeout, confirmar=True):
     if disp > DISPERSION_MAX:
         print(f"NO: dispersión {disp:.1f} mm (> {DISPERSION_MAX:.0f}): ¿se movió el limón? Repetir")
         return False
-    x, y, z = ajc.camara_a_cinematica(R, t, cara, RADIO_LIMON)
+    x, y, z_vis = ajc.camara_a_cinematica(R, t, cara, RADIO_LIMON)
+    z = Z_VISION_A + Z_VISION_B * float(z_vis)
     limon = (round(float(x)), round(float(y)), round(float(z) + AGARRAR_DZ))
     print(f"  cámara (cara): x {cara[0]:+.0f}  y {cara[1]:+.0f}  z {cara[2]:.0f} mm  ({n} posiciones, dispersión "
           f"{disp:.1f} mm)")
-    print(f"  limón (centro): x {limon[0]}  y {limon[1]}  z {z:.0f} mm -> agarre en z {limon[2]} ({AGARRAR_DZ:+.0f})"
+    print(f"  limón (centro): x {limon[0]}  y {limon[1]}  z {z:.0f} mm (visión {float(z_vis):.0f}, corregida: ~"
+          f"{(256 + 1.43 * z) / 10:.0f} cm del piso) -> agarre en z {limon[2]} ({AGARRAR_DZ:+.0f})"
           f"   (= ap {limon[0]} {limon[1]} {limon[2]})")
     s = placa.angulos() if placa else (3.0, 17.0, 4.0)
     if s is None:
