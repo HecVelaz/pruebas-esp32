@@ -496,7 +496,8 @@ def servo(placa, cmd, timeout=8.0):
 # velocidad 1, la salida con el limón cortó ("J2 se mueve al revés": bajaba rápido y la aproximación desde abajo la
 # invertía con la carga). Entrar al limón sigue preciso (mv); el punto frente al limón también (de él sale la recta)
 DE_PASO = {"ir frente al limón": (True, False), "salir de frente": (True, True), "reposo": (True, False),
-           "tirar": (True, True), "arrastrar con J1": (True, True)}
+           "tirar": (True, True), "arrastrar con J1": (True, True), "a la canasta": (True, True),
+           "desplegar": (True, True)}
 
 
 def correr_tarea(placa, pasos, timeout):
@@ -606,7 +607,7 @@ TIRON_MUNECA = "mn a"      # 90° horario
 TIRON_J1 = 5.0             # ° (a ~60 cm de J1: ~5 cm de costado)
 
 
-def planear_agarre(s, limon):
+def planear_agarre(s, limon, a_canasta=False):
     """De los ángulos s: entrar de frente al limón, cerrar, tirar, girar la muñeca, arrastrar de costado con J1,
     salir lo más posible y al reposo. (pasos, motivos)."""
     # Entrada de frente desde 10 cm; si el punto previo no entra (limón bajo y cerca de J1, 18/11: a 33 cm del piso y
@@ -634,46 +635,68 @@ def planear_agarre(s, limon):
     sa, m_ret = con_margen(MARGEN_SALIDA_CARGA, planear_salida_max, de)
     if sa is None:
         return None, ["salida: " + "; ".join(m_ret)]
+    comun = [("cmd", "pz w 0"), ("cmd", "mn w 0"),   # servos a su velocidad máxima (salto directo)
+             ("servo", "pz a"), ("ir frente al limón", pa[:-1]), ("entrar de frente", pa[-1:]),
+             ("servo", f"pz {AGARRAR_PINZA_US}"), ("tirar", ti), ("servo", TIRON_MUNECA),
+             ("arrastrar con J1", [de]), ("salir de frente", sa), ("servo", "mn 0")]
+    if a_canasta:
+        # Directo a la canasta, sin subir al reposo (18/11). La canasta (J1 130) queda fuera del modelo (Q1 <= 115):
+        # se revisa el camino hasta el punto de plegado; el último tramo es el de soltar(), probado
+        camino = CAMINO_CANASTA
+        m_c = revisar_camino(sa[-1], camino[0]) + revisar_camino(camino[0], camino[1])
+        if m_c:   # limón bajo: el giro de J1 barre la tapa -> primero subir J2/J3 sin girar, después girar
+            sube = (sa[-1][0],) + tuple(CAMINO_CANASTA[0][1:])
+            camino = [sube] + CAMINO_CANASTA
+            m_c = (revisar_camino(sa[-1], sube) + revisar_camino(sube, camino[1]) +
+                   revisar_camino(camino[1], camino[2]))
+        if m_c:
+            return None, ["a la canasta: " + "; ".join(m_c)]
+        return comun + [("a la canasta", camino), ("servo", "pz a")], m_ent + m_ret
     rp, m = con_margen(MARGEN_SALIDA_CARGA, planear_q, sa[-1], REPOSO)
     if rp is None:
         return None, ["al reposo: " + "; ".join(m)]
-    return [("cmd", "pz w 0"), ("cmd", "mn w 0"),   # servos a su velocidad máxima (salto directo)
-            ("servo", "pz a"), ("ir frente al limón", pa[:-1]), ("entrar de frente", pa[-1:]),
-            ("servo", f"pz {AGARRAR_PINZA_US}"), ("tirar", ti), ("servo", TIRON_MUNECA), ("arrastrar con J1", [de]),
-            ("salir de frente", sa), ("servo", "mn 0"), ("reposo", rp)], m_ent + m_ret
+    return comun + [("reposo", rp)], m_ent + m_ret
 
 
-def agarrar(placa, vision, tf, seg, mover, timeout, confirmar=True):
-    """Mide el limón, planea y (con mover) agarra. confirmar: pide Enter antes de mover. True si agarró."""
+def medir_limon(vision, tf, seg):
+    """Mide el limón con la visión: el punto de agarre (x, y, z) en mm (corregido), o None."""
     R, t = tf
     print(f"midiendo /limon/posicion {seg:.0f} s (brazo quieto y fuera de la vista)...")
     cara, n, disp, marcos = vision.medir(seg)
     if cara is None:
         print(f"NO: solo {n} posiciones en {seg:.0f} s (¿start_limon.sh corriendo? ¿se ve el limón?)")
-        return False
+        return None
     if marcos != {"camera"}:
         print(f"NO: /limon/posicion viene en {marcos}, la calibración es para `camera`")
-        return False
+        return None
     if disp > DISPERSION_MAX:
         print(f"NO: dispersión {disp:.1f} mm (> {DISPERSION_MAX:.0f}): ¿se movió el limón? Repetir")
-        return False
+        return None
     x, y, z_vis = ajc.camara_a_cinematica(R, t, cara, RADIO_LIMON)
     z = Z_VISION_A + Z_VISION_B * float(z_vis)
-    # Entrar AGARRAR_ADELANTE más allá del centro, en la dirección de entrada (desde J1): 18/11 la pinza quedaba ~4 cm
-    # corta (la punta del modelo está adelante de donde cierran los dedos)
+    # Entrar AGARRAR_ADELANTE más allá del centro, en la dirección de entrada (desde J1): 18/11 la pinza quedaba corta
+    # (la punta del modelo está adelante de donde cierran los dedos)
     r = math.hypot(float(x), float(y))
     x, y = float(x) * (r + AGARRAR_ADELANTE) / r, float(y) * (r + AGARRAR_ADELANTE) / r
     limon = (round(x), round(y), round(float(z) + AGARRAR_DZ))
     print(f"  cámara (cara): x {cara[0]:+.0f}  y {cara[1]:+.0f}  z {cara[2]:.0f} mm  ({n} posiciones, dispersión "
           f"{disp:.1f} mm)")
-    print(f"  limón (centro): x {limon[0]}  y {limon[1]}  z {z:.0f} mm (visión {float(z_vis):.0f}, corregida: ~"
-          f"{(256 + 1.43 * z) / 10:.0f} cm del piso) -> agarre en z {limon[2]} ({AGARRAR_DZ:+.0f})"
-          f"   (= ap {limon[0]} {limon[1]} {limon[2]})")
+    print(f"  limón: a {r / 10:.0f} cm de J1, ~{(256 + 1.43 * z) / 10:.0f} cm del piso (z visión {float(z_vis):.0f}, "
+          f"corregida {z:.0f}) -> agarre en ({limon[0]}, {limon[1]}, {limon[2]})")
+    return limon
+
+
+def agarrar(placa, vision, tf, seg, mover, timeout, confirmar=True, a_canasta=False):
+    """Mide el limón, planea y (con mover) agarra. a_canasta: después de salir va directo a la canasta y suelta (sin
+    pasar por el reposo). confirmar: pide Enter antes de mover. True si agarró."""
+    limon = medir_limon(vision, tf, seg)
+    if limon is None:
+        return False
     s = placa.angulos() if placa else (3.0, 17.0, 4.0)
     if s is None:
         return False
     print("planeando...")
-    pasos, mot = planear_agarre(s, limon)
+    pasos, mot = planear_agarre(s, limon, a_canasta)
     if pasos is None:
         print("NO:", "; ".join(mot))
         return False
@@ -692,12 +715,63 @@ def agarrar(placa, vision, tf, seg, mover, timeout, confirmar=True):
             return False
     try:
         if correr_tarea(placa, pasos, timeout):
-            print("[limón en la pinza: \"pz a\" para soltarlo]")
+            print("[limón en la canasta]" if a_canasta else "[limón en la pinza: \"pz a\" para soltarlo]")
             return True
     except KeyboardInterrupt:
         placa.mandar("s")
         print("[Ctrl+C: \"s\", las tres se sostienen donde están]")
     return False
+
+
+# Cosechar varios (18/11): medir uno, agarrarlo y llevarlo a la canasta, y medir el siguiente desde ahí (en la canasta
+# el brazo está fuera de la vista de la cámara): el árbol se mueve al arrancar cada limón, así que se mide de nuevo.
+# Desde la canasta (J1 130, fuera del modelo) primero vuelve de paso a DESPLEGAR (J1 100, todavía plegado)
+DESPLEGAR = (100.0, 46.7, 80.0)
+SOLTAR_Q2_MIN_PY = 42.0
+
+
+def cosechar(placa, vision, tf, n, seg, timeout, confirmar=True):
+    """Hasta n limones a la canasta; al final, al reposo. Devuelve cuántos dejó en la canasta."""
+    if confirmar:
+        try:
+            r = input(f"Enter para cosechar hasta {n} limones (cualquier otra cosa cancela): ")
+        except EOFError:
+            r = "no"
+        if r.strip() != "":
+            print("cancelado")
+            return 0
+    t0, hechos = time.time(), 0
+    try:
+        for i in range(n):
+            print(f"===== limón {i + 1} de {n}")
+            limon = medir_limon(vision, tf, seg)
+            if limon is None:
+                break
+            s = placa.angulos()
+            if s is None:
+                break
+            pre = []
+            if s[0] > k.Q1_LIM[1]:      # en la canasta: primero de paso a DESPLEGAR
+                pre, s = [("desplegar", [DESPLEGAR])], DESPLEGAR
+            pasos, mot = planear_agarre(s, limon, a_canasta=True)
+            if pasos is None:
+                print("NO:", "; ".join(mot))
+                break
+            for m in mot:
+                print("  ojo:", m)
+            if not correr_tarea(placa, pre + pasos, timeout):
+                return hechos
+            hechos += 1
+            print(f"[{hechos} en la canasta, {time.time() - t0:.0f} s desde el comienzo]")
+        print("== al reposo")
+        s = placa.angulos()
+        camino = ([DESPLEGAR, (100.0, 46.7, 50.0)] if s and s[1] >= SOLTAR_Q2_MIN_PY and s[2] >= 78.0 else []) + [REPOSO]
+        ejecutar(placa, camino, timeout, de_paso=True)
+    except KeyboardInterrupt:
+        placa.mandar("s")
+        print("[Ctrl+C: \"s\", las tres se sostienen donde están]")
+    print(f"[cosecha: {hechos} limones en {time.time() - t0:.0f} s]")
+    return hechos
 
 
 def cargar_tf_agarre():
@@ -711,7 +785,7 @@ def sesion(args):
     placa = Placa(args.puerto)
     vision, tf = None, None
     time.sleep(2.0)  # saludo y ayuda si se reinició al abrir
-    print("[punta.py: \"p x y z\", \"ver x y z\", \"ap x y z\", \"verap x y z\", \"ret\", \"soltar [quedar]\", \"donde\", \"anotar\", \"salir\"; lo demás "
+    print("[punta.py: \"p x y z\", \"ver x y z\", \"ap x y z\", \"verap x y z\", \"ret\", \"soltar [quedar]\", \"agarrar\", \"veragarrar\", \"cosechar [n]\", \"donde\", \"anotar\", \"salir\"; lo demás "
           "va a la placa (pz, mn, mv, c, s...). Primero \"h\"]")
     try:
         while placa.vivo:
@@ -788,13 +862,19 @@ def sesion(args):
                             print("[Ctrl+C: \"s\", las tres se sostienen donde están]")
                     else:
                         print("cancelada")
-            elif w[0] in ("agarrar", "veragarrar"):
+            elif w[0] in ("agarrar", "veragarrar", "cosechar"):
                 try:
-                    seg = float(w[1]) if len(w) > 1 else 5.0
-                    if len(w) > 2 or seg <= 0:
-                        raise ValueError
+                    if w[0] == "cosechar":
+                        n_lim = int(w[1]) if len(w) > 1 else 3
+                        seg = 5.0
+                        if len(w) > 2 or not 1 <= n_lim <= 20:
+                            raise ValueError
+                    else:
+                        seg = float(w[1]) if len(w) > 1 else 5.0
+                        if len(w) > 2 or seg <= 0:
+                            raise ValueError
                 except ValueError:
-                    print("Uso: agarrar [segundos]  |  veragarrar [segundos]")
+                    print("Uso: agarrar [segundos]  |  veragarrar [segundos]  |  cosechar [n limones, def. 3]")
                     continue
                 try:
                     if tf is None:
@@ -804,7 +884,10 @@ def sesion(args):
                 except (ImportError, SystemExit, OSError) as e:
                     print(f"[sin visión: {e} (¿source /opt/ros/jazzy/setup.bash? ¿en la Pi?)]")
                     continue
-                agarrar(placa, vision, tf, seg, w[0] == "agarrar", args.timeout)
+                if w[0] == "cosechar":
+                    cosechar(placa, vision, tf, n_lim, seg, args.timeout)
+                else:   # 18/11: agarra y va directo a la canasta (sin subir al reposo)
+                    agarrar(placa, vision, tf, seg, w[0] == "agarrar", args.timeout, a_canasta=True)
             elif w[0] == "anotar":
                 # Calibración cámara -> brazo: guarda el punto (la punta en el limón) en resultados/
                 if len(w) != 2:

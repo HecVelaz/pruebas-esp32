@@ -9,8 +9,9 @@ Orden (lo va pidiendo el programa):
   1. 12 V APAGADOS, brazo abajo y recogido: abre el puerto de la WROOM (eso la reinicia).
   2. "Encendé los 12 V" + Enter -> homing del brazo (h) y reposo (mv 3 17 4).
   3. Mira la marca de la maceta (hace falta verla a ~0,9–4 m a la izquierda) y muestra el plan de la base.
-  4. Enter -> la base va a la parada, mide el limón 5 s, lo agarra y lo lleva a la canasta sobre la tapa
-     (punta.soltar: pose plegada con J1 en 130, abre la pinza y vuelve al reposo; --sin-soltar lo deja en la pinza).
+  4. Enter -> la base va a la parada y cosecha --limones (def. 1): mide un limón 5 s, lo agarra (tirar, girar la
+     muñeca, arrastrar con J1), lo lleva directo a la canasta (sin pasar por el reposo), mide el siguiente desde ahí;
+     al final, el reposo (punta.cosechar). --sin-soltar: uno solo, queda en la pinza.
   5. Con --paradas N > 1, RODEAR: Enter -> va con la
      odometría al punto de observación de la cara siguiente (90° antihorario alrededor del tronco, el árbol a la
      izquierda, tronco a --observar del J1: ahí la marca se ve entera), mira esa marca, corrige hasta la parada como
@@ -79,6 +80,7 @@ def main():
     ap.add_argument("--paradas", type=int, default=1, help="cuántas caras recorrer (1 = solo la primera, máx 4)")
     ap.add_argument("--sin-orientacion", action="store_true")
     ap.add_argument("--sin-soltar", action="store_true", help="no llevar el limón a la canasta (queda en la pinza)")
+    ap.add_argument("--limones", type=int, default=1, help="cuántos limones cosechar en cada parada (def. 1)")
     ap.add_argument("--puerto", default=None, help="puerto de la WROOM (def. el de punta.py)")
     a = ap.parse_args()
     parada = (-a.parada[0], a.parada[1])
@@ -131,17 +133,13 @@ def main():
             iap.mirar_al_llegar(base, marcas, a.radio_maceta, parada)
             print(f"== agarrar el limón (parada {k + 1} de {a.paradas})")
             base.girar_ros(1.0)   # que la base quede quieta antes de medir
-            if punta.agarrar(placa, vision, tf, 5.0, True, TIMEOUT_MV, confirmar=False):
-                print(f"limón agarrado en {time.time() - t0:.0f} s desde que arrancó la base")
-                if a.sin_soltar:
+            if a.sin_soltar:
+                if punta.agarrar(placa, vision, tf, 5.0, True, TIMEOUT_MV, confirmar=False):
                     print("(--sin-soltar: queda en la pinza; \"pz a\" lo suelta)")
-                elif punta.soltar(placa, TIMEOUT_MV):
-                    print(f"LISTO: limón en la canasta a los {time.time() - t0:.0f} s")
-                else:
-                    print("no se pudo soltar en la canasta (ver arriba); el brazo quedó donde está")
-                    return
-            else:
-                print("el agarre no se hizo (ver arriba por qué); el robot quedó en la parada")
+                return
+            # Cosecha (18/11): mide uno, lo lleva a la canasta sin pasar por el reposo y mide el siguiente desde ahí
+            n = punta.cosechar(placa, vision, tf, a.limones, 5.0, TIMEOUT_MV, confirmar=False)
+            print(f"parada {k + 1}: {n} limones en la canasta, {time.time() - t0:.0f} s desde que arrancó la base")
     except KeyboardInterrupt:
         base.frenar()
         placa.mandar("s")

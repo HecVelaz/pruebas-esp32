@@ -155,8 +155,14 @@ def q3_min_tabla(q2):
     return float(np.interp(q2, [a for a, _ in FRANJA_ABAJO], [b for _, b in FRANJA_ABAJO]))
 
 
+# Pose plegada para soltar (firmware config.h SOLTAR_*, 2026-11-18): con J2 en [42, 51] el borde de arriba sube a 85
+SOLTAR_Q2 = (42.0, 51.0)
+SOLTAR_Q3_MAX = 85.0
+
+
 def q3_max_franja(q2):
-    return float(np.interp(q2, [a for a, _ in FRANJA_ARRIBA], [b for _, b in FRANJA_ARRIBA]))
+    t = float(np.interp(q2, [a for a, _ in FRANJA_ARRIBA], [b for _, b in FRANJA_ARRIBA]))
+    return max(t, SOLTAR_Q3_MAX) if SOLTAR_Q2[0] <= q2 <= SOLTAR_Q2[1] else t
 
 
 def problemas(q1, q2, q3):
