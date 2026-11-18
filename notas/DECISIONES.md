@@ -120,3 +120,6 @@
   proporcional cerca del objetivo (a 0,5 rad/s sin él se pasaba 6°). `25-teleop-pi/tools/movimiento.py`.
 - **Parada del agarre (2026-11-13):** tronco a 70 cm a la izquierda de J1 y 15 cm adelante, con la marca de frente;
   sale de la simulación de `26` (la más tolerante a ±5 cm: ≥ 86 % con 4 paradas) y se validó agarrando.
+- **Seguridad de la base solo con el HC-SR04 del medio (2026-11-18, usuario):** los de las esquinas siguen publicando
+  `/range/izq|der` sin frenar. Para la recolección actual (marca + odometría) no hacen falta; si se agrega esquivar al
+  buscar, elegir la regla (más cercano de los tres, que corten el giro hacia su lado, o umbral más corto).

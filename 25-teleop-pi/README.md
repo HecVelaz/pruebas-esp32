@@ -43,8 +43,18 @@ bash ~/scripts/25-teleop-pi/tools/lanzar.sh   # los dos agentes + teleop.py; Ctr
 4. Joystick izquierdo = tracción; derecho = J1 (←/→) y J2 (sube/baja); barra = J3; botones de pinza y muñeca.
 5. **PARAR** frena las dos. Si se suelta todo o se corta la red, la base frena a los 300 ms y el brazo también.
 
+## Seguridad de la base (en la Pi, `cd ~/scripts/25-teleop-pi/tools`)
+
+- `python3 prueba_frenado.py [v=0.10] [s=5]`: ruedas en el aire; avisa en pantalla (pitido y cuenta) dónde poner la
+  mano delante del HC-SR04 del medio y registra distancia, velocidad y `no_avanza` (`~/logs/frenado_*.csv`).
+- `python3 ver_inclinacion.py`: roll y pitch en vivo (misma cuenta que el firmware) y la seguridad; VUELCO a 25°.
+- `python3 prueba_odom.py tiempo|recto|giro ...`: bumpers (tiempo / giro), seta y frenado en el piso (`recto 1.5 0.10`
+  con una caja a ~1 m).
+- Rearmar tras seta o vuelco: `ros2 topic pub --once /base/comando std_msgs/msg/String "data: r"`.
+
 ## Estado
 
 | Fecha | Qué | Resultado |
 |---|---|---|
 | 2026-11-11 | Firmware 20 env `ros`, `teleop.py`, `teleop.html`, `lanzar.sh` en la Pi | brazo OK desde el celular (homing, joystick, pinza, muñeca); base: encoder izquierdo sin cuentas, IMU real sin confirmar |
+| 2026-11-18 | Seguridad de la base con motores (`base_ros_20261117_imu`) | frente: tope lineal 50 → 20 cm y parada a ≤ 20 cm (en el aire, `resultados/frenado_20261118_123100.csv`; en el piso a 0,10 m/s para a 20 cm, `imagenes/frenado_hcsr04_20261118_*.jpeg`); bumpers, seta (enclavada, `r`) y vuelco (~26° de pitch, enclavado) OK; recuperación de la IMU OK (`imu_rec=1` tras la seta) |

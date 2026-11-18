@@ -1,21 +1,26 @@
-# Pendientes de pruebas-esp32 (al 2026-11-17, cierre)
+# Pendientes de pruebas-esp32 (al 2026-11-18, cierre)
 
 <!-- Movido desde CLAUDE.md (2026-10-22). Los bloques "Pendiente GPS", "Pendiente" de 08 y "Falta" se movieron
      tal cual; el resto se copió de los "Pendiente:" que siguen dentro de cada entrada de BITACORA.md. -->
 
-## Lo nuevo del 17/11 (antes de volver a salir)
+## Lo inmediato
 
-1. **Probar la recuperación de la IMU** (`recolector_de_frutas/firmware/base`, sin commit hasta probarla): flashear
-   `~/firmware/base_ros_20261117_imu/` (12 V apagados), `imu=ok imu_rec=0`; con la base desarmada, sacar un instante
-   SDA (8) o SCL (9) del IMU: SIN_DATOS → `ok` en 1–2 s con `imu_rec=1`. Después en el pasto. Además: cables del I2C
+1. **Commit de la recuperación de la IMU en `recolector_de_frutas/firmware/base`** (probada en placa el 18/11:
+   `imu_rec=1`; `test_base` 20/20). Después, en el pasto: que no se tranque con SIN_DATOS. Opcional: cables del I2C
    cortos y trenzados, lejos de los motores; si sigue, I2C a 100 kHz.
-2. **Cambiar el HC-SR04 derecho** (y el Dupont / cable de TRIG si hace falta); comprobar con 03 (`d` y la mano a 10 /
-   20 / 40 cm) y en `/range/der`.
-3. Hotspot: fijar la IP de la Pi en el hotspot o arrancar el teleop solo al encender (servicio systemd); país del wifi
+2. **Cortes del enlace USB de la S3** (3 el 18/11, con la seta y moviendo la base): cable, ferrita, alimentación; y
+   por qué la Pi se reinició sola (~12:16 del 18/11).
+3. Frenado en el piso a 0,20 m/s (`prueba_odom.py recto 1.5 0.20`, caja a ~1 m): cuánto se pasa de 20 cm. Encoder
+   izquierdo: si vuelve el `atasco`, revisar el Dupont (GPIO 15/16).
+4. Hotspot: fijar la IP de la Pi en el hotspot o arrancar el teleop solo al encender (servicio systemd); país del wifi
    `cfg80211.ieee80211_regdom=PY` en `/boot/firmware/cmdline.txt` para usar el hotspot en 2,4 GHz.
-4. Pinza: llevar el cierre a 1400 µs al firmware (`PINZA_CERRADO_US` en `20/include/config.h`) si sirve también para
+5. Pinza: llevar el cierre a 1400 µs al firmware (`PINZA_CERRADO_US` en `20/include/config.h`) si sirve también para
    `agarrar` (hoy 1300); `servos_rapido.py` sin probar.
 
+Hecho el 18/11: HC-SR04 derecho cambiado; seguridad de la base con motores (frente, bumpers, seta, vuelco); recuperación
+de la IMU en placa.
+
+## Recolección autónoma
 
 1. **BUSCAR** en `recolectar.py`: si no ve la marca, girar en el lugar de a ~20° mirando (con el giróscopo); si no
    aparece en 360°, avanzar ~1 m esquivando con los HC-SR04 y volver a girar. Hoy tiene que arrancar viéndola.
@@ -24,8 +29,8 @@
    del árbol con el árbol a la izquierda; corregir con la marca de esa cara). Varios limones por parada.
 3. **Soltar el limón**: dónde (caja / depósito sobre la tapa, sin decidir: ver "Dónde dejar el limón" en Brazo) y
    agregarlo al final de `agarrar`.
-4. **Seguridad de la base andando**: HC-SR04 < 20 cm, bumper y vuelco con los motores (con `prueba_odom.py`), y los
-   cortes del enlace USB de la S3 (¿con los motores? cable, ferrita, alimentación).
+4. ~~Seguridad de la base andando~~ (18/11, OK; los cortes del USB pasaron a "Lo inmediato"). Si se esquiva al
+   buscar: que los HC-SR04 de las esquinas también frenen o corten el giro (hoy solo publican).
 5. **Al robot (ROS):** la misión de `recolector_de_frutas` con lo de hoy (marca → parada → agarrar → rodear), primero en
    Gazebo; que mande comandos de texto por `/brazo/comando` al firmware 20 (`brazo_ik` publica `/brazo/joint_cmd`,
    que el 20 no entiende); WROOM al env `ros` (`respaldo_wroom_20261112.bin`). Pasar `movimiento.py` / el giróscopo
@@ -41,8 +46,7 @@ calibración de navegación (`27`); base en ROS con IMU y odometría medida; `ir
 ## Teleop (25) y base (lo próximo)
 
 1. ~~Encoder de la rueda izquierda~~ (11/11: tierra suelta; 13/11: los dos encoders cuentan igual).
-2. ~~S3 con el `ros` completo~~ (13/11: en la Pi, arranca sola con `--after watchdog-reset`; IMU era un cable; sensores
-   OK). Falta: las pruebas de seguridad con los motores (frente < 20 cm, bumper, vuelco > 25°).
+2. ~~S3 con el `ros` completo~~ (13/11) y ~~pruebas de seguridad con los motores~~ (18/11).
 3. **Probar el reinicio automático de la S3** en `lanzar.sh` (esptool + watchdog, `~/logs/reset_s3.log`; flashear con
    `--after watchdog-reset`): ¿ya no hace falta el RST a mano? Además, por qué la S3 no arrancaba y los cortes del enlace (USB) y el reinicio
    de la Pi (¿alimentación al encender los 12 V o arrancar los motores?).
@@ -56,7 +60,7 @@ calibración de navegación (`27`); base en ROS con IMU y odometría medida; `ir
 - **`02` con RViz** (lista de pruebas pasada al usuario): flashear `-e serial`, RST quieto, `tools/agente.sh`,
   `ros2 topic hz` (~50 Hz), bias del gyro (covarianza `1e-06`), signos, `tools/ver_imu.sh` (probar `imu.rviz`), deriva
   del yaw por minuto; anotar en Resultados de `02`.
-- **`03-hcsr04`:** B4–B9 (caja a 20 / 50 / 100 cm de cada sensor con cinta y `e 30`, distancia mínima, que el frente
+- **`03-hcsr04`** (opcional; el derecho se cambió el 18/11 y los tres responden): B4–B9 (caja a 20 / 50 / 100 cm de cada sensor con cinta y `e 30`, distancia mínima, que el frente
   no pise a las esquinas, pared a 1–2 m con `e 50`); guardar la salida en `resultados/`.
 
 ## Pinza y muñeca (23 en la WROOM; 21, 22 sueltas)

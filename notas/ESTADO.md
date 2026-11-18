@@ -1,4 +1,4 @@
-# Estado de pruebas-esp32 (al 2026-11-17, cierre)
+# Estado de pruebas-esp32 (al 2026-11-18, cierre)
 
 Foto de hoy. La historia, las mediciones completas y los nombres de los CSV están en `BITACORA.md`; lo que sigue, en
 `PENDIENTES.md`; los pines de la S3, en `PINES_S3.md`.
@@ -32,15 +32,15 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
 - S3 en la Pi con el env `ros` de `recolector_de_frutas/firmware/base` (flasheo con `--after watchdog-reset` y el
   puerto by-id: vuelve a veces como `ttyACM1`). Agente: `bash ~/scripts/agente_base.sh`; comandos: `bash ~/scripts/base.sh "<cmd>"` (`sens`, `e`, `cal`,
   `odo0`, `armar`, `r`). Con micro-ROS el watchdog es 300 ms: mover solo con `/cmd_vel` continuo.
-- **HC-SR04 derecho mal** (17/11: `NO RESPONDE` / `sin eco` / 3,3 cm fijo; placa, pines 42 / 13 y alimentación
-  descartados): cambiarlo. Solo el del frente frena la base. **IMU: el firmware de la Pi no se recupera de un I2C
-  colgado** (en el pasto se trancó con SIN_DATOS hasta apagar); la recuperación está hecha en `firmware/base`
-  (`~/firmware/base_ros_20261117_imu/`, sin probar en placa; la S3 tiene `base_ros_20261113`).
-- Todo responde con 12 V: batería ~11,2 V (LiPo 3S sin BMS, corte 10,5 V), HC-SR04 ×3, bumpers ×3, seta suelta, IMU
-  (era un cable; calibra el giróscopo sola al arrancar). **Odometría:** recto < 1 % con las ruedas; giros con el
-  giróscopo (~±1°; las ruedas se pasan ~2° cada 90°). `25-teleop-pi/tools/movimiento.py` (frenado proporcional),
-  `prueba_odom.py recto|giro|tiempo`.
-- Sin probar: frenado por HC-SR04 (< 20 cm), bumper y vuelco con motores; cortes del USB (se desarma al reconectar).
+- **S3 con `base_ros_20261117_imu`** (18/11): **la IMU se recupera sola** de un I2C colgado (probado: la seta corta los
+  5 V de la IMU → `imu_rec=1` al soltarla). Cambios de `recolector_de_frutas/firmware/base` sin commit en ese repo.
+- **Seguridad con motores probada (18/11, `25-teleop-pi/README.md`):** frena solo el HC-SR04 del medio (tope lineal
+  50 → 20 cm; en el piso para a 20 cm justos); bumpers, seta y vuelco (25°) OK, enclavados (`r` por `/base/comando`).
+  Los tres HC-SR04 andan (derecho cambiado); los de las esquinas solo publican (decisión del usuario, por ahora).
+- Batería ~11,2 V (LiPo 3S sin BMS, corte 10,5 V). Odometría: recto < 1 %; giros con el giróscopo (~±1°).
+- **A vigilar:** encoder izquierdo con un `atasco` aislado el 18/11 (falso contacto); enlace USB de la S3 con cortes
+  (3 en la sesión, con la seta y moviendo la base). Si la S3 no se conecta al agente tras reiniciar la Pi:
+  `pkill -f micro_ros_agent`, `esptool ... --after watchdog-reset chip-id`, `agente_base.sh`.
 
 ## Brazo (`20-brazo-coordinado`, WROOM)
 
@@ -72,7 +72,7 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
   `~/scripts/` (copias en el repo), logs en `~/logs/`. Al apagar: `sudo shutdown now` (sin `now` espera 1 min).
   Después de reiniciar: `agente_base.sh` y `vision.sh` a mano. `pgrep -f` por ssh se encuentra a sí mismo.
 - Binarios en `~/firmware/`: WROOM `respaldo_wroom_20261112.bin` (20 `ros`), `brazo20_serie.bin` (20 `brazo`),
-  `brazo/respaldo_20261001_183959.bin` (robot); S3 `base_ros_20261113`, `base_ros_20261117_imu`, `hcsr04_03*`.
+  `brazo/respaldo_20261001_183959.bin` (robot); S3 `base_ros_20261113`, `base_ros_20261117_imu` (cargado), `hcsr04_03*`.
 
 ## Pruebas terminadas
 

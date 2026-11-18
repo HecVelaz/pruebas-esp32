@@ -1358,3 +1358,42 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   `hcsr04_03_original`, `hcsr04_03_trig40`, `hcsr04_03_echo40`, `base_ros_20261117_imu`.
 - Al cierre en la Pi: S3 con `base_ros_20261113`, WROOM con 20 env `ros` (para el teleop; para `recolectar.py` hay que
   volver al env `brazo`: `write-flash 0x10000 ~/firmware/brazo20_serie.bin`), Pi en el hotspot.
+
+## 2026-11-18 — HC-SR04 derecho cambiado; seguridad de la base con motores; recuperación de la IMU probada
+
+- **HC-SR04 derecho:** el usuario lo cambió y los tres funcionan (03 desde la Pi: `~/firmware/hcsr04_03`, que ya trae
+  el comando `d`; comprobado con `grep PEGADO firmware.bin`). Sin mediciones con cinta (B4–B9 del 03 siguen
+  pendientes; no hacen falta para la recolección: solo el del medio frena la base).
+- **S3 con `base_ros_20261117_imu`** (recuperación de la IMU). La Pi se reinició sola una vez (~12:16) y la S3 no se
+  conectó al agente ni con RST a mano (el `ttyACM0` no se recreó). Lo que funcionó: `pkill -f micro_ros_agent`;
+  `esptool --chip esp32s3 --port $S3 --after watchdog-reset chip-id`; `bash ~/scripts/agente_base.sh`.
+- **Atasco de la rueda izquierda (una vez):** la primera `prueba_odom.py tiempo 0.10 0 15` (en el aire) cortó a ~1 s
+  con `rueda_izq=atasco`; odometría 5,5 cm y 15,8° (w/v = 5 = 2 / trocha: **solo contaba el encoder derecho**, como el
+  11/11). El usuario no tocó nada; con `d 30 30` (lazo abierto) giraron las dos y contaron las dos (2,836 / 2,923
+  vueltas, th 1,9°), y `tiempo 0.10 0 8` dio 80,6 cm, 0,100 m/s, sin atasco. Sospecha: falso contacto intermitente del
+  encoder izquierdo (GPIO 15/16, amarillo / blanco; azul 5 V, verde GND). Los encoders se alimentan de los 5 V de la
+  expansión, que salen de los 12 V: con los 12 V apagados no cuentan.
+- **Seguridad con motores (pendiente 4 del 17/11), en el aire salvo el último punto:**
+  - Frente (`tools/prueba_frenado.py`, nuevo: avisa en pantalla dónde poner la mano y registra distancia, velocidad y
+    `no_avanza`; `25-teleop-pi/resultados/frenado_20261118_123100.csv`): a 0,10 m/s pedidos, 29,2 cm → 0,074 m/s
+    (tope 0,077), 27,7 → 0,060 (0,064), 23,5 → 0,025 (0,029), 20–21 → 0; ≤ 20 cm `no_avanza`; al sacar la mano vuelve
+    a 0,10 m/s en ~1 s. `no_avanza` se ve con retraso en el CSV (el estado se publica más lento que `/range`).
+  - **En el piso**, `prueba_odom.py recto 1.5 0.10` contra una caja a ~1 m: **para a 20 cm justos** (fotos
+    `25-teleop-pi/imagenes/frenado_hcsr04_20261118_*.jpeg`). A 0,20 m/s sin probar.
+  - Sensor del medio sin eco: no se pudo desconectar (cableado dentro); cubierto por `test_frente_sin_eco_no_deja_avanzar`
+    de `test_base`.
+  - Bumpers: frente para el avance; izquierdo y derecho cortan el giro (`tiempo 0 0.5 12`). OK.
+  - Seta: para y queda en `EMERGENCIA (seta)` al soltarla; `r` por `/base/comando` rearma y vuelve a andar. OK.
+  - Vuelco (`tools/ver_inclinacion.py`, nuevo: roll / pitch en vivo con la cuenta del firmware): VUELCO a 25,8–26,6°
+    de pitch (~0,5 s, filtro), sigue enclavado al bajarla; `r` rearma. Solo un sentido (roll y pitch usan la misma
+    regla, cubierta por el test). Los ~5,6° de roll y pitch en reposo eran un calce bajo la base, no la IMU.
+- **Recuperación de la IMU probada en placa** sin abrir la caja: la seta corta los 12 V → los 5 V de la expansión →
+  la IMU; mientras estaba apretada el firmware reintentó cada 1 s (`reinicio del bus I2C sin respuesta`, 3 intentos) y
+  al soltarla volvió sola: **`imu=ok imu_rec=1`**. Los cambios de `recolector_de_frutas/firmware/base` (recuperación)
+  siguen sin commit en ese repo.
+- **Enlace USB de la S3:** `cortes` llegó a 3 en la sesión (al apretar / soltar la seta y al mover la base);
+  `pings_fallidos` subió a 84. Se reconecta solo pero queda DESARMADA.
+- Al cierre en la Pi: S3 con `base_ros_20261117_imu`, agente de la base corriendo; la WROOM sin tocar (env `ros`).
+- Rearmar por ROS: `ros2 topic pub --once /base/comando std_msgs/msg/String "data: r"`; respuestas en
+  `ros2 topic echo /base/respuesta --field data` (`e` = estado con rpm y vueltas de cada rueda, `odo0`, `d <izq> <der>`
+  repetido a 10 Hz = lazo abierto). Scripts de la Pi en `~/scripts/25-teleop-pi/tools/` (no en `~/scripts/`).
