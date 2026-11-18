@@ -600,6 +600,15 @@ class Vision:
 MARGEN_SALIDA_CARGA = 3.0  # ° a la franja en la salida con el limón (13/11: con 1,6° el firmware cortó al retroceder)
 
 
+def con_zona(f, *a, **kw):
+    """f(*a) con la zona plegada de la franja habilitada en el modelo (solo caminos de la canasta)."""
+    viejo, k.USAR_ZONA = k.USAR_ZONA, True
+    try:
+        return f(*a, **kw)
+    finally:
+        k.USAR_ZONA = viejo
+
+
 def con_margen(margen, f, *a):
     """f(*a) planeando los caminos con otro MARGEN_CAMINO."""
     global MARGEN_CAMINO
@@ -624,8 +633,9 @@ def planear_agarre(s, limon, a_canasta=False):
     salir lo más posible y al reposo. (pasos, motivos)."""
     # Entrada de frente desde 10 cm; si el punto previo no entra (limón bajo y cerca de J1, 18/11: a 33 cm del piso y
     # 53 cm de J1), desde 7 y 5 cm
+    plegado = s[2] >= 78.0   # arranca plegado (DESPLEGAR, después de soltar): el desplegado pasa por la zona
     for d in ENTRADA_MM:
-        pa, m = planear_frente(s, *limon, d=d)
+        pa, m = (con_zona(planear_frente, s, *limon, d=d) if plegado else planear_frente(s, *limon, d=d))
         if pa is not None:
             break
     if pa is None:
@@ -655,12 +665,12 @@ def planear_agarre(s, limon, a_canasta=False):
         # Directo a la canasta, sin subir al reposo (18/11). La canasta (J1 130) queda fuera del modelo (Q1 <= 115):
         # se revisa el camino hasta el punto de plegado; el último tramo es el de soltar(), probado
         camino = CAMINO_CANASTA
-        m_c = revisar_camino(sa[-1], camino[0]) + revisar_camino(camino[0], camino[1])
+        m_c = con_zona(revisar_camino, sa[-1], camino[0]) + con_zona(revisar_camino, camino[0], camino[1])
         if m_c:   # limón bajo: el giro de J1 barre la tapa -> primero subir J2/J3 sin girar, después girar
             sube = (sa[-1][0],) + tuple(CAMINO_CANASTA[0][1:])
             camino = [sube] + CAMINO_CANASTA
-            m_c = (revisar_camino(sa[-1], sube) + revisar_camino(sube, camino[1]) +
-                   revisar_camino(camino[1], camino[2]))
+            m_c = (con_zona(revisar_camino, sa[-1], sube) + con_zona(revisar_camino, sube, camino[1]) +
+                   con_zona(revisar_camino, camino[1], camino[2]))
         if m_c:
             return None, ["a la canasta: " + "; ".join(m_c)]
         return comun + [("a la canasta", camino), ("servo", "pz a")], m_ent + m_ret
