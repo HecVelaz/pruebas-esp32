@@ -567,7 +567,10 @@ AGARRAR_PINZA_US = 1200 # 18/11, RDS3218: pz c (con el MG996R 1300, un poco más
 AGARRAR_ADELANTE = 28.0  # mm más allá del centro del limón, en la dirección de entrada (18/11: 40, el usuario lo bajó a ~2,8 cm)
 # 18/11, el usuario: para centrar la pinza en los limones, 1-1,5 cm a la izquierda y 1-1,5 cm más arriba
 AGARRAR_IZQUIERDA = 12.5     # mm, a la izquierda de la dirección de entrada (mirando desde J1 hacia el limón)
-AGARRAR_ARRIBA_REAL = 12.5   # mm de altura real (en el modelo, / 1,43)
+# Corrimiento hacia arriba, en altura real, según la altura del limón (18/11: +12,5 mm centraba los de ~46-52 cm; a
+# 35 cm empujaba el limón: 1 cm más abajo). Interpolado y constante fuera del rango
+AGARRAR_ARRIBA_H = (350.0, 500.0)    # mm del piso
+AGARRAR_ARRIBA_MM = (2.5, 12.5)      # mm hacia arriba
 AGARRAR_DZ = 0.0        # mm: 13/11 -10 (1 cm más abajo de lo que da la visión); 18/11 0: lo corrige Z_VISION_*
 # Altura de la visión corregida (18/11, 3 limones medidos con cinta a 33 / 46 / 51 cm del piso: la visión daba
 # 31,2 / 49,8 / 56,1 cm; error de escala, recta con < 4 mm de residuo). z (modelo) = Z_VISION_A + Z_VISION_B · z visión.
@@ -725,7 +728,9 @@ def medir_limon(vision, tf, seg):
     # desde J1 hacia el limón: (-uy, ux)) y + AGARRAR_ARRIBA_REAL de altura real (el modelo: 1 mm = 1,43 mm reales)
     x = float(x) + AGARRAR_ADELANTE * ux - AGARRAR_IZQUIERDA * uy
     y = float(y) + AGARRAR_ADELANTE * uy + AGARRAR_IZQUIERDA * ux
-    limon = (round(x), round(y), round(float(z) + AGARRAR_DZ + AGARRAR_ARRIBA_REAL / 1.43))
+    h_real = 256 + 1.43 * z   # mm del piso
+    arriba = float(np.interp(h_real, AGARRAR_ARRIBA_H, AGARRAR_ARRIBA_MM))
+    limon = (round(x), round(y), round(float(z) + AGARRAR_DZ + arriba / 1.43))
     print(f"  cámara (cara): x {cara[0]:+.0f}  y {cara[1]:+.0f}  z {cara[2]:.0f} mm  ({n} posiciones, dispersión "
           f"{disp:.1f} mm)")
     print(f"  limón: a {r / 10:.0f} cm de J1, ~{(256 + 1.43 * z) / 10:.0f} cm del piso (z visión {float(z_vis):.0f}, "
@@ -812,11 +817,14 @@ def recuperar_a_canasta(placa, timeout):
 # el brazo está fuera de la vista de la cámara): el árbol se mueve al arrancar cada limón, así que se mide de nuevo.
 # Desde la canasta (J1 130, fuera del modelo) primero vuelve de paso a DESPLEGAR (J1 100, todavía plegado)
 DESPLEGAR = (100.0, 46.7, 80.0)
+VERIFICAR_MM = 60.0   # si al medir de nuevo hay un limón a menos de esto del anterior, no se agarró
+MAX_INTENTOS = 2      # por limón
 SOLTAR_Q2_MIN_PY = 42.0
 
 
 def cosechar(placa, vision, tf, n, seg, timeout, confirmar=True):
-    """Hasta n limones a la canasta; al final, al reposo. Devuelve cuántos dejó en la canasta."""
+    """Hasta n limones a la canasta; al final, al reposo. Devuelve cuántos dejó en la canasta (confirmados con la
+    visión: si al medir el siguiente el limón anterior sigue en el árbol, no se contó y se reintenta)."""
     if confirmar:
         try:
             r = input(f"Enter para cosechar hasta {n} limones (cualquier otra cosa cancela): ")
@@ -825,12 +833,25 @@ def cosechar(placa, vision, tf, n, seg, timeout, confirmar=True):
         if r.strip() != "":
             print("cancelado")
             return 0
-    t0, hechos = time.time(), 0
+    t0, hechos, pendiente, intentos = time.time(), 0, None, 0
     try:
-        for i in range(n):
-            print(f"===== limón {i + 1} de {n}")
+        while True:
+            print(f"===== cosechados {hechos} de {n}" + (f" (reintento {intentos})" if intentos else ""))
             limon = medir_limon(vision, tf, seg)
-            if limon is None:
+            if pendiente is not None:   # ¿el anterior quedó en el árbol?
+                if limon is not None and math.dist(limon, pendiente) < VERIFICAR_MM:
+                    intentos += 1
+                    print(f"[el limón anterior sigue en el árbol (a {math.dist(limon, pendiente) / 10:.1f} cm): no lo "
+                          f"agarró]")
+                    if intentos >= MAX_INTENTOS:
+                        print(f"[{MAX_INTENTOS} intentos sin agarrarlo: termina la cosecha]")
+                        break
+                else:
+                    hechos += 1
+                    intentos = 0
+                    print(f"[confirmado: {hechos} en la canasta, {time.time() - t0:.0f} s desde el comienzo]")
+                pendiente = None
+            if hechos >= n or limon is None:
                 break
             s = placa.angulos()
             if s is None:
@@ -848,10 +869,8 @@ def cosechar(placa, vision, tf, n, seg, timeout, confirmar=True):
                 if not recuperar_a_canasta(placa, timeout):
                     print("[no se pudo recuperar: el brazo quedó donde está]")
                     return hechos
-                print("[recuperado: lo que tenía la pinza está en la canasta; sigue con el próximo limón]")
-                continue
-            hechos += 1
-            print(f"[{hechos} en la canasta, {time.time() - t0:.0f} s desde el comienzo]")
+                print("[recuperado: lo que tenía la pinza está en la canasta]")
+            pendiente = limon   # se confirma al medir el siguiente (con el brazo en la canasta, fuera de la vista)
         print("== al reposo")
         s = placa.angulos()
         camino = ([DESPLEGAR, (100.0, 46.7, 50.0)] if s and s[1] >= SOLTAR_Q2_MIN_PY and s[2] >= 78.0 else []) + [REPOSO]
