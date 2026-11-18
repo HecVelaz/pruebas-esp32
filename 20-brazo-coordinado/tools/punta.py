@@ -683,6 +683,10 @@ def planear_agarre(s, limon, a_canasta=False):
         # se revisa el camino hasta el punto de plegado; el último tramo es el de soltar(), probado
         camino = CAMINO_CANASTA
         m_c = con_zona(revisar_camino, sa[-1], camino[0]) + con_zona(revisar_camino, camino[0], camino[1])
+        # El firmware (caja, J1 >= 53,5) limita J3 con J2 >= 64 y el modelo no lo sabe: 18/11 rechazó "a la canasta"
+        # desde (37; 66,5; 73). Con J2 alta, también subir primero
+        if sa[-1][1] >= 63.0:
+            m_c = m_c or ["J2 alta (regla de la caja del firmware)"]
         if m_c:   # limón bajo: el giro de J1 barre la tapa -> primero subir J2/J3 sin girar, después girar
             sube = (sa[-1][0],) + tuple(CAMINO_CANASTA[0][1:])
             camino = [sube] + CAMINO_CANASTA
