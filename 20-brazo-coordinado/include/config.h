@@ -109,6 +109,9 @@ constexpr float HOMING_RETROCESO = 3.0f;   // ° donde queda cada una después d
 // (6,0, 3,2) a FRANJA_ARRIBA. El reposo de los scripts sigue en mv 3 17 4
 constexpr float HOMING_RETROCESO_J2 = 6.0f;
 constexpr float HOMING_RETROCESO_J3 = 3.0f;
+// Si J2/J3 llegan a menos de esto del retroceso pero no quedan firmes en 15 s, el homing las acepta donde están
+// (2026-11-18: con la pinza RDS3218 J2 quedaba en 6,6-7,1° y el homing se cortaba)
+constexpr float HOMING_TOL_SIN_FIRME = 2.0f;
 constexpr float HOMING_PRE_SUBIDA_J2 = 8.0f;  // ° que sube J2 antes del homing si J3 arranca con su final de carrera apretado (2026-11-10)
 constexpr float HOMING_Q2_MAX_ARRANQUE = 25.0f;  // con el cero conocido, J2 más alta: el codo no llega a su final
 // Sin cero, recorrido máximo buscando el final de carrera. 2026-11-03: 15° (arrancó estirado, J3 subió 28° y se trabó

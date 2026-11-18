@@ -359,12 +359,22 @@ bool homingPasoArt(int i) {
   }
   if (!a.firme()) {
     if (millis() - hm.tEtapa[i] > 15000) {
-      msg("   %s no queda firme: en %+.2f° (pedido %+.2f°), duty %+.1f %%, w %+.2f °/s, %s.", a.cfg().nombre, a.q(),
-          a.referencia(), a.duty(), a.w(), a.llego() ? "llegó pero no quieta" : "no llegó");
-      homingCortar("no termina de retroceder (15 s)");
-      return false;
+      // 2026-11-18 (pinza RDS3218): J2 queda en 6,6-7,1° (pedido 6) con 14-27 % de duty, quieta, "llegó" pero sin
+      // quedar firme dentro de su tolPos, y el homing se cortaba aunque los tres ceros ya estaban tomados. Si llegó
+      // cerca, se acepta donde está (sostiene ahí) y sigue
+      if (a.llego() && fabsf(a.q() - a.referencia()) <= HOMING_TOL_SIN_FIRME) {
+        msg("   %s no queda firme en %+.2f° (pedido %+.2f°, duty %+.1f %%): se acepta donde está.", a.cfg().nombre,
+            a.q(), a.referencia(), a.duty());
+        a.sostenerAqui();
+      } else {
+        msg("   %s no queda firme: en %+.2f° (pedido %+.2f°), duty %+.1f %%, w %+.2f °/s, %s.", a.cfg().nombre, a.q(),
+            a.referencia(), a.duty(), a.w(), a.llego() ? "llegó pero no quieta" : "no llegó");
+        homingCortar("no termina de retroceder (15 s)");
+        return false;
+      }
+    } else {
+      return true;
     }
-    return true;
   }
   msg("   %s: flanco %+.3f° del cero anterior%s; en %+.2f°.", a.cfg().nombre, hm.delta[i],
       hm.conCero[i] ? "" : " (no había cero)", a.q());

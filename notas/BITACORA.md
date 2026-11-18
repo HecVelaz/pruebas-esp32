@@ -1433,3 +1433,7 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   `PINZA_CERRADO_US` 1250 → 1200 (firmware 20, `~/firmware/brazo20_serie_20261118c.bin`, flasheado), `punta.py`
   (agarre 1200 en vez de 1300 / 1250), joystick y teleop "Cerrar" = `pz 1200` (antes 1400). Falta en
   `recolector_de_frutas/firmware/brazo` y en el env `ros` del teleop (le manda `pz 1200` explícito: no hace falta).
+- **Homing con la pinza nueva:** J2 quedaba en 6,6–7,1° (pedido 6) con 14–27 % de duty, quieta pero sin quedar firme
+  → "no termina de retroceder (15 s)" (tres veces; los ceros sí se tomaban y `mv` andaba). Firmware: si a los 15 s
+  llegó a ≤ `HOMING_TOL_SIN_FIRME` (2°), se acepta donde está y sigue (`brazo20_serie_20261118d.bin`). `soltar`
+  imprime cuánto tarda (para probar `vel`).

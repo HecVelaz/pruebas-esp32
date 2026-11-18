@@ -405,14 +405,18 @@ CAMINO_CANASTA = [(86.0, 17.0, 4.0), (86.0, 46.7, 40.0), (86.0, 46.7, 80.0), CAN
 def soltar(placa, timeout, volver=True):
     """Lleva el limón a la canasta, abre la pinza y (con volver) regresa al reposo. True si todo anduvo."""
     print("== soltar en la canasta")
+    t0 = time.time()
     if not ejecutar(placa, CAMINO_CANASTA, timeout):
         return False
     if not servo(placa, "pz a"):
         return False
     time.sleep(0.5)   # que caiga
+    print(f"[soltado a los {time.time() - t0:.1f} s]")
     if volver:
         print("== volver al reposo")
-        return ejecutar(placa, CAMINO_CANASTA[-2::-1] + [REPOSO], timeout)
+        ok = ejecutar(placa, CAMINO_CANASTA[-2::-1] + [REPOSO], timeout)
+        print(f"[soltar: {time.time() - t0:.1f} s en total, con la vuelta]")
+        return ok
     return True
 
 
