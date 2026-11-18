@@ -40,6 +40,12 @@ Dispara un sensor cada 60 ms (cada uno se mide cada 180 ms) e imprime las tres d
 Al arrancar avisa si un ECHO está en 1 sin disparar o si un sensor no responde. Comandos: `e [n]` estadística de
 n mediciones por sensor (media, desvío, mín, máx; 20 por defecto), `p` pausa / sigue, `?` ayuda.
 
+**Diagnóstico en crudo:** `d [f|i|d] [n]` (der. y 10 disparos por defecto) mira el pin ECHO sin la interrupción:
+primero 100 ms en reposo (tiene que estar en 0 y quieto; si no, `RUIDO` o `PEGADO EN 1`), después cada disparo con el
+nivel antes, cuánto tarda en subir (normal ~0,3–0,6 ms), el ancho del pulso en µs y cm, y cuántos cambios hubo
+(normal 2; más = `RUIDO`, mal contacto). `NO SUBE` = el sensor no respondió (5 V, GND, TRIG); `NO BAJA` o eco largo
+con la mano cerca = ECHO que no vuelve a 0 (divisor, GND o sensor mal alimentado).
+
 ## Pasos
 
 | Paso | Qué hacer | Qué se espera |

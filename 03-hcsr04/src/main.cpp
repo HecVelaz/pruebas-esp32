@@ -1,7 +1,8 @@
 // 03 · Los tres HC-SR04 de la base (frente, esquina izq., esquina der.) en la ESP32-S3, con el driver de la base
 // (lib/HCSR04: ECHO por interrupción, un sensor por vez). No mueve motores: EN y PWM de la tracción en bajo.
 // Dispara uno cada PERIODO_MS (cada sensor se mide cada 3 × PERIODO_MS) e imprime las tres distancias cada IMPRIMIR_MS.
-// Comandos (Enter): "e [n]" estadística de n mediciones por sensor (20 por defecto) · "p" pausa / sigue · "?" ayuda.
+// Comandos (Enter): "e [n]" estadística de n mediciones por sensor (20 por defecto) · "p" pausa / sigue ·
+// "d [f|i|d] [n]" diagnóstico en crudo de un sensor (der. y 10 disparos por defecto) · "?" ayuda.
 #include <Arduino.h>
 #include <math.h>
 
@@ -18,6 +19,7 @@ constexpr uint32_t IMPRIMIR_MS = 500;
 HCSR04 us;
 int disparado = -1;  // sensor que se disparó por última vez (lo cierra el próximo disparar())
 bool pausa = false;
+bool reiniciarReloj = false;  // después de un diagnóstico (bloqueante): no "recuperar" los disparos perdidos
 
 // Estadística en curso
 struct Estad {
@@ -40,6 +42,87 @@ void imprimirDist(float m) {
 
 void ayuda() {
   Serial.println("Comandos: e [n] = estadística de n mediciones por sensor (20) · p = pausa / sigue · ? = ayuda");
+  Serial.println("          d [f|i|d] [n] = diagnóstico en crudo del ECHO de un sensor (der., 10 disparos)");
+}
+
+// Diagnóstico en crudo (bloquea; el driver queda quieto mientras tanto): mira el pin ECHO leyéndolo seguido, sin la
+// interrupción. Primero 100 ms en reposo sin disparar (tiene que estar en 0 y sin cambios); después n disparos, cada
+// uno con: nivel antes, cuánto tarda en subir (normal ~0,3–0,6 ms), ancho del pulso (= distancia; ~38 ms o más =
+// nada al alcance) y cuántos cambios hubo en la ventana (normal: 2, subida y bajada; más = ruido o mal contacto).
+constexpr uint32_t DIAG_SUBIDA_MAX_US = 30000;   // sin subir en 30 ms = no respondió
+constexpr uint32_t DIAG_VENTANA_US = 200000;     // ventana de cada disparo: 200 ms
+
+void diagnostico(int i, int n) {
+  const int pe = ECHO[i], pt = TRIG[i];
+  Serial.printf(">> Diagnóstico de %s (TRIG GPIO%d, ECHO GPIO%d), %d disparos\n", NOMBRE[i], pt, pe, n);
+
+  // 1) Reposo: 100 ms sin disparar
+  uint32_t t0 = micros(), tAlto = 0, tPrev = t0;
+  int nivelPrev = digitalRead(pe), cambios = 0;
+  const int nivelInicial = nivelPrev;
+  while (micros() - t0 < 100000) {
+    const int v = digitalRead(pe);
+    const uint32_t t = micros();
+    if (nivelPrev) tAlto += t - tPrev;
+    tPrev = t;
+    if (v != nivelPrev) cambios++;
+    nivelPrev = v;
+  }
+  Serial.printf("   reposo 100 ms: empieza en %d, en alto el %.0f %% del tiempo, %d cambios", nivelInicial,
+                tAlto / 1000.0f, cambios);
+  Serial.println(tAlto == 0 && cambios == 0 ? "  -> OK (en 0, quieto)"
+                 : cambios > 0              ? "  -> RUIDO: ECHO cambia sin disparar (mal contacto, GND o divisor)"
+                                            : "  -> PEGADO EN 1 (divisor abierto, ECHO a 5 V o sensor colgado)");
+
+  // 2) Disparos
+  int ok = 0, sinSubida = 0, largos = 0, ruidosos = 0;
+  for (int k = 1; k <= n; k++) {
+    const int antes = digitalRead(pe);
+    digitalWrite(pt, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(pt, LOW);
+    const uint32_t tTrig = micros();
+    uint32_t tSube = 0, tBaja = 0;
+    int prev = digitalRead(pe);
+    cambios = 0;
+    while (micros() - tTrig < DIAG_VENTANA_US) {
+      const int v = digitalRead(pe);
+      if (v != prev) {
+        const uint32_t t = micros();
+        cambios++;
+        if (v && !tSube) tSube = t;
+        else if (!v && tSube && !tBaja) tBaja = t;
+        prev = v;
+      }
+      if (!tSube && micros() - tTrig > DIAG_SUBIDA_MAX_US) break;
+    }
+    Serial.printf("   #%-2d antes=%d  ", k, antes);
+    if (!tSube) {
+      sinSubida++;
+      Serial.printf("NO SUBE en %lu ms (no respondió)", (unsigned long)(DIAG_SUBIDA_MAX_US / 1000));
+    } else {
+      Serial.printf("sube a %5lu us  ", (unsigned long)(tSube - tTrig));
+      if (!tBaja) {
+        largos++;
+        Serial.printf("NO BAJA en %lu ms (queda en 1)", (unsigned long)(DIAG_VENTANA_US / 1000));
+      } else {
+        const uint32_t ancho = tBaja - tSube;
+        Serial.printf("ancho %6lu us = %6.1f cm", (unsigned long)ancho, ancho * 0.0343f / 2.0f);
+        if (ancho >= HCSR04::ECO_MAX_US) {
+          largos++;
+          Serial.print(" (eco largo: nada al alcance o sensor raro)");
+        } else {
+          ok++;
+        }
+      }
+    }
+    if (cambios > 2) ruidosos++;
+    Serial.printf("  cambios=%d%s\n", cambios, cambios > 2 ? " <- RUIDO" : "");
+    delay(60);
+  }
+  Serial.printf("   resumen: %d válidos, %d no suben, %d largos / no bajan, %d con ruido\n", ok, sinSubida, largos,
+                ruidosos);
+  Serial.println("   Acercá la mano a ~10 cm y repetí: el ancho tiene que bajar a ~600 us.");
 }
 
 void nuevaMedicion(int i, float m) {
@@ -89,6 +172,22 @@ void comando(const char *l) {
   } else if (strcmp(l, "p") == 0) {
     pausa = !pausa;
     Serial.println(pausa ? ">> Pausa (e sigue funcionando; p para seguir)." : ">> Sigue.");
+  } else if (l[0] == 'd' && (l[1] == '\0' || l[1] == ' ')) {
+    int i = 2, n = 10;
+    const char *r = l + 1;
+    while (*r == ' ') r++;
+    if (*r == 'f' || *r == 'i' || *r == 'd') {
+      i = (*r == 'f') ? 0 : (*r == 'i') ? 1 : 2;
+      r++;
+    }
+    while (*r == ' ') r++;
+    if (*r) n = atoi(r);
+    if (n < 1 || n > 100) {
+      Serial.println("n entre 1 y 100");
+      return;
+    }
+    diagnostico(i, n);
+    reiniciarReloj = true;
   } else if (strcmp(l, "?") == 0 || l[0] == '\0') {
     ayuda();
   } else {
@@ -141,6 +240,10 @@ void setup() {
 void loop() {
   static uint32_t tDisparo = millis(), tImprimir = millis();
   const uint32_t ahora = millis();
+  if (reiniciarReloj) {
+    reiniciarReloj = false;
+    tDisparo = ahora;
+  }
   if (ahora - tDisparo >= PERIODO_MS) {
     tDisparo += PERIODO_MS;
     const int cerrado = disparado;  // disparar() cierra la medición de este y dispara el siguiente
