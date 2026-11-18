@@ -39,6 +39,21 @@ if [ "${SIN_RESET_S3:-0}" != "1" ] && [ -x "$ESPTOOL" ]; then
   fi
 fi
 
+# La WROOM (CH340) tampoco se puede resetear a mano con la caja cerrada. Al abrir el puerto, el agente mueve DTR/RTS
+# y la deja en modo descarga (antes: RST a mano después de lanzar). Por eso, con el agente ya abierto, se pulsa solo
+# RTS (= EN) con DTR (= GPIO0) suelto. Con 12 V encendidos el puente flota durante el reset: por eso pregunta antes.
+# Sin esto: SIN_RESET_WROOM=1 bash lanzar.sh
+RESET_WROOM=0
+PY_ESPTOOL=~/venvs/esptool/bin/python
+if [ "${SIN_RESET_WROOM:-0}" != "1" ] && [ -x "$PY_ESPTOOL" ]; then
+  resp=s
+  if [ -t 0 ]; then
+    read -r -p "¿12 V APAGADOS? Enter = reiniciar la WROOM del brazo, n = no reiniciar: " resp
+    resp=${resp:-s}
+  fi
+  [ "$resp" != "n" ] && RESET_WROOM=1
+fi
+
 pids=()
 cerrar() {
   echo; echo "Cerrando..."
@@ -53,9 +68,27 @@ trap cerrar INT TERM
 
 ros2 run micro_ros_agent micro_ros_agent serial --dev "$BRAZO" > ~/logs/agente_brazo.log 2>&1 &
 pids+=($!)
+if [ "$RESET_WROOM" = "1" ]; then
+  sleep 2   # que el agente ya tenga el puerto abierto
+  echo "Reiniciando la WROOM (pulso en EN, GPIO0 suelto)..."
+  "$PY_ESPTOOL" - "$BRAZO" <<'PY' > ~/logs/reset_wroom.log 2>&1 || echo "  no se pudo reiniciar la WROOM (ver ~/logs/reset_wroom.log)"
+import sys, time, serial
+s = serial.Serial()
+s.port = sys.argv[1]
+s.baudrate = 115200
+s.dtr = False   # GPIO0 en alto: arranca el programa, no el modo descarga
+s.rts = False
+s.open()
+s.rts = True    # EN a masa
+time.sleep(0.2)
+s.rts = False   # suelta EN
+time.sleep(0.1)
+print("pulso en EN hecho")
+PY
+fi
 ros2 run micro_ros_agent micro_ros_agent serial --dev "$BASE" > ~/logs/agente_base.log 2>&1 &
 pids+=($!)
-echo "Agentes: brazo $BRAZO, base $BASE (logs en ~/logs). Si la página dice \"sin datos\" por más de 10 s, pulsar RST en esa placa."
+echo "Agentes: brazo $BRAZO, base $BASE (logs en ~/logs). Si la página dice \"sin datos\" por más de 10 s: Ctrl+C y volver a lanzar (con 12 V apagados)."
 sleep 2
 python3 "$DIR/teleop.py" "$@" &
 pids+=($!)

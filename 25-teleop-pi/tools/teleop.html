@@ -73,6 +73,7 @@
     <div class="estado" id="estBase">base: esperando…</div>
     <div class="fila"><button id="pzA">Pinza abrir</button><button id="pzC">Pinza cerrar</button></div>
     <div class="fila"><button id="mnA">Muñeca ⟳</button><button id="mn0">Muñeca 0</button><button id="mnB">Muñeca ⟲</button></div>
+    <div class="fila"><button id="wServos">Servos: suaves</button></div>
     <div class="estado" id="log"></div>
   </section>
 
@@ -172,10 +173,20 @@ $("rearmar").onclick = () => cmd("base", "r");
 let verSens = 0;
 $("sens").onclick = () => { verSens = Date.now(); cmd("base", "sens"); };
 $("pzA").onclick = () => cmd("brazo", "pz a");
-$("pzC").onclick = () => cmd("brazo", "pz c");
+$("pzC").onclick = () => cmd("brazo", "pz 1400");  // 20 % más cerrada que "pz c" (1250 us), 17/11
 $("mnA").onclick = () => cmd("brazo", "mn a");
 $("mn0").onclick = () => cmd("brazo", "mn 0");
 $("mnB").onclick = () => cmd("brazo", "mn b");
+// Servos rápidos: rampa 0 = salto directo (velocidad propia del servo); suaves: 45 °/s (lo de siempre al arrancar)
+let servosRapidos = false;
+$("wServos").onclick = () => {
+  servosRapidos = !servosRapidos;
+  const w = servosRapidos ? 0 : 45;
+  cmd("brazo", `pz w ${w}`);
+  setTimeout(() => cmd("brazo", `mn w ${w}`), 150);
+  $("wServos").textContent = servosRapidos ? "Servos: RÁPIDOS" : "Servos: suaves";
+  $("wServos").classList.toggle("rojo", servosRapidos);
+};
 $("homing").onclick = () => { if (confirm("Homing: brazo abajo y recogido, mano cerca. ¿Seguir?")) cmd("brazo", "h"); };
 $("reposo").onclick = () => cmd("brazo", "mv 3 17 4");
 
