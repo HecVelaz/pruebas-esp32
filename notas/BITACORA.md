@@ -1430,6 +1430,6 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   la usan); medir J3 > 100 en la zona antes de dejar el 125; el env `ros` (teleop) no tiene la pose plegada.
 - **Pinza: servo nuevo RDS3218** (20 kg·cm; el MG996R vibraba mucho). Calzado con `pz 0` (1500 µs, brazo del servo
   puesto con el dedo en su cero). El usuario: **abierta `pz a` (500 µs, 90° a fondo), cerrada para el limón 1200**.
-  `PINZA_CERRADO_US` 1250 → 1200 (firmware 20, `~/firmware/brazo20_serie_20261118c.bin`, sin flashear), `punta.py`
+  `PINZA_CERRADO_US` 1250 → 1200 (firmware 20, `~/firmware/brazo20_serie_20261118c.bin`, flasheado), `punta.py`
   (agarre 1200 en vez de 1300 / 1250), joystick y teleop "Cerrar" = `pz 1200` (antes 1400). Falta en
   `recolector_de_frutas/firmware/brazo` y en el env `ros` del teleop (le manda `pz 1200` explícito: no hace falta).
