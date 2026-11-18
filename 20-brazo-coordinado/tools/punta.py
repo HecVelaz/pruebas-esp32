@@ -548,6 +548,9 @@ MIN_POSICIONES = 3
 RADIO_LIMON = 25.0      # mm (limón de juguete de 5 cm; uno real: ~30)
 AGARRAR_PINZA_US = 1200 # 18/11, RDS3218: pz c (con el MG996R 1300, un poco más que su pz c 1250)
 AGARRAR_ADELANTE = 28.0  # mm más allá del centro del limón, en la dirección de entrada (18/11: 40, el usuario lo bajó a ~2,8 cm)
+# 18/11, el usuario: para centrar la pinza en los limones, 1-1,5 cm a la izquierda y 1-1,5 cm más arriba
+AGARRAR_IZQUIERDA = 12.5     # mm, a la izquierda de la dirección de entrada (mirando desde J1 hacia el limón)
+AGARRAR_ARRIBA_REAL = 12.5   # mm de altura real (en el modelo, / 1,43)
 AGARRAR_DZ = 0.0        # mm: 13/11 -10 (1 cm más abajo de lo que da la visión); 18/11 0: lo corrige Z_VISION_*
 # Altura de la visión corregida (18/11, 3 limones medidos con cinta a 33 / 46 / 51 cm del piso: la visión daba
 # 31,2 / 49,8 / 56,1 cm; error de escala, recta con < 4 mm de residuo). z (modelo) = Z_VISION_A + Z_VISION_B · z visión.
@@ -686,8 +689,12 @@ def medir_limon(vision, tf, seg):
     # Entrar AGARRAR_ADELANTE más allá del centro, en la dirección de entrada (desde J1): 18/11 la pinza quedaba corta
     # (la punta del modelo está adelante de donde cierran los dedos)
     r = math.hypot(float(x), float(y))
-    x, y = float(x) * (r + AGARRAR_ADELANTE) / r, float(y) * (r + AGARRAR_ADELANTE) / r
-    limon = (round(x), round(y), round(float(z) + AGARRAR_DZ))
+    ux, uy = float(x) / r, float(y) / r
+    # + AGARRAR_ADELANTE en la dirección de entrada, + AGARRAR_IZQUIERDA a la izquierda de esa dirección (mirando
+    # desde J1 hacia el limón: (-uy, ux)) y + AGARRAR_ARRIBA_REAL de altura real (el modelo: 1 mm = 1,43 mm reales)
+    x = float(x) + AGARRAR_ADELANTE * ux - AGARRAR_IZQUIERDA * uy
+    y = float(y) + AGARRAR_ADELANTE * uy + AGARRAR_IZQUIERDA * ux
+    limon = (round(x), round(y), round(float(z) + AGARRAR_DZ + AGARRAR_ARRIBA_REAL / 1.43))
     print(f"  cámara (cara): x {cara[0]:+.0f}  y {cara[1]:+.0f}  z {cara[2]:.0f} mm  ({n} posiciones, dispersión "
           f"{disp:.1f} mm)")
     print(f"  limón: a {r / 10:.0f} cm de J1, ~{(256 + 1.43 * z) / 10:.0f} cm del piso (z visión {float(z_vis):.0f}, "
