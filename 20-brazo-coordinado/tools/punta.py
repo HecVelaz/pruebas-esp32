@@ -537,7 +537,7 @@ DISPERSION_MAX = 10.0   # mm: más que esto, el limón se movió o la visión du
 MIN_POSICIONES = 3
 RADIO_LIMON = 25.0      # mm (limón de juguete de 5 cm; uno real: ~30)
 AGARRAR_PINZA_US = 1200 # 18/11, RDS3218: pz c (con el MG996R 1300, un poco más que su pz c 1250)
-AGARRAR_ADELANTE = 40.0  # mm más allá del centro del limón, en la dirección de entrada (18/11: quedaba 4 cm corta)
+AGARRAR_ADELANTE = 28.0  # mm más allá del centro del limón, en la dirección de entrada (18/11: 40, el usuario lo bajó a ~2,8 cm)
 AGARRAR_DZ = 0.0        # mm: 13/11 -10 (1 cm más abajo de lo que da la visión); 18/11 0: lo corrige Z_VISION_*
 # Altura de la visión corregida (18/11, 3 limones medidos con cinta a 33 / 46 / 51 cm del piso: la visión daba
 # 31,2 / 49,8 / 56,1 cm; error de escala, recta con < 4 mm de residuo). z (modelo) = Z_VISION_A + Z_VISION_B · z visión.
