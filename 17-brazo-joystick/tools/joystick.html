@@ -88,7 +88,7 @@
   <div class="anotar" id="servos" style="display:none">
     <b>Pinza</b>
     <button data-srv="pz a">Abrir</button>
-    <button data-srv="pz 1400">Cerrar</button>
+    <button data-srv="pz 1200">Cerrar</button>
     <b>Muñeca</b>
     <button data-srv="mn a">a</button>
     <button data-srv="mn 0">0</button>
@@ -235,7 +235,7 @@ document.getElementById("anotarB").onclick = () => {
   const nota = document.getElementById("nota");
   post("/anotar", nota.value).then(s => { nota.value = ""; mostrar(s); }).catch(() => {});
 };
-// Pinza y muñeca (solo --placa 20), como el teleop de 25 (17/11): "Cerrar" = pz 1400 (20 % más que pz c);
+// Pinza y muñeca (solo --placa 20), como el teleop de 25 (17/11): "Cerrar" = pz 1200 (RDS3218, 18/11);
 // "Servos: RÁPIDOS" = rampa 0 (salto directo, a la velocidad del servo), "suaves" = 45 °/s
 document.querySelectorAll("[data-srv]").forEach(b => b.onclick = () =>
   post("/servo", b.dataset.srv).then(mostrar).catch(() => {}));

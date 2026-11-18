@@ -44,7 +44,7 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
 
 ## Brazo (`20-brazo-coordinado`, WROOM)
 
-- **WROOM de la Pi: env `brazo` con la pose plegada (18/11, `~/firmware/brazo20_serie_20261118b.bin`)**: J1 hasta 130
+- **WROOM de la Pi: env `brazo` con la pose plegada (18/11, `~/firmware/brazo20_serie_20261118b.bin`; `c` = pinza 1200)**: J1 hasta 130
   solo plegado (J2 42–51, J3 78–85; si no, 115), J3 propio 125 (provisorio). **`soltar`** (punta.py y recolectar.py):
   canasta en J1 130 / J2 46,7 / J3 80, probado con limón. Imágenes completas: `write-flash 0x0` (en 0x10000, bucle).
   Teleop: `write-flash 0x0 ~/firmware/respaldo_wroom_20261112.bin` (env `ros` viejo, sin la pose plegada).
@@ -60,8 +60,9 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
 
 ## Pinza y muñeca (servos)
 
-- En 20 (`pz`, `mn`): pinza GPIO 4 (abierta 500 µs, cerrada 1250; `agarrar` 1300; el teleop 1400), muñeca GPIO 14
-  (cero 1500, ±90° en 860 / 2150 µs). El brazo del servo de la pinza está ~45° corrido (recalzar ~3 dientes).
+- En 20 (`pz`, `mn`): **pinza RDS3218 desde el 18/11** (el MG996R vibraba), GPIO 4, calzada en 1500: abierta 500 (90°),
+  **cerrada 1200** (`pz c`, `agarrar`, joystick y teleop); muñeca GPIO 14 (cero 1500, ±90° en 860 / 2150 µs).
+  Firmware con el 1200: `~/firmware/brazo20_serie_20261118c.bin` (sin flashear: `pz c` del cargado es 1250).
 
 ## Máquinas
 

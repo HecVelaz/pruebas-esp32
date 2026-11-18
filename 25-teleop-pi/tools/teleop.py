@@ -39,7 +39,7 @@ PAGINA = Path(__file__).absolute().parent / "teleop.html"
 COMANDOS = {
     "brazo": {"h", "s", "x", "mv 3 17 4", "pz a", "pz c", "pz 0", "mn a", "mn 0", "mn b", "c",
               "pz w 0", "mn w 0", "pz w 45", "mn w 45",
-              "pz 1400"},   # pinza cerrada 20 % más que "pz c" (1250 us), 17/11   # servos rápidos (salto directo) / suaves (45 °/s)
+              "pz 1200"},   # pinza cerrada con el RDS3218 (18/11; con el MG996R "pz 1400")   # servos rápidos (salto directo) / suaves (45 °/s)
     "base": {"armar", "desarmar", "s", "r", "sens"},   # r: rearmar tras la seta o un vuelco; sens: sensores
 }
 JV_MAX = 1.0

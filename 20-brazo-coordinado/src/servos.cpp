@@ -1,5 +1,5 @@
 // Pinza (GPIO 4) y muñeca (GPIO 14) en 20, con el driver de 21 y los valores de 23.
-//   pz a | c | 0 | s | e | <us>     abrir (500) / cerrar (1250) / cero (1500) / soltar / estado / pulso
+//   pz a | c | 0 | s | e | <us>     abrir (500) / cerrar (1200, RDS3218) / cero (1500) / soltar / estado / pulso
 //   mn a | b | 0 | s | e | <us>     90° horario (860) / 90° antihorario (2150) / cero (1500) / soltar / estado / pulso
 //   pz w <°/s>, mn w <°/s>          velocidad de la rampa (0 = salto)
 // Avisa SERVO_LLEGO,<nombre>,<us> al terminar la rampa.

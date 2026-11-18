@@ -13,12 +13,12 @@ Abre el puerto como un monitor: lo que se escribe va a la placa (h, c, mv, s, x,
     pz ... / mn ...   pinza y muñeca (van a la placa: pz a/c/0, mn a/b/0, ...)
     tarea [xA yA zA xB yB zB]   agarrar en A y dejar en B, solo (def. A = -550 100 100, B = -450 350 100):
                       planea todo antes y pide Enter; recoge, gira J1 recogido, abre la pinza, entra de frente a A,
-                      cierra (pz 1250), gira la muñeca (mn a), sale de frente, igual hacia B, abre, sale, muñeca a 0, reposo
+                      cierra (pz 1200), gira la muñeca (mn a), sale de frente, igual hacia B, abre, sale, muñeca a 0, reposo
                       (mv 3 17 4). Un mv que corta por "no quedan firmes" se repite una vez.
                       vertarea: solo el plan. Ctrl+C en cualquier momento: "s"
     agarrar [s]       agarrar el limón que ve la cámara (en la Pi, con start_limon.sh): mediana de /limon/posicion
                       durante s segundos (def. 5) -> centro con la calibración del 12/11 (ajuste_camara.py) -> planea
-                      todo (pz a, ap 1 cm más abajo, pz 1300, ret, reposo mv 3 17 4) y pide Enter antes de mover. Queda con el limón
+                      todo (pz a, ap 1 cm más abajo, pz 1200, ret, reposo mv 3 17 4) y pide Enter antes de mover. Queda con el limón
                       en la pinza ("pz a" lo suelta). veragarrar [s]: mide y planea, sin mover
     donde             pide "c" y dice dónde está la punta
     anotar <punto>    como donde, y lo guarda en resultados/camara_brazo_<fecha>_brazo.csv (calibración de la
@@ -389,7 +389,7 @@ def ejecutar(placa, plan, timeout, reintentos=1):
 
 
 TAREA_A = (-550.0, 100.0, 100.0)
-PINZA_AGARRE_US = 1250   # = pz c. 11/11: con 1250 una vez a J2 no le alcanzó para salir (con 1150 sí, pero agarra flojo)
+PINZA_AGARRE_US = 1200   # = pz c (RDS3218, 18/11; con el MG996R 1250). 11/11: con 1250 una vez a J2 no le alcanzó para salir (con 1150 sí, pero agarra flojo)
 TAREA_B = (-450.0, 350.0, 100.0)
 REPOSO = (3.0, 17.0, 4.0)
 # Soltar el limón en la canasta sobre la tapa (2026-11-18, con el joystick: Imágenes/brazo/Pos_canasta.jpeg). Pose
@@ -496,7 +496,7 @@ CAL_SIN = ("P5",)
 DISPERSION_MAX = 10.0   # mm: más que esto, el limón se movió o la visión duda -> no agarrar
 MIN_POSICIONES = 3
 RADIO_LIMON = 25.0      # mm (limón de juguete de 5 cm; uno real: ~30)
-AGARRAR_PINZA_US = 1300 # 13/11: un poco más cerrada que pz c (1250) para agarrar firme
+AGARRAR_PINZA_US = 1200 # 18/11, RDS3218: pz c (con el MG996R 1300, un poco más que su pz c 1250)
 AGARRAR_DZ = -10.0      # mm: 13/11, agarrar siempre 1 cm más abajo de lo que da la visión
 
 

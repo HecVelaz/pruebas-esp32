@@ -173,7 +173,7 @@ $("rearmar").onclick = () => cmd("base", "r");
 let verSens = 0;
 $("sens").onclick = () => { verSens = Date.now(); cmd("base", "sens"); };
 $("pzA").onclick = () => cmd("brazo", "pz a");
-$("pzC").onclick = () => cmd("brazo", "pz 1400");  // 20 % más cerrada que "pz c" (1250 us), 17/11
+$("pzC").onclick = () => cmd("brazo", "pz 1200");  // RDS3218 (18/11): agarra el limón firme (con el MG996R era 1400)
 $("mnA").onclick = () => cmd("brazo", "mn a");
 $("mn0").onclick = () => cmd("brazo", "mn 0");
 $("mnB").onclick = () => cmd("brazo", "mn b");

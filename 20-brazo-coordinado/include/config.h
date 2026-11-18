@@ -263,7 +263,9 @@ constexpr int CANAL_SERVO_PINZA = 6;
 constexpr int CANAL_SERVO_GIRO = 7;
 constexpr float SERVO_W_INICIAL = 45.0f;
 // Pinza (MG996R, 21): cero 1500 us, abierto 500 us (fijo), cerrado 1250 us (limón de 51 mm); franja [500, 2000]
-constexpr uint16_t PINZA_CERO_US = 1500, PINZA_ABIERTO_US = 500, PINZA_CERRADO_US = 1250;
+// 2026-11-18: servo nuevo RDS3218 (20 kg·cm; el MG996R vibraba mucho), brazo calzado en 1500: abierto 500 (90°, a
+// fondo), cerrado 1200 (agarra el limón firme; usuario)
+constexpr uint16_t PINZA_CERO_US = 1500, PINZA_ABIERTO_US = 500, PINZA_CERRADO_US = 1200;
 constexpr uint16_t PINZA_MIN_US = 500, PINZA_MAX_US = 2000;
 constexpr float PINZA_US_POR_GRADO = 2000.0f / 180.0f;
 // Muñeca (22): cero 1500 us, 90° horario 860 us, 90° antihorario 2150 us; franja [860, 2150]
