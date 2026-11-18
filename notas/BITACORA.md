@@ -1314,3 +1314,47 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
 - Commits: `18c05e1`, `37faaac`, `cc421c1`, `e0c2f0e`, `6cecf3a`, `061cd8c`, `37c69de`, `e1bd277`, `c425f7e`,
   `2e9b3a2`, `ff3c8f6`, `dc027c9`, `2a4c3eb`, `dd2d8f3`, `e1beae0`, `7ee08ee`, `fa36f66`, `3f480e8`, `107f7d2`,
   `9921b2f`, `ba907ec` y el de este cierre. Sin push.
+
+## 2026-11-17 — Teleop afuera con el hotspot del celular, HC-SR04 derecho, recuperación de la IMU
+- **Pi en el hotspot del celular** (para salir del lab sin la red FIUNA): perfil `POCO X6 Pro 5G` (ya existía; clave
+  `sudo nmcli con modify ... wifi-sec.psk`). La Pi **no veía el hotspot en 2,4 GHz: canal 13 (2472 MHz)** y la Pi no
+  tiene país del wifi (solo canales 1–11; `brcmf ... Firmware rejected country setting`). **Con el hotspot en 5 GHz
+  (5180 MHz) sí.** Cambio a mano: `sudo nmcli con up "POCO X6 Pro 5G"` (en el lab no cambia sola: ya está en FIUNA;
+  afuera se conecta sola; al apagar el hotspot vuelve a FIUNA). IP en el hotspot **10.244.71.243** (puede cambiar);
+  con datos móviles Tailscale sigue (`100.116.96.71`). Página: `http://10.244.71.243:8000`. MAC de la Pi
+  `2c:cf:67:14:b2:cb`. Hubo cortes de unos minutos (hotspot / datos).
+- **Brazo "sin datos" en el teleop: la WROOM tenía el env `brazo` (serie)** del 13/11. Vuelta al env `ros`:
+  `esptool --chip esp32 --port /dev/ttyUSB0 --baud 230400 write-flash 0x0 ~/firmware/respaldo_wroom_20261112.bin`.
+  Antes probé resetearla desde `lanzar.sh` creyendo que quedaba en modo descarga (equivocado): quedó en `lanzar.sh`
+  un pulso en EN (solo RTS, DTR suelto) después de abrir el agente, con la pregunta "¿12 V APAGADOS?" (`n` = no
+  resetear; `SIN_RESET_WROOM=1`), para no tener que pulsar RST con la caja cerrada.
+- **Seta y "sin eco" con 12 V apagados:** normal (los 5 V de los HC-SR04 y la seta salen de los 12 V); con 12 V,
+  `Rearmar` y `Armar base`.
+- **HC-SR04 derecho (03):** `nan` en `/range/der` (37/37). Con `03-hcsr04`: `NO RESPONDE` y después `sin eco (>4m)`
+  aun con la mano a 10 cm. Probado: cambiar sensores (la falla quedó del lado derecho), sensor fuera del soporte, TRIG
+  en GPIO 40 (env `trig40`, con el 5 V / GND de la tira 40), ECHO (salida del divisor) en GPIO 40 (env `echo40`):
+  **siempre igual**; con el sensor desenchufado el GPIO 13 está en 0 y quieto (la placa en reposo bien); multímetro
+  bien (5 V, GND, ECHO en reposo). Al volver a 42 / 13 marcó **3,3 cm fijo** (responde, pero no mide). Conclusión del
+  usuario: **el HC-SR04 está mal** (cambiarlo). Sospecha que no se descartó: el hilo de TRIG del cable (los
+  disparos espontáneos dan esa mezcla de `NO RESPONDE` / `sin eco`). 03: comando nuevo **`d [f|i|d] [n]`**
+  (diagnóstico en crudo del ECHO: reposo, tiempo de subida, ancho, cambios), envs `trig40` y `echo40`; no se llegó a
+  correr el `d` con el sensor malo.
+- **Base en el pasto: se trancó con "IMU sin datos"**; en el lab, apagando y prendiendo, volvió. Causa: la seguridad
+  frena con > 200 ms sin IMU (bien) y el firmware **no reintentaba la IMU** (solo `begin()` al arrancar): un I2C
+  colgado (ruido / tensión con los motores forzando) queda así hasta reiniciar. **`recolector_de_frutas/firmware/base`:
+  recuperación** (`recuperarImu()` en el loop): sin muestras > 300 ms libera el bus (9 pulsos en SCL + STOP),
+  `Wire.begin` y `imu.begin`, cada 1 s como mucho, conserva el bias; `imu_rec=N` en `/base/estado`. Compila (esp32s3 y
+  ros), `test_base` 20/20. Binario en la Pi: `~/firmware/base_ros_20261117_imu/`. **Sin probar en placa** (la S3
+  quedó con `base_ros_20261113`).
+- **Teleop (25):** botón **"Servos: suaves / RÁPIDOS"** (`pz w 0` + `mn w 0`: salto directo, a la velocidad del
+  servo; vuelve con 45); **"Pinza cerrar" manda `pz 1400`** (20 % más que `pz c` = 1250; el firmware no cambió:
+  `agarrar` usa 1300). Probado por el usuario: funciona bien. `tools/servos_rapido.py` (abrir → muñeca a / b / 0 →
+  cerrar por ROS, sin probar).
+- Flasheo de la S3 desde la Pi con el puerto by-id (volvió como `ttyACM1`):
+  `S3=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_94:A9:90:30:24:24-if00`;
+  `esptool --chip esp32s3 --port $S3 --after watchdog-reset write-flash 0x0 bootloader.bin 0x8000 partitions.bin
+  0xe000 boot_app0.bin 0x10000 firmware.bin`. Monitor: `~/venvs/esptool/bin/python -m serial.tools.miniterm $S3 115200`
+  (los `~␀␀…` son los pings de micro-ROS: la S3 tiene el env `ros`). En la Pi: `~/firmware/hcsr04_03`,
+  `hcsr04_03_original`, `hcsr04_03_trig40`, `hcsr04_03_echo40`, `base_ros_20261117_imu`.
+- Al cierre en la Pi: S3 con `base_ros_20261113`, WROOM con 20 env `ros` (para el teleop; para `recolectar.py` hay que
+  volver al env `brazo`: `write-flash 0x10000 ~/firmware/brazo20_serie.bin`), Pi en el hotspot.

@@ -1,9 +1,21 @@
-# Pendientes de pruebas-esp32 (al 2026-11-13, cierre)
+# Pendientes de pruebas-esp32 (al 2026-11-17, cierre)
 
 <!-- Movido desde CLAUDE.md (2026-10-22). Los bloques "Pendiente GPS", "Pendiente" de 08 y "Falta" se movieron
      tal cual; el resto se copió de los "Pendiente:" que siguen dentro de cada entrada de BITACORA.md. -->
 
-## Lo próximo (13/11 cierre, en este orden)
+## Lo nuevo del 17/11 (antes de volver a salir)
+
+1. **Probar la recuperación de la IMU** (`recolector_de_frutas/firmware/base`, sin commit hasta probarla): flashear
+   `~/firmware/base_ros_20261117_imu/` (12 V apagados), `imu=ok imu_rec=0`; con la base desarmada, sacar un instante
+   SDA (8) o SCL (9) del IMU: SIN_DATOS → `ok` en 1–2 s con `imu_rec=1`. Después en el pasto. Además: cables del I2C
+   cortos y trenzados, lejos de los motores; si sigue, I2C a 100 kHz.
+2. **Cambiar el HC-SR04 derecho** (y el Dupont / cable de TRIG si hace falta); comprobar con 03 (`d` y la mano a 10 /
+   20 / 40 cm) y en `/range/der`.
+3. Hotspot: fijar la IP de la Pi en el hotspot o arrancar el teleop solo al encender (servicio systemd); país del wifi
+   `cfg80211.ieee80211_regdom=PY` en `/boot/firmware/cmdline.txt` para usar el hotspot en 2,4 GHz.
+4. Pinza: llevar el cierre a 1400 µs al firmware (`PINZA_CERRADO_US` en `20/include/config.h`) si sirve también para
+   `agarrar` (hoy 1300); `servos_rapido.py` sin probar.
+
 
 1. **BUSCAR** en `recolectar.py`: si no ve la marca, girar en el lugar de a ~20° mirando (con el giróscopo); si no
    aparece en 360°, avanzar ~1 m esquivando con los HC-SR04 y volver a girar. Hoy tiene que arrancar viéndola.
