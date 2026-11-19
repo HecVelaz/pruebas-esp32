@@ -1,19 +1,24 @@
-# Pendientes de pruebas-esp32 (al 2026-11-18, cierre)
+# Pendientes de pruebas-esp32 (al 2026-11-19, cierre)
 
 <!-- Movido desde CLAUDE.md (2026-10-22). Los bloques "Pendiente GPS", "Pendiente" de 08 y "Falta" se movieron
      tal cual; el resto se copió de los "Pendiente:" que siguen dentro de cada entrada de BITACORA.md. -->
 
-## Lo inmediato
+## Lo inmediato (meta: viernes 27/11, cosechar con navegación)
 
+0. **Banderín único (19/11, programado):** medir el eje del árbol respecto de la marca (derecha / frente mirándola de
+   frente) → `27-aruco-arbol/banderin.json`; probar `ir_a_parada.py --arbol D F` (solo mirar: ¿el árbol sale donde
+   está?), después `--buscar` y `cosechar` en la parada. Medir el error de rumbo del banderín (`medir_marca.py` a 1–3 m).
+   Banderín fuera del anillo del robot (~0,5–1,5 m del árbol), a 20–40 cm del piso, rígido.
 1. **Probar `cosechar 3` con el ajuste fino** (limones a 48–65 cm de J1, 33–54 cm, mejor en el centro de la imagen):
    ¿centra mejor en los bordes? ¿confirma bien con la visión? Si el error adelante (±2 cm) molesta, más puntos de
    `ajustar` (sobre todo en los bordes de la imagen y bajos) y `ajuste fin`.
 2. **Visión: publicar todos los limones** (`/limon/todos` en `vision_estereo/.../localizador_node.py`; hoy publica el
    de mayor confianza) y en `punta.py` elegir el más cercano que tenga plan y verificar el agarre con todos (hoy, si
    después de fallar la visión elige otro limón, el fallado se cuenta como cosechado).
-3. **Recolección completa:** `recolectar.py --limones 3` (marca → parada → cosecha); después RODEAR
-   (`ir_a_parada.py --rodear 1`, solo la base) y `recolectar.py --paradas 4 --limones N`.
-4. **Pi que se reinicia sola** (12:16, 16:10, 18:04 del 18/11) y cortes del USB de la S3: alimentación, cables.
+3. **Recolección completa (20/11):** `recolectar.py` con `--banderin` / `--buscar` (hoy solo `ir_a_parada.py` los
+   tiene) y `--limones 3`; después RODEAR (`ir_a_parada.py --banderin --rodear 1`, solo la base, odometría; J1 pasa a
+   48 cm del tronco) y `--paradas 4`. Calibrar la odometría (diámetro de ruedas, giro de 360°) si la parada 2+ queda mal.
+4. Cortes del USB de la S3 (cables). La Pi no se reinicia sola: la apagaba el usuario (19/11).
 5. Brazo: J3 propio 125° PROVISORIO (medir o volver a 101,5); J2 a veces "no quedan firmes" en el reposo (`mv 3 17
    4`); llevar a `recolector_de_frutas/firmware/brazo` la pose plegada, `mvp`, la pinza RDS3218 y las velocidades.
 6. Hotspot: IP fija de la Pi o teleop al encender; país del wifi para 2,4 GHz.
@@ -25,8 +30,8 @@ s ida y vuelta); pinza con el servo RDS3218 (abierta 500, cerrada 1200); RODEAR 
 
 ## Recolección autónoma
 
-1. **BUSCAR** en `recolectar.py`: si no ve la marca, girar en el lugar de a ~20° mirando (con el giróscopo); si no
-   aparece en 360°, avanzar ~1 m esquivando con los HC-SR04 y volver a girar. Hoy tiene que arrancar viéndola.
+1. **BUSCAR**: girar de a 30° ya está en `ir_a_parada.py --buscar` (19/11); falta en `recolectar.py` y, si no
+   aparece en 360°, avanzar ~1 m esquivando con los HC-SR04 y volver a girar.
 2. **RODEAR**: pegar las marcas ID 1–3 en las otras caras de la maceta (antihorario, centro a ~20–30 cm del piso,
    cartón plano, a 16–17 cm del tronco), y después de agarrar en una parada ir a la siguiente (arco de 90° alrededor
    del árbol con el árbol a la izquierda; corregir con la marca de esa cara). Varios limones por parada.

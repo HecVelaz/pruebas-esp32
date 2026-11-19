@@ -135,3 +135,8 @@
   a la canasta sin pasar por el reposo.
 - **Ajuste fino: por dirección, el modelo que mejor acierta con puntos que no usó (2026-11-18):** con 9 puntos solo el
   costado según el lado de la imagen; corregir todo empeoraba (sobreajuste).
+- **Un solo banderín ArUco en vez de 4 marcas en la maceta (2026-11-19, usuario):** ambiente controlado; la pose de
+  una marca (posición + hacia dónde mira) más el desplazamiento al árbol medido con cinta alcanza para la parada 1;
+  las demás con la odometría. La posición guardada solo sirve para llegar: el agarre lo corrige la visión estéreo.
+- **GPS (UP501 o del celular) solo para la rúbrica (2026-11-19):** metros de error y sin fix en el aula; navegar con
+  encoders + giróscopo + banderín.

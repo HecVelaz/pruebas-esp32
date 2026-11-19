@@ -1493,3 +1493,22 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   (±1,0) empeoraban con más parámetros (sobreajuste) → `ajuste fin` elige el modelo por dirección
   (`ajuste_agarre.json`). Sin probar en una cosecha.
 - `punta.py` guarda todo lo que imprime en `~/logs/punta_*.log`. Commits: `ad4a492` … `9c4a72f` (18), sin push.
+
+## 2026-11-19 — Banderín único y BUSCAR (programados, sin probar en el robot)
+
+- Push de los 19 commits del 18/11 (`ad4a492` … `89d7291`).
+- **Charla de navegación** (decisiones en `DECISIONES.md`): con una sola marca alcanza (la pose da posición y rumbo;
+  el error de rumbo pesa más cuanto más lejos esté del árbol: ~5 cm por metro con 3°, sin medir); guardar los limones
+  en el marco del banderín solo para planificar, el agarre con la visión; GPS del celular no sirve para navegar
+  (3–5 m afuera, peor adentro). Espacio para la prueba: el robot ocupa un anillo de ~1,8 m de radio alrededor del
+  árbol → **mínimo 4 × 4 m, mejor 5 × 5**. Meta: cosecha con navegación el viernes 27/11.
+- **`ir_a_parada.py --banderin [JSON] [--arbol DERECHA FRENTE] --buscar`** (`d517f88`): árbol = pos. del banderín +
+  frente·normal + derecha·(normal girada 90°), mirando la marca de frente; `parada_lado_deg` elige el lado del árbol
+  de la parada 1. BUSCAR: mira 1,5 s, gira 30° a la izquierda (giróscopo), hasta 360°. No va si J1 pasa a < 45 cm del
+  banderín o del tronco; rectos de hasta 3 m en tramos de 1,5. RODEAR con banderín: directo a la parada siguiente con
+  la odometría (girar 34° izq., avanzar 112 cm, girar 56° izq.; J1 a 48 cm del tronco). Verificado con `--simular`
+  (sin ROS) en la notebook y en la Pi (copiado a `~/scripts/27-aruco-arbol`). `banderin.json` con los valores en
+  `null`: faltan medirlos.
+- El usuario: los "reinicios" de la Pi eran apagados suyos (la powerbank anda bien). Hoy afina `cosechar 3` con el
+  ajuste fino (sin registro en esta sesión).
+

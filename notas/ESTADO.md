@@ -1,7 +1,6 @@
-# Estado de pruebas-esp32 (al 2026-11-18, cierre)
+# Estado de pruebas-esp32 (al 2026-11-19, cierre)
 
-Foto de hoy. La historia, las mediciones completas y los nombres de los CSV están en `BITACORA.md`; lo que sigue, en
-`PENDIENTES.md`; los pines de la S3, en `PINES_S3.md`.
+Foto de hoy. Historia y CSV en `BITACORA.md`; lo que sigue en `PENDIENTES.md`; pines de la S3 en `PINES_S3.md`.
 
 ## Recolección autónoma (lo actual)
 
@@ -9,14 +8,17 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
   giróscopo, avanzar con las ruedas, girar) → **`cosechar --limones`** (ver Brazo). 3 Enter: 12 V apagados (abre la
   WROOM), 12 V encendidos (homing), ir. En la Pi: `cd ~/scripts/27-aruco-arbol; python3 tools/recolectar.py`
   (visión y agente de la base corriendo; WROOM env `brazo`). Base + cosecha juntas todavía no se probaron.
-- **RODEAR (18/11, sin probar en el robot):** `--paradas N` en `recolectar.py`; solo la base: `ir_a_parada.py --rodear
-  N [--auto S]` (sin Enter, con `nohup`; parar con la seta). Desde la parada va con la odometría a 1,1 m del tronco
-  frente a la cara siguiente (90° antihorario), mira esa marca y corrige como en la primera.
+- **RODEAR (sin probar en el robot):** `recolectar.py --paradas N`; solo la base `ir_a_parada.py --rodear N [--auto S]`:
+  odometría hasta 1,1 m del tronco frente a la cara siguiente (90° antihorario), mira esa marca y corrige.
+- **Banderín único + BUSCAR (19/11, sin probar en el robot):** `ir_a_parada.py --banderin --buscar [--arbol D F]`:
+  una sola marca (ID 0) en un palo; el eje del árbol respecto de ella en `27/banderin.json` (derecha / frente mirando
+  la marca de frente, `parada_lado_deg`; **faltan los valores medidos**). Gira de a 30° hasta verla, no va si pasa J1 a
+  < 45 cm del banderín o del tronco; con banderín RODEAR va solo con la odometría. `recolectar.py` todavía no lo usa.
 - **Parada** (`26`): tronco a **70 cm a la izquierda de J1 y 15 cm adelante**; 4 paradas cada 90° = 100 % del arbolito.
 - **Marcas ArUco** (`27`): DICT_4X4_50, 15 cm, **IDs 0–3 pegadas** (antihorario, cara a 16,5 cm del tronco:
   `--radio-maceta 165`). Se detectan de ~0,9 a ~4 m; `ver_marcas.py --tf nav --radio-maceta 165` para mirarlas.
-- **Dos calibraciones de la cámara:** agarre = la del brazo del 12/11 (< 70 cm); navegación =
-  `27/resultados/tf_navegacion.json` (~3 cm a 1–2 m). **GPS** UP501 en la Pi: ±20 m, solo para la rúbrica.
+- Cámara: agarre con la calibración del 12/11 (< 70 cm); navegación `27/resultados/tf_navegacion.json` (~3 cm a 1–2 m).
+  **GPS** (UP501 o el del celular): metros de error, solo para la rúbrica, no para navegar.
 
 ## Teleop afuera (25)
 
@@ -34,8 +36,8 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
   a 20 cm a 0,10 y 0,20 m/s); bumpers, seta y vuelco (25°) OK, enclavados (`r` por `/base/comando`). Los de las
   esquinas solo publican (decisión del usuario). Herramientas: `25-teleop-pi/README.md` ("Seguridad de la base").
 - Batería ~11,2 V (LiPo 3S sin BMS, corte 10,5 V). Odometría: recto < 1 %; giros con el giróscopo (~±1°).
-- **A vigilar:** un `atasco` aislado del encoder izquierdo; cortes del USB de la S3 (3 el 18/11); la Pi se reinicia sola. Si la S3 no
-  se conecta tras reiniciar la Pi: `pkill -f micro_ros_agent`, `esptool ... --after watchdog-reset chip-id`, agente.
+- **A vigilar:** un `atasco` aislado del encoder izquierdo; cortes del USB de la S3 (3 el 18/11). Los "reinicios" de
+  la Pi eran apagados del usuario (la powerbank anda bien, 19/11). Si la S3 no se conecta tras reiniciar la Pi: `pkill -f micro_ros_agent`, `esptool ... --after watchdog-reset chip-id`, agente.
 
 ## Brazo (`20-brazo-coordinado`, WROOM)
 
@@ -53,8 +55,7 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
   solo el costado según el lado de la imagen (`20/resultados/ajuste_agarre.json`). Log: `~/logs/punta_*.log`.
 - **Abrir el puerto reinicia la WROOM:** siempre `h`. Corte por franja: `j <n> <°>` de a una, esperando que llegue.
 - Joystick (17) en la Pi: `joystick.py --placa 20 [--sin-franja] --host 0.0.0.0 -p /dev/ttyUSB0` (puerto 8000).
-- J1, J2, J3 con `lib/Articulacion`, 100 Hz, 20 kHz; homing → J1 3°, J2 6°, J3 3°; reposo `mv 3 17 4`; franja con
-  tablas; caja con J1 ≥ 53,5; repetibilidad RP 0,13 / 0,20 / 0,06°. Cero en los finales de carrera (J1 32, J2 27, J3 33).
+- Homing → J1 3°, J2 6°, J3 3° (finales de carrera 32 / 27 / 33); reposo `mv 3 17 4`; repetibilidad 0,13 / 0,20 / 0,06°.
 - Cinemática: ~10 mm de media; en z ~1,26–1,43 × el modelo; zona plegada solo con `USAR_ZONA` (caminos de la canasta).
 - `recolector_de_frutas/firmware/brazo` sigue con franja, homing y reposo viejos: falta pasarle lo de `20`.
 
