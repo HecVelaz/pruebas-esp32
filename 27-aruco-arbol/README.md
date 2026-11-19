@@ -40,6 +40,27 @@ BUSCAR (girar en el lugar de a ~20°; si no ve, avanzar 1 m esquivando con los H
   (máx 52).** Cámara a 57,4 cm del piso, 6,5° hacia abajo, mira +3,8° hacia adelante. En vivo en P6: (−2017, −17)
   contra (−2000, 0). El error mayor es a lo largo del robot (y); x ±2 cm.
 
+## Banderín único y BUSCAR (19/11, sin probar en el robot)
+
+Una sola marca (la ID 0 que ya está impresa) en un palo, en cualquier lugar, y en `banderin.json` dónde está el **eje
+del arbolito** respecto de ella, medido en el piso con cinta y **mirando la marca de frente**:
+
+- `arbol_derecha_mm`: hacia la derecha de quien mira la marca (izquierda: negativo).
+- `arbol_frente_mm`: hacia quien la mira; el árbol detrás de la marca: negativo.
+- `parada_lado_deg`: de qué lado del árbol para el robot en la parada 1 (0 = del lado al que mira la marca, 90 = un
+  cuarto de vuelta antihorario visto de arriba). El robot queda con el árbol a su izquierda, como siempre.
+
+`python3 tools/ir_a_parada.py --banderin --buscar [--rodear N]`: BUSCAR gira en el lugar de a 30° a la izquierda
+(giróscopo) y mira 1,5 s en cada paso, hasta 360°. Cuando ve la marca, la mide 3 s y calcula el árbol y el plan
+(girar / avanzar / girar; los rectos largos en tramos de 1,5 m, hasta 3 m). **No va si el camino pasa J1 a menos de
+45 cm del banderín o del tronco** (mover el robot, el banderín o `parada_lado_deg`). RODEAR con banderín va a la
+parada siguiente solo con la odometría (girar 34° izq., avanzar 112 cm, girar 56° izq.; J1 pasa a 48 cm del
+tronco). `--arbol D F` pisa lo del JSON; `--simular X Y MIRA` prueba la cuenta sin ROS (X, Y del banderín).
+
+El banderín no puede quedar donde se para o pasa el robot (anillo de ~0,5–1,5 m alrededor del árbol): mejor a un
+costado, o atrás del árbol visto desde la parada. Error de rumbo del banderín: sin medir (lo que más pesa si está lejos
+del árbol).
+
 ## Falta
 
 1. Imprimir y armar las marcas alrededor del arbolito.

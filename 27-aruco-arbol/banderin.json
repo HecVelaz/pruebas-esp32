@@ -1,0 +1,7 @@
+{
+  "nota": "Banderín único (ir_a_parada.py / recolectar.py --banderin). Mirando la marca DE FRENTE, medido en el piso con cinta hasta el EJE del arbolito: arbol_derecha_mm hacia la derecha de quien mira (izquierda: negativo), arbol_frente_mm hacia quien mira (árbol detrás de la marca: negativo). parada_lado_deg: de qué lado del árbol para el robot en la parada 1 (0 = del lado al que mira la marca, 90 = un cuarto de vuelta antihorario visto de arriba); el robot queda con el árbol a su izquierda.",
+  "id": 0,
+  "arbol_derecha_mm": null,
+  "arbol_frente_mm": null,
+  "parada_lado_deg": 0
+}
