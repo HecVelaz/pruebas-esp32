@@ -882,19 +882,40 @@ def ajuste_fin():
         print(f"NO: hacen falta al menos 3 puntos (hay {n})")
         return
     a = np.array(filas)
-    n_coef = 3 if n >= 6 else 2
-    X = np.array([rasgos(f[6:9], f[9], n_coef) for f in a])
-    coef, res = {}, {}
+    # Por cada dirección, el modelo que mejor acierta con puntos que no usó (dejando uno afuera), entre: nada,
+    # constante, + altura, + lado de la imagen, completo. 18/11: con 9 puntos el completo empeoraba adelante y arriba
+    F = np.array([rasgos(f[6:9], f[9], 3) for f in a])
+    opciones = {"nada": [], "constante": [0], "+altura": [0, 1], "+lado": [0, 2], "completo": [0, 1, 2]}
+    coef = {}
     for j, e in enumerate(("adelante", "izquierda", "arriba")):
         yv = a[:, 10 + j]
-        c, *_ = np.linalg.lstsq(X, yv, rcond=None)
-        coef[e] = [round(float(v), 2) for v in c]
-        res[e] = float(np.sqrt(np.mean((X @ c - yv) ** 2)))
-        print(f"  {e}: media {yv.mean() / 10:+.1f} cm (de {yv.min() / 10:+.1f} a {yv.max() / 10:+.1f}), "
-              f"queda ±{res[e] / 10:.1f} cm con el ajuste")
+        mejor = None
+        for nombre, cols in opciones.items():
+            if len(cols) >= n - 1:
+                continue
+            loo = []
+            for i in range(n):
+                m = np.arange(n) != i
+                if cols:
+                    c, *_ = np.linalg.lstsq(F[m][:, cols], yv[m], rcond=None)
+                    loo.append(F[i, cols] @ c - yv[i])
+                else:
+                    loo.append(-yv[i])
+            err = float(np.sqrt(np.mean(np.square(loo))))
+            if mejor is None or err < mejor[0] - 0.5:   # el más simple, salvo que el otro mejore > 0,5 mm
+                mejor = (err, nombre, cols)
+        err, nombre, cols = mejor
+        c3 = [0.0, 0.0, 0.0]
+        if cols:
+            c, *_ = np.linalg.lstsq(F[:, cols], yv, rcond=None)
+            for col, v in zip(cols, c):
+                c3[col] = round(float(v), 2)
+        coef[e] = c3
+        print(f"  {e}: sin corregir ±{np.sqrt(np.mean(yv ** 2)) / 10:.1f} cm -> {nombre}: ±{err / 10:.1f} cm "
+              f"(con limones nuevos)")
     AJUSTE_JSON.write_text(json.dumps({"n": n, "fecha": time.strftime("%Y-%m-%d %H:%M"), "coef": coef}, indent=1))
     AJUSTE.update(coef=coef, n=n)
-    print(f"[ajuste fino guardado ({n} puntos, {n_coef} coeficientes por dirección): {AJUSTE_JSON.name}]")
+    print(f"[ajuste fino guardado ({n} puntos): {AJUSTE_JSON.name}]")
 
 
 def planear_agarre_tol(s, limon, a_canasta=False):
