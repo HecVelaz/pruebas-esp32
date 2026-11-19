@@ -45,6 +45,7 @@ Uso:
     python3 tools/punta.py --simular --desde 3 10 5 0 520 80  # solo el plan, sin la placa
 """
 import argparse
+import json
 import math
 import queue
 import re
@@ -704,7 +705,7 @@ def planear_agarre(s, limon, a_canasta=False):
     return comun + [("reposo", rp)], m_ent + m_ret
 
 
-def medir_limon(vision, tf, seg):
+def medir_limon(vision, tf, seg, usar_ajuste=True):
     """Mide el limón con la visión: el punto de agarre (x, y, z) en mm (corregido), o None."""
     R, t = tf
     print(f"midiendo /limon/posicion {seg:.0f} s (brazo quieto y fuera de la vista)...")
@@ -730,12 +731,156 @@ def medir_limon(vision, tf, seg):
     y = float(y) + AGARRAR_ADELANTE * uy + AGARRAR_IZQUIERDA * ux
     h_real = 256 + 1.43 * z   # mm del piso
     arriba = float(np.interp(h_real, AGARRAR_ARRIBA_H, AGARRAR_ARRIBA_MM))
-    limon = (round(x), round(y), round(float(z) + AGARRAR_DZ + arriba / 1.43))
+    zz = float(z) + AGARRAR_DZ + arriba / 1.43
+    ULTIMA["base"] = (x, y, zz)       # sin el ajuste fino (lo que guarda "ajustar")
+    ULTIMA["cara"] = tuple(float(v) for v in cara)
+    ULTIMA["h"] = h_real
+    if usar_ajuste and AJUSTE["coef"]:
+        da, di, ds = delta_ajuste(cara, h_real)
+        x, y, zz = x + da * ux - di * uy, y + da * uy + di * ux, zz + ds / 1.43
+        print(f"  ajuste fino ({AJUSTE['n']} puntos): {da / 10:+.1f} cm adelante, {di / 10:+.1f} izquierda, "
+              f"{ds / 10:+.1f} arriba")
+    limon = (round(x), round(y), round(zz))
     print(f"  cámara (cara): x {cara[0]:+.0f}  y {cara[1]:+.0f}  z {cara[2]:.0f} mm  ({n} posiciones, dispersión "
           f"{disp:.1f} mm)")
     print(f"  limón: a {r / 10:.0f} cm de J1, ~{(256 + 1.43 * z) / 10:.0f} cm del piso (z visión {float(z_vis):.0f}, "
           f"corregida {z:.0f}) -> agarre en ({limon[0]}, {limon[1]}, {limon[2]})")
     return limon
+
+
+# ---------------------------------------------------------------------------------------- ajuste fino (18/11)
+# "ajustar": la visión mide el limón, la pinza abierta va adonde cree que está y el usuario la centra a mano con pasos
+# chicos (a+/a- adelante, i+/i- izquierda, s+/s- arriba); "ok" guarda la diferencia en la dirección de entrada (mm
+# adelante, mm a la izquierda, mm reales hacia arriba) en resultados/ajuste_<fecha>.csv. "ajuste fin" ajusta, por cada
+# dirección, d = c0 + c1·(altura - 0,44 m) [+ c2·(x/z de la cámara) con 6 o más puntos] y lo guarda en
+# resultados/ajuste_agarre.json, que medir_limon suma desde entonces
+AJUSTE_JSON = RES / "ajuste_agarre.json"
+AJUSTE = {"coef": None, "n": 0}
+ULTIMA = {}
+PASO_AJUSTE_MM = 5.0
+
+
+def cargar_ajuste():
+    try:
+        d = json.loads(AJUSTE_JSON.read_text())
+        AJUSTE.update(coef=d["coef"], n=d["n"])
+        print(f"[ajuste fino: {d['n']} puntos ({d['fecha']})]")
+    except (OSError, ValueError, KeyError):
+        AJUSTE.update(coef=None, n=0)
+
+
+def rasgos(cara, h_real, n_coef):
+    f = [1.0, h_real / 1000.0 - 0.44, cara[0] / cara[2]]
+    return f[:n_coef]
+
+
+def delta_ajuste(cara, h_real):
+    c = AJUSTE["coef"]
+    return tuple(float(np.dot(c[e], rasgos(cara, h_real, len(c[e])))) for e in ("adelante", "izquierda", "arriba"))
+
+
+def ajustar(placa, vision, tf, seg, timeout):
+    """Un punto del ajuste fino (ver arriba). Vuelve al reposo al terminar."""
+    limon = medir_limon(vision, tf, seg, usar_ajuste=False)
+    if limon is None:
+        return
+    base, cara, h_real = ULTIMA["base"], ULTIMA["cara"], ULTIMA["h"]
+    s = placa.angulos()
+    if s is None:
+        return
+    pa = None
+    for d in ENTRADA_MM:
+        pa, m = planear_frente(s, *limon, d=d)
+        if pa is not None:
+            break
+    if pa is None:
+        print("NO: hacia el limón: " + "; ".join(m) + " (moverlo o mover el robot)")
+        return
+    servo(placa, "pz a")
+    if not ejecutar(placa, pa, timeout, de_paso=True):
+        return
+    r = math.hypot(base[0], base[1])
+    u = np.array([base[0] / r, base[1] / r, 0.0])
+    izq = np.array([-u[1], u[0], 0.0])
+    meta = np.array(limon, dtype=float)
+    print("Centrá el limón entre los dedos: a+ a- (adelante), i+ i- (izquierda), s+ s- (arriba) [mm, def. 5]; "
+          "\"ok\" guarda, \"cancelar\" no")
+    while True:
+        try:
+            w = input("ajustar> ").split()
+        except EOFError:
+            w = ["cancelar"]
+        if not w:
+            continue
+        if w[0] in ("ok", "cancelar"):
+            break
+        try:
+            eje, signo = w[0][0], {"+": 1.0, "-": -1.0}[w[0][1]]
+            mm = float(w[1]) if len(w) > 1 else PASO_AJUSTE_MM
+            if eje not in "ais" or not 0 < mm <= 30:
+                raise ValueError
+        except (ValueError, KeyError, IndexError):
+            print("Uso: a+ / a- / i+ / i- / s+ / s- [mm]   |   ok   |   cancelar")
+            continue
+        paso = {"a": u * mm, "i": izq * mm, "s": np.array([0.0, 0.0, mm / 1.43])}[eje] * signo
+        q, mot = k.inversa(*(meta + paso))
+        if q is None or mot or k.problemas(*q):
+            print("NO:", "; ".join(mot or k.problemas(*q) if q is not None else mot))
+            continue
+        if ejecutar(placa, [tuple(round(v, 2) for v in q)], timeout):
+            meta = meta + paso
+    if w[0] == "ok":
+        d = meta - np.array(base)
+        fila = (time.strftime("%H:%M:%S"), *[round(v, 1) for v in base], *[round(v, 1) for v in meta],
+                *[round(v, 1) for v in cara], round(h_real, 1), round(float(d @ u), 1), round(float(d @ izq), 1),
+                round(float(d[2]) * 1.43, 1))
+        ruta = RES / time.strftime("ajuste_%Y%m%d.csv")
+        nuevo = not ruta.exists()
+        with open(ruta, "a") as f:
+            if nuevo:
+                f.write("hora,bx,by,bz,mx,my,mz,cara_x,cara_y,cara_z,h_mm,adelante_mm,izquierda_mm,arriba_mm\n")
+            f.write(",".join(str(v) for v in fila) + "\n")
+        print(f"[guardado en {ruta.name}: {fila[-3] / 10:+.1f} cm adelante, {fila[-2] / 10:+.1f} izquierda, "
+              f"{fila[-1] / 10:+.1f} arriba]")
+    # salir de frente (pinza abierta) y al reposo
+    sq = placa.angulos()
+    sa, _ = planear_salida_max(sq) if sq else (None, None)
+    if sa:
+        ejecutar(placa, sa, timeout, de_paso=True, ultimo_de_paso=True)
+        sq = sa[-1]
+    rp, m = planear_q(sq, REPOSO) if sq else (None, ["sin ángulos"])
+    if rp:
+        ejecutar(placa, rp, timeout, de_paso=True)
+    else:
+        print("[no encuentro camino al reposo: " + "; ".join(m) + "]")
+
+
+def ajuste_fin():
+    """Ajusta con todos los resultados/ajuste_*.csv y guarda ajuste_agarre.json."""
+    filas = []
+    for ruta in sorted(RES.glob("ajuste_2*.csv")):
+        for l in ruta.read_text().splitlines()[1:]:
+            v = l.split(",")
+            if len(v) == 14:
+                filas.append([float(x) for x in v[1:]])
+    n = len(filas)
+    if n < 3:
+        print(f"NO: hacen falta al menos 3 puntos (hay {n})")
+        return
+    a = np.array(filas)
+    n_coef = 3 if n >= 6 else 2
+    X = np.array([rasgos(f[6:9], f[9], n_coef) for f in a])
+    coef, res = {}, {}
+    for j, e in enumerate(("adelante", "izquierda", "arriba")):
+        yv = a[:, 10 + j]
+        c, *_ = np.linalg.lstsq(X, yv, rcond=None)
+        coef[e] = [round(float(v), 2) for v in c]
+        res[e] = float(np.sqrt(np.mean((X @ c - yv) ** 2)))
+        print(f"  {e}: media {yv.mean() / 10:+.1f} cm (de {yv.min() / 10:+.1f} a {yv.max() / 10:+.1f}), "
+              f"queda ±{res[e] / 10:.1f} cm con el ajuste")
+    AJUSTE_JSON.write_text(json.dumps({"n": n, "fecha": time.strftime("%Y-%m-%d %H:%M"), "coef": coef}, indent=1))
+    AJUSTE.update(coef=coef, n=n)
+    print(f"[ajuste fino guardado ({n} puntos, {n_coef} coeficientes por dirección): {AJUSTE_JSON.name}]")
 
 
 def planear_agarre_tol(s, limon, a_canasta=False):
@@ -893,7 +1038,7 @@ def sesion(args):
     placa = Placa(args.puerto)
     vision, tf = None, None
     time.sleep(2.0)  # saludo y ayuda si se reinició al abrir
-    print("[punta.py: \"p x y z\", \"ver x y z\", \"ap x y z\", \"verap x y z\", \"ret\", \"soltar [quedar]\", \"agarrar\", \"veragarrar\", \"cosechar [n]\", \"donde\", \"anotar\", \"salir\"; lo demás "
+    print("[punta.py: \"p x y z\", \"ver x y z\", \"ap x y z\", \"verap x y z\", \"ret\", \"soltar [quedar]\", \"agarrar\", \"veragarrar\", \"cosechar [n]\", \"ajustar\", \"ajuste fin|borrar\", \"donde\", \"anotar\", \"salir\"; lo demás "
           "va a la placa (pz, mn, mv, c, s...). Primero \"h\"]")
     try:
         while placa.vivo:
@@ -970,7 +1115,14 @@ def sesion(args):
                             print("[Ctrl+C: \"s\", las tres se sostienen donde están]")
                     else:
                         print("cancelada")
-            elif w[0] in ("agarrar", "veragarrar", "cosechar"):
+            elif w[0] == "ajuste" and len(w) == 2 and w[1] in ("fin", "borrar"):
+                if w[1] == "fin":
+                    ajuste_fin()
+                else:
+                    AJUSTE_JSON.unlink(missing_ok=True)
+                    AJUSTE.update(coef=None, n=0)
+                    print("[ajuste fino borrado: se usan solo las correcciones fijas]")
+            elif w[0] in ("agarrar", "veragarrar", "cosechar", "ajustar"):
                 try:
                     if w[0] == "cosechar":
                         n_lim = int(w[1]) if len(w) > 1 else 3
@@ -987,12 +1139,15 @@ def sesion(args):
                 try:
                     if tf is None:
                         tf = cargar_tf_agarre()
+                        cargar_ajuste()
                     if vision is None:
                         vision = Vision()
                 except (ImportError, SystemExit, OSError) as e:
                     print(f"[sin visión: {e} (¿source /opt/ros/jazzy/setup.bash? ¿en la Pi?)]")
                     continue
-                if w[0] == "cosechar":
+                if w[0] == "ajustar":
+                    ajustar(placa, vision, tf, seg, args.timeout)
+                elif w[0] == "cosechar":
                     cosechar(placa, vision, tf, n_lim, seg, args.timeout)
                 else:   # 18/11: agarra y va directo a la canasta (sin subir al reposo)
                     agarrar(placa, vision, tf, seg, w[0] == "agarrar", args.timeout, a_canasta=True)
