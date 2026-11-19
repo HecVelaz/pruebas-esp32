@@ -1512,3 +1512,15 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
 - El usuario: los "reinicios" de la Pi eran apagados suyos (la powerbank anda bien). Hoy afina `cosechar 3` con el
   ajuste fino (sin registro en esta sesión).
 
+## 2026-11-19 (2) — Resumen ilustrado de las pruebas (PDF)
+
+- **`recolector_de_frutas/docs/resumen_pruebas_20261119.pdf`** (13 págs., para no técnicos): por prueba (00–27) qué
+  es, cómo se hizo, qué resultó y qué significa; fotos sin personas (robot de costado, arbolito con la marca, frenado
+  frente a la caja), gráficos de 06, 12 y 26 y 7 diagramas propios (partes del robot, flujo de trabajo, sensores de la
+  base, brazo, lazo abierto / cerrado, pasos de la cosecha, plan con el banderín). Hecho con reportlab; el script
+  quedó fuera del repo (scratchpad de la sesión). Las fotos de `~/Imágenes/brazo` con personas quedaron afuera.
+- Movido de `notas/` a `docs/` (= `recolector_de_frutas/docs`) a pedido del usuario y anotado en su `INDICE.md`:
+  **sin commitear en `recolector_de_frutas`** (falta confirmar si ese repo es público: lleva fotos del robot).
+- 13 y 14: el PDF dice que quedaron preparadas y siguieron en 19/20; 15 y 16: sin valores anotados (si el usuario
+  recuerda los resultados, agregarlos a sus README y al PDF).
+

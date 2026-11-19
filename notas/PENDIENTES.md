@@ -22,6 +22,8 @@
 5. Brazo: J3 propio 125° PROVISORIO (medir o volver a 101,5); J2 a veces "no quedan firmes" en el reposo (`mv 3 17
    4`); llevar a `recolector_de_frutas/firmware/brazo` la pose plegada, `mvp`, la pinza RDS3218 y las velocidades.
 6. Hotspot: IP fija de la Pi o teleop al encender; país del wifi para 2,4 GHz.
+7. `recolector_de_frutas`: commitear `docs/resumen_pruebas_20261119.pdf` + `INDICE.md` (¿repo público? lleva
+   fotos del robot). Resultados de 15/16 sin anotar.
 
 Hecho el 18/11: cosecha con la visión (agarrar → desprender → canasta, `cosechar N`, ajuste fino); cámara derecha
 (cinta al revés); HC-SR04 derecho cambiado; seguridad de la base con motores (frente, bumpers, seta, vuelco, también a
