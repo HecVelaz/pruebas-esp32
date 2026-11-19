@@ -1523,4 +1523,11 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   **sin commitear en `recolector_de_frutas`** (falta confirmar si ese repo es público: lleva fotos del robot).
 - 13 y 14: el PDF dice que quedaron preparadas y siguieron en 19/20; 15 y 16: sin valores anotados (si el usuario
   recuerda los resultados, agregarlos a sus README y al PDF).
+- **Rehecho en orden de fechas (pedido del usuario: "desde el principio hasta el final"):** 16 págs.; portada (robot,
+  arbolito, partes) → cómo se trabajó → **línea de tiempo** (barras de las 7 etapas, 23/09 → 19/11, con "hoy" y la
+  demo) y **14 fechas clave** → etapas 1–7 (primeros pasos 23–25/09; motores 25–26/09; primer control 1–13/10;
+  articulaciones 17–31/10; brazo completo 31/10–11/11; pinza y sensores 6/11; robot completo y cosecha 11–19/11),
+  cada prueba con su fecha; la 20 en dos partes (coordinado 31/10–11/11, agarre y cosecha 12–18/11) → dónde está hoy
+  → **lo que falta para la demo** (Fig. 10: estado de cada paso de la corrida; 7 tareas con estado; plan día por día
+  19–27/11; riesgos y plan B) → glosario. Fechas sacadas de la bitácora, los README y `git log` por carpeta.
 
