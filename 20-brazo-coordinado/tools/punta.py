@@ -797,7 +797,14 @@ def ajustar(placa, vision, tf, seg, timeout):
         print("NO: hacia el limón: " + "; ".join(m) + " (moverlo o mover el robot)")
         return
     servo(placa, "pz a")
-    if not ejecutar(placa, pa, timeout, de_paso=True):
+    if not ejecutar(placa, pa[:-1], timeout, de_paso=True):
+        return
+    placa.mandar(VEL_CARGA)   # la entrada, a la mitad (como en el agarre)
+    time.sleep(0.2)
+    ok = ejecutar(placa, pa[-1:], timeout)
+    placa.mandar(VEL_NORMAL)
+    time.sleep(0.2)
+    if not ok:
         return
     r = math.hypot(base[0], base[1])
     u = np.array([base[0] / r, base[1] / r, 0.0])
