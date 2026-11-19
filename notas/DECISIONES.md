@@ -140,3 +140,8 @@
   las demás con la odometría. La posición guardada solo sirve para llegar: el agarre lo corrige la visión estéreo.
 - **GPS (UP501 o del celular) solo para la rúbrica (2026-11-19):** metros de error y sin fix en el aula; navegar con
   encoders + giróscopo + banderín.
+- **Desprender subiendo con la rama (2026-11-19, usuario):** después de cerrar, subir 5 cm y retroceder 5 cm hacia el
+  robot antes de girar la muñeca (limones colgados con ramas falsas); si no hay plan, menos subida, hasta el tirón
+  viejo (2 cm sin subir): el limón se cosecha igual.
+- **Cosechar los limones que se pueda (2026-11-19, usuario):** la visión publica todos; se prueba el más cercano a J1
+  con plan, se descartan los sin plan o que fallan 2 veces, en vez de parar con el de mayor confianza.

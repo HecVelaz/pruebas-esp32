@@ -1531,3 +1531,39 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   → **lo que falta para la demo** (Fig. 10: estado de cada paso de la corrida; 7 tareas con estado; plan día por día
   19–27/11; riesgos y plan B) → glosario. Fechas sacadas de la bitácora, los README y `git log` por carpeta.
 
+
+## 2026-11-19 (3) — Tirón hacia arriba, J2 más rápida en el homing, cosechar todos los limones a la vista
+
+- **Correa de J1 salida (mañana):** el brazo quedó plegado (J2 47, J3 80) con J1 desconocido y `h` fallaba ("no
+  avanza con el duty al tope", todas en +0,00°: sin 12 V en los drivers). Recuperación: girar la base a mano a ~40°,
+  calzar la correa, `zq 40 47 80` (cero estimado), y volver **de a una articulación** (un `mv 40 17 4` lo cortó la
+  franja por 0,53°, J3 atrasada): `j 3 30`, `j 2 32`, `j 3 15`, `j 2 18`, `j 3 4`, `h`.
+- **Tirón con la rama (pedido del usuario: limones colgados con ramas falsas):** después de cerrar la pinza, **sube
+  50 mm y retrocede 50 mm** hacia el robot (`TIRON_ARRIBA_MM`, `TIRON_MM`), después gira la muñeca y arrastra con J1.
+  Si no hay plan, prueba subir 30 / 15 / 0 mm y retroceder 50 o 20 (el tirón viejo); avisa "tirón: sube X mm y
+  retrocede Y". Comando nuevo `tiron [<atrás> <arriba>]` (0–150 mm). En papel, 3 limones planificaron con el 50/50.
+- **Homing: J2 busca a 5 °/s sin cero** (firmware, `Articulacion::homingAcelerar()` + `hm.j2Rapida` en `main.cpp`):
+  en cuanto J3 está en su final de carrera, J2 acelera (no traba el cuatro barras); al tocar el flanco rápido se aleja
+  y lo toma de nuevo a 1,5 °/s. Imagen `~/firmware/brazo20_serie_20261119.bin` (cargada; vuelta atrás
+  `brazo20_serie_20261118h.bin`). Medido: desde el reposo **~22 → 20,5 s** (`HOMING,30286`); sin cero, "juntas",
+  desde donde quedó, 33 s. (El número de `HOMING,...` son ms desde el arranque, no la duración.) J3 sigue tardando
+  ~10 s en retroceder y quedar firme.
+- **Cosechar los que se pueda (`cosechar 4` paraba con "J1 = 0,1° fuera de [3, 115]": el de mayor confianza estaba
+  al costado):** `localizador_node.py` (repo `vision_estereo`) publica además **`/limon/todos`** (PoseArray, todos los
+  localizados por confianza; `/limon/posicion` sigue igual). `punta.py`: `Vision.medir_todos` agrupa los limones de
+  varios cuadros (35 mm), `medir_limones` da la lista; `cosechar` confirma el anterior contra la lista, prueba los
+  candidatos por distancia a J1, descarta los sin plan y los que fallan `MAX_INTENTOS` veces, y termina con n o sin
+  candidatos ("cosecha: N limones en T s; M descartados"). Sin `/limon/todos` usa `/limon/posicion`.
+  Resultados (`~/logs/punta_20261119_122933.log`): `cosechar 4` → **2 limones en 123 s, 3 descartados** (uno a J1 0°,
+  otro con J2 85°, otro sin camino libre en la franja); `cosechar 2` → **2 en 178 s** (con un reintento).
+- **Reposo más retraído / pose de transporte (pedido, sin hacer):** el usuario quiere el antebrazo recogido (hoy
+  `mv 3 17 4` queda en "L", punta a r 479 / z 444 mm del modelo) y, cuando la base se mueve, el brazo lo más recogido y
+  asegurado (extendido vibra por la inercia). Con J2 17 la franja deja J3 hasta ~15 (r 413, z 322); J2 24 → J3 22.
+  Lo más recogido es la **pose plegada** (J2 46,7 / J3 80, r ~25 cm): en la canasta (J1 130) el firmware la traba (J1
+  > 118 solo plegado). Propuesta pasada al usuario para probar de a una: `j 2 46.7`, `j 3 80`, `j 1 130`; volver `j 1
+  3`, `j 3 4`, `j 2 17`. **Antes hay que cambiar el homing sin cero** (hoy "juntas": desde el plegado traba el cuatro
+  barras): J3 → J2 → J1 en orden; y el homing con cero rechaza J2 > 25.
+- Pi: `punta.py` y `localizador_node.py` copiados (respaldos `*.antes_tiron_20261119`, `*.antes_todos_20261119`);
+  localizador relanzado con `nohup setsid ros2 run yolo_ros localizador_node --ros-args -p z_min:=0.40 -p
+  z_max:=0.95 -p clase:=limon` (log `~/logs/localizador_*.log`).
+- Commits: `20` (tirón, `cosechar` con todos, homing J2 rápida) y en `vision_estereo` el `localizador_node.py`.

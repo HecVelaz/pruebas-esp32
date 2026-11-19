@@ -1,4 +1,4 @@
-# Estado de pruebas-esp32 (al 2026-11-19, cierre)
+# Estado de pruebas-esp32 (al 2026-11-19, cierre de la tarde)
 
 Foto de hoy. Historia y CSV en `BITACORA.md`; lo que sigue en `PENDIENTES.md`; pines de la S3 en `PINES_S3.md`.
 
@@ -41,23 +41,22 @@ Foto de hoy. Historia y CSV en `BITACORA.md`; lo que sigue en `PENDIENTES.md`; p
 
 ## Brazo (`20-brazo-coordinado`, WROOM)
 
-- **WROOM de la Pi: env `brazo` `brazo20_serie_20261118h.bin`**: `mv` a velocidad 1, aproximación 4 °/s, asentamiento
-  0,5 s; `mvp` tolera 10°. Imágenes completas: `write-flash 0x0` (en 0x10000 queda en bucle).
+- **WROOM de la Pi: env `brazo` `brazo20_serie_20261119.bin`** (+ J2 a 5 °/s en el homing sin cero con J3 abajo;
+  desde el reposo ~20,5 s): `mv` a vel. 1, aproximación 4 °/s, asentamiento 0,5 s; `mvp` tolera 10°. `write-flash 0x0`.
 - **Pose plegada** (`SOLTAR_*` en `config.h`): J1 hasta 130 solo con J2 42–51 y J3 ≥ 78 (si no, 115); ahí la franja deja
   J3 hasta 85. J3 propio 125 (PROVISORIO, sin medir más allá de 85).
-- **Cosecha (`punta.py`, sesión: `source /opt/ros/jazzy/setup.bash` antes):** `cosechar N` mide un limón, entra de
-  frente (2,8 cm más allá del centro, corrimientos y ajuste fino), cierra, tira, gira la muñeca, arrastra con J1 5°,
-  sale (con carga a la mitad de velocidad) y va **directo a la canasta**; mide el siguiente desde ahí; confirma con la
-  visión y reintenta; si falla, recupera a la canasta y sigue. ~34 s por limón; 2 de 3 en la primera prueba.
+- **Cosecha (`punta.py`, sesión: `source /opt/ros/jazzy/setup.bash` antes):** `cosechar N` mide **todos** los limones
+  (`/limon/todos`), prueba el más cercano a J1 que tenga plan, entra de frente (2,8 cm más allá del centro, ajuste
+  fino), cierra, **sube 5 cm y retrocede 5 cm** (con la rama; si no hay plan, menos, hasta el tirón viejo de 2 cm;
+  `tiron <atrás> <arriba>`), gira la muñeca, arrastra con J1 5°, sale y va **directo a la canasta**; confirma con la
+  visión, reintenta y descarta los que fallan o no tienen plan. 19/11: 2 de 4 en 123 s (3 descartados), 2 de 2 en 178 s.
   Alcance: centro del limón a ~48–65 cm de J1, 33–54 cm del piso, mejor en el centro de la imagen. `agarrar` = uno.
 - **`soltar`** (canasta J1 130 / J2 46,7 / J3 80, de paso): 12,5–14 s, ida y vuelta 28–30 s. `mvp` = mv de paso.
 - **Visión → brazo:** altura `z = 23,1 + 0,718·z_visión`; ajuste fino (`ajustar`, `ajuste fin|borrar`) de 9 puntos:
   solo el costado según el lado de la imagen (`20/resultados/ajuste_agarre.json`). Log: `~/logs/punta_*.log`.
 - **Abrir el puerto reinicia la WROOM:** siempre `h`. Corte por franja: `j <n> <°>` de a una, esperando que llegue.
 - Joystick (17) en la Pi: `joystick.py --placa 20 [--sin-franja] --host 0.0.0.0 -p /dev/ttyUSB0` (puerto 8000).
-- Homing → J1 3°, J2 6°, J3 3° (finales de carrera 32 / 27 / 33); reposo `mv 3 17 4`; repetibilidad 0,13 / 0,20 / 0,06°.
-- Cinemática: ~10 mm de media; en z ~1,26–1,43 × el modelo; zona plegada solo con `USAR_ZONA` (caminos de la canasta).
-- `recolector_de_frutas/firmware/brazo` sigue con franja, homing y reposo viejos: falta pasarle lo de `20`.
+- Homing → J1 3°, J2 6°, J3 3° (finales de carrera 32 / 27 / 33); reposo `mv 3 17 4` (a retraer: PENDIENTES); repetibilidad 0,13 / 0,20 / 0,06°.
 
 ## Pinza y muñeca (servos)
 
@@ -69,8 +68,9 @@ Foto de hoy. Historia y CSV en `BITACORA.md`; lo que sigue en `PENDIENTES.md`; p
 - Pi 5 `r2d2@100.116.96.71` (Tailscale): las dos placas por USB (S3 `/dev/ttyACM0`, WROOM CH340 `/dev/ttyUSB0`), el GPS
   por la UART0. Se compila en la notebook y se flashea con `~/venvs/esptool/bin/esptool` desde la Pi (imágenes nuevas
   con `esptool merge-bin`). Scripts en `~/scripts/<carpeta>/tools/` (copias del repo), logs en `~/logs/`. Apagar:
-  `sudo shutdown now`. Después de reiniciar: `agente_base.sh` y `vision.sh` (limones a 0,40–0,95 m) a mano.
-- Binarios en `~/firmware/`: WROOM `brazo20_serie_20261118h.bin` (cargado), `respaldo_wroom_20261112.bin` (20 `ros`,
+  `sudo shutdown now`. Después de reiniciar: `agente_base.sh` y `vision.sh` (limones a 0,40–0,95 m) a mano; el localizador
+  publica `/limon/posicion` (el de más confianza) y `/limon/todos` (todos, desde el 19/11).
+- Binarios en `~/firmware/`: WROOM `brazo20_serie_20261119.bin` (cargado), `..._20261118h.bin`, `respaldo_wroom_20261112.bin` (20 `ros`,
   teleop), `brazo20_serie.bin` (20 `brazo` del 12/11); S3 `base_ros_20261117_imu` (cargado), `base_ros_20261113`,
   `hcsr04_03*`.
 
