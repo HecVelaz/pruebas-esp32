@@ -186,6 +186,7 @@ void Articulacion::seguir(float qRef, float wRef) {
 
 void Articulacion::homing(bool conCero, float recorridoMax) {
   hConCero_ = conCero;
+  hRapido_ = false;
   error_ = nullptr;
   hEstado_ = Homing::EnCurso;
   hFase_ = fc_ ? 2 : 3;
@@ -201,6 +202,12 @@ void Articulacion::homing(bool conCero, float recorridoMax) {
   integral_ = integralSinSalto(c_, u_, sg, hFase_ == 2 ? c_.homingVelAlejar : c_.homingVelBuscar);
   modo_ = Modo::Homing;
   llegado_ = firme_ = frenada_ = false;
+}
+
+bool Articulacion::homingAcelerar() {
+  if (modo_ != Modo::Homing || hEstado_ != Homing::EnCurso || hFase_ != 3 || fc_) return false;
+  hRapido_ = true;
+  return true;
 }
 
 void Articulacion::homingCancelar() {
@@ -293,15 +300,20 @@ void Articulacion::paso() {
       }
       // Flanco en la etapa rápida: el final de carrera se corrió hacia arriba. No se acepta (se tomó rápido): alejarse
       // y volver a buscarlo, todo despacio
-      if (hFase_ == 3 && fc_ && hConCero_ && g > c_.homingZonaLenta) {
+      // 2026-11-19: también si homingAcelerar() la puso rápida sin cero
+      const bool rapida = hRapido_ || (hConCero_ && g > c_.homingZonaLenta);
+      if (hFase_ == 3 && fc_ && rapida) {
+        const bool eraConCero = hConCero_ && !hRapido_;
         hConCero_ = false;
+        hRapido_ = false;
         hFase_ = 2;
         hSoltadoValido_ = false;
         signoAnt_ = 1;
         despegada_ = false;
         ffRampa_ = 0.0f;
         integral_ = 0.0f;
-        aviso_ = "homing: el final de carrera se apretó antes de lo esperado; lo busco de nuevo despacio";
+        aviso_ = eraConCero ? "homing: el final de carrera se apretó antes de lo esperado; lo busco de nuevo despacio"
+                           : "homing: tocó el final de carrera rápido; lo tomo de nuevo despacio";
         aplicar(0.0f);
         return;
       }
@@ -314,7 +326,7 @@ void Articulacion::paso() {
       }
       // Buscando: rápido mientras está lejos del cero anterior (si lo hay), despacio en el último tramo (el flanco se
       // toma siempre a homingVelBuscar)
-      const float vBuscar = (hConCero_ && g > c_.homingZonaLenta) ? c_.homingVelRapida : c_.homingVelBuscar;
+      const float vBuscar = rapida ? c_.homingVelRapida : c_.homingVelBuscar;
       const float wRef = hFase_ == 2 ? c_.homingVelAlejar : -vBuscar;
       const float u = constrain(pasoPI(wRef, g, wRef), -c_.homingDutyMax, c_.homingDutyMax);
       aplicar(u);

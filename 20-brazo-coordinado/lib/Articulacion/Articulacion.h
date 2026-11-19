@@ -91,6 +91,9 @@ class Articulacion {
   // que eso sin el final de carrera (en vez de homingRecorridoMax; sin cero, el brazo tiene que empezar abajo)
   void homing(bool conCero = false, float recorridoMax = 0.0f);
   void homingCancelar();
+  // Sin cero: buscar desde ahora a homingVelRapida; al tocar el final de carrera se aleja y lo vuelve a tomar a
+  // homingVelBuscar (el flanco siempre despacio). Solo si está buscando (fase 3) y suelto. 2026-11-19
+  bool homingAcelerar();
   void ceroAqui();                     // el ángulo actual pasa a ser 0
   void ceroEnFlanco();                 // el flanco del último homing pasa a ser 0
   void fijarAngulo(float g);           // el ángulo actual pasa a ser g (cero estimado, "zq")
@@ -157,6 +160,7 @@ class Articulacion {
   int hFase_ = 0;  // 2 alejarse, 3 buscar
   float hSoltado_ = 0.0f, hInicio_ = 0.0f, hRecorridoMax_ = 0.0f;
   bool hSoltadoValido_ = false, hConCero_ = false;
+  bool hRapido_ = false;  // homingAcelerar()
   int64_t flanco_ = 0;
   int64_t hVentanaC_ = 0;
   uint32_t hVentanaMs_ = 0;

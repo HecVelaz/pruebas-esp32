@@ -601,10 +601,53 @@ class Vision:
         self.nodo = nodo
         self.pos, self.marcos = [], set()
         self.nodo.create_subscription(PointStamped, "/limon/posicion", self._al_pos, 10)
+        # 19/11: todos los limones de cada imagen (localizador_node de vision_estereo, /limon/todos)
+        from geometry_msgs.msg import PoseArray
+        self.cuadros, self.marcos_todos = [], set()
+        self.nodo.create_subscription(PoseArray, "/limon/todos", self._al_todos, 10)
 
     def _al_pos(self, m):
         self.pos.append((m.point.x, m.point.y, m.point.z))
         self.marcos.add(m.header.frame_id)
+
+    def _al_todos(self, m):
+        self.cuadros.append([(q.position.x, q.position.y, q.position.z) for q in m.poses])
+        self.marcos_todos.add(m.header.frame_id)
+
+    def medir_todos(self, seg):
+        """Todos los limones: [(cara mm, n, dispersión mm), ...] de más a menos visto, marcos; None si no llega
+        /limon/todos (visión vieja). Agrupa las posiciones de todas las imágenes: cada una va al grupo más cercano a
+        menos de AGRUPAR_MM, si no abre otro. Quedan los grupos vistos en al menos MIN_POSICIONES imágenes y en el 30 %."""
+        self.pos.clear()
+        self.marcos.clear()
+        self.cuadros.clear()
+        self.marcos_todos.clear()
+        fin = time.time() + seg
+        while time.time() < fin:
+            self.rclpy.spin_once(self.nodo, timeout_sec=0.1)
+        if not self.cuadros:
+            return None, set(self.marcos)
+        grupos = []   # [suma, puntos]
+        for cuadro in self.cuadros:
+            for pt in cuadro:
+                v = np.array(pt) * 1000.0
+                d = [np.linalg.norm(v - g[0] / len(g[1])) for g in grupos]
+                if d and min(d) < AGRUPAR_MM:
+                    g = grupos[int(np.argmin(d))]
+                    g[0] = g[0] + v
+                    g[1].append(v)
+                else:
+                    grupos.append([v.copy(), [v]])
+        minimo = max(MIN_POSICIONES, 0.3 * len(self.cuadros))
+        res = []
+        for _, pts in grupos:
+            if len(pts) < minimo:
+                continue
+            p = np.array(pts)
+            med = np.median(p, axis=0)
+            res.append((med, len(p), float(np.median(np.linalg.norm(p - med, axis=1)))))
+        res.sort(key=lambda r: -r[1])
+        return res, set(self.marcos_todos)
 
     def medir(self, seg):
         """(cara en mm, marco `camera`, n, dispersión mm, marcos) o None si no alcanzan las posiciones."""
@@ -623,6 +666,9 @@ class Vision:
         if self.propio:
             self.nodo.destroy_node()
             self.rclpy.shutdown()
+
+
+AGRUPAR_MM = 35.0   # 19/11: posiciones de distintas imágenes a menos de esto = el mismo limón (limón de 5 cm)
 
 
 MARGEN_SALIDA_CARGA = 3.0  # ° a la franja en la salida con el limón (13/11: con 1,6° el firmware cortó al retroceder)
@@ -651,7 +697,11 @@ def con_margen(margen, f, *a):
 # (TIRON_MUNECA) y girar J1 TIRON_J1 grados hacia el lado del giro, arrastrando la rama; recién ahí salir. El signo de
 # TIRON_J1 respecto del giro de la muñeca está SIN PROBAR: si arrastra hacia el otro lado, cambiarlo de signo
 ENTRADA_MM = (100.0, 70.0, 50.0)   # entrar de frente desde acá (el primero que se pueda)
-TIRON_MM = 20.0
+# 19/11 (pedido del usuario, limones colgados de ramas falsas): antes de girar la muñeca, SUBIR el limón (levanta la
+# rama) y después traerlo hacia el robot. Si la subida no entra (limón alto), prueba con menos; con 0 es lo de antes
+# (solo retroceder). Se cambian en vivo con "tiron <atrás mm> <arriba mm>". El modelo da z ~1,3 veces menos que lo real
+TIRON_MM = 50.0            # mm hacia el robot (antes 20, sin subir)
+TIRON_ARRIBA_MM = 50.0     # mm hacia arriba, antes de retroceder
 TIRON_MUNECA = "mn a"      # 90° horario
 TIRON_J1 = 5.0             # ° (a ~60 cm de J1: ~5 cm de costado)
 
@@ -674,9 +724,18 @@ def planear_agarre(s, limon, a_canasta=False):
         m_ent = [f"entra de frente desde {d / 10:.0f} cm (desde {ENTRADA_MM[0] / 10:.0f} no llega)"]
     else:
         m_ent = []
-    ti, m_ti = con_margen(MARGEN_SALIDA_CARGA, planear_salida, pa[-1], TIRON_MM)
+    ti = None
+    for d_ti in sorted({TIRON_MM, min(TIRON_MM, 20.0)}, reverse=True):
+        for dz in sorted({TIRON_ARRIBA_MM, TIRON_ARRIBA_MM * 0.6, TIRON_ARRIBA_MM * 0.3, 0.0}, reverse=True):
+            ti, m_ti = con_margen(MARGEN_SALIDA_CARGA, planear_salida, pa[-1], d_ti, dz)
+            if ti is not None:
+                break
+        if ti is not None:
+            break
     if ti is None:
         return None, ["tirar: " + "; ".join(m_ti)]
+    if dz < TIRON_ARRIBA_MM or d_ti < TIRON_MM:
+        m_ent = m_ent + [f"tirón: sube {dz:.0f} mm y retrocede {d_ti:.0f} (con {TIRON_ARRIBA_MM:.0f} / {TIRON_MM:.0f} no llega)"]
     q = ti[-1]
     de = (round(q[0] + TIRON_J1, 2), q[1], q[2])
     m_de = k.problemas(*de) + revisar_camino(q, de)
@@ -726,6 +785,12 @@ def medir_limon(vision, tf, seg, usar_ajuste=True):
     if disp > DISPERSION_MAX:
         print(f"NO: dispersión {disp:.1f} mm (> {DISPERSION_MAX:.0f}): ¿se movió el limón? Repetir")
         return None
+    return limon_de_cara(tf, cara, n, disp, usar_ajuste)
+
+
+def limon_de_cara(tf, cara, n, disp, usar_ajuste=True):
+    """Punto de agarre (x, y, z) en mm (corregido) del limón visto en `cara` (mm, marco de la cámara)."""
+    R, t = tf
     x, y, z_vis = ajc.camara_a_cinematica(R, t, cara, RADIO_LIMON)
     z = Z_VISION_A + Z_VISION_B * float(z_vis)
     # Entrar AGARRAR_ADELANTE más allá del centro, en la dirección de entrada (desde J1): 18/11 la pinza quedaba corta
@@ -753,6 +818,42 @@ def medir_limon(vision, tf, seg, usar_ajuste=True):
     print(f"  limón: a {r / 10:.0f} cm de J1, ~{(256 + 1.43 * z) / 10:.0f} cm del piso (z visión {float(z_vis):.0f}, "
           f"corregida {z:.0f}) -> agarre en ({limon[0]}, {limon[1]}, {limon[2]})")
     return limon
+
+
+def medir_limones(vision, tf, seg):
+    """19/11: todos los limones que ve la visión, como puntos de agarre [(x, y, z), ...] (los que tienen dispersión
+    alta quedan afuera). Sin /limon/todos (visión vieja): solo el de mayor confianza, como antes. None si nada."""
+    print(f"midiendo /limon/todos {seg:.0f} s (brazo quieto y fuera de la vista)...")
+    grupos, marcos = vision.medir_todos(seg)
+    if grupos is None:
+        print("  [sin /limon/todos: ¿visión vieja? Uso /limon/posicion (un solo limón)]")
+        if not vision.pos:
+            print(f"NO: nada en {seg:.0f} s (¿start_limon.sh corriendo? ¿se ve el limón?)")
+            return None
+        p = np.array(vision.pos) * 1000.0
+        if len(p) < MIN_POSICIONES or marcos != {"camera"}:
+            print(f"NO: {len(p)} posiciones, marcos {marcos}")
+            return None
+        med = np.median(p, axis=0)
+        disp = float(np.median(np.linalg.norm(p - med, axis=1)))
+        if disp > DISPERSION_MAX:
+            print(f"NO: dispersión {disp:.1f} mm (> {DISPERSION_MAX:.0f}): ¿se movió el limón?")
+            return None
+        return [limon_de_cara(tf, med, len(p), disp)]
+    if marcos != {"camera"}:
+        print(f"NO: /limon/todos viene en {marcos}, la calibración es para `camera`")
+        return None
+    limones = []
+    for i, (cara, n, disp) in enumerate(grupos, 1):
+        print(f" limón {i} de {len(grupos)}:")
+        if disp > DISPERSION_MAX:
+            print(f"  NO: dispersión {disp:.1f} mm (> {DISPERSION_MAX:.0f}) con {n} posiciones: ¿se movió? lo salteo")
+            continue
+        limones.append(limon_de_cara(tf, cara, n, disp))
+    if not limones:
+        print("NO: ningún limón medido bien")
+        return None
+    return limones
 
 
 # ---------------------------------------------------------------------------------------- ajuste fino (18/11)
@@ -1004,7 +1105,9 @@ SOLTAR_Q2_MIN_PY = 42.0
 
 def cosechar(placa, vision, tf, n, seg, timeout, confirmar=True):
     """Hasta n limones a la canasta; al final, al reposo. Devuelve cuántos dejó en la canasta (confirmados con la
-    visión: si al medir el siguiente el limón anterior sigue en el árbol, no se contó y se reintenta)."""
+    visión: si al medir de nuevo el limón anterior sigue en el árbol, no se contó y se reintenta).
+    19/11: mide TODOS los limones y agarra el más cercano a J1 que tenga plan; los que no tienen plan o fallaron
+    MAX_INTENTOS veces quedan descartados (por posición) y sigue con los demás."""
     if confirmar:
         try:
             r = input(f"Enter para cosechar hasta {n} limones (cualquier otra cosa cancela): ")
@@ -1014,24 +1117,35 @@ def cosechar(placa, vision, tf, n, seg, timeout, confirmar=True):
             print("cancelado")
             return 0
     t0, hechos, pendiente, intentos = time.time(), 0, None, 0
+    descartados = []   # puntos de agarre de limones que no se intentan más
+
+    def descartado(l):
+        return any(math.dist(l, d) < VERIFICAR_MM for d in descartados)
+
     try:
         while True:
             print(f"===== cosechados {hechos} de {n}" + (f" (reintento {intentos})" if intentos else ""))
-            limon = medir_limon(vision, tf, seg)
+            limones = medir_limones(vision, tf, seg) or []
             if pendiente is not None:   # ¿el anterior quedó en el árbol?
-                if limon is not None and math.dist(limon, pendiente) < VERIFICAR_MM:
+                sigue = [l for l in limones if math.dist(l, pendiente) < VERIFICAR_MM]
+                if sigue:
                     intentos += 1
-                    print(f"[el limón anterior sigue en el árbol (a {math.dist(limon, pendiente) / 10:.1f} cm): no lo "
-                          f"agarró]")
+                    print(f"[el limón anterior sigue en el árbol (a {math.dist(sigue[0], pendiente) / 10:.1f} cm): no "
+                          f"lo agarró]")
                     if intentos >= MAX_INTENTOS:
-                        print(f"[{MAX_INTENTOS} intentos sin agarrarlo: termina la cosecha]")
-                        break
+                        print(f"[{MAX_INTENTOS} intentos sin agarrarlo: lo dejo y sigo con los demás]")
+                        descartados.append(sigue[0])
+                        intentos = 0
                 else:
                     hechos += 1
                     intentos = 0
                     print(f"[confirmado: {hechos} en la canasta, {time.time() - t0:.0f} s desde el comienzo]")
                 pendiente = None
-            if hechos >= n or limon is None:
+            if hechos >= n:
+                break
+            candidatos = sorted((l for l in limones if not descartado(l)), key=lambda l: math.hypot(l[0], l[1]))
+            if not candidatos:
+                print("[no quedan limones para intentar]" if limones else "[no veo limones]")
                 break
             s = placa.angulos()
             if s is None:
@@ -1039,9 +1153,16 @@ def cosechar(placa, vision, tf, n, seg, timeout, confirmar=True):
             pre = []
             if s[0] > k.Q1_LIM[1]:      # en la canasta: primero de paso a DESPLEGAR
                 pre, s = [("desplegar", [DESPLEGAR])], DESPLEGAR
-            pasos, mot = planear_agarre_tol(s, limon, a_canasta=True)
+            pasos = None
+            for i, limon in enumerate(candidatos, 1):
+                print(f"planeando el limón en ({limon[0]}, {limon[1]}, {limon[2]}) ({i} de {len(candidatos)})...")
+                pasos, mot = planear_agarre_tol(s, limon, a_canasta=True)
+                if pasos is not None:
+                    break
+                print("  NO:", "; ".join(mot), "-> lo descarto")
+                descartados.append(limon)
             if pasos is None:
-                print("NO:", "; ".join(mot))
+                print("[ningún limón tiene plan desde acá]")
                 break
             for m in mot:
                 print("  ojo:", m)
@@ -1050,7 +1171,7 @@ def cosechar(placa, vision, tf, n, seg, timeout, confirmar=True):
                     print("[no se pudo recuperar: el brazo quedó donde está]")
                     return hechos
                 print("[recuperado: lo que tenía la pinza está en la canasta]")
-            pendiente = limon   # se confirma al medir el siguiente (con el brazo en la canasta, fuera de la vista)
+            pendiente = limon   # se confirma al medir de nuevo (con el brazo en la canasta, fuera de la vista)
         print("== al reposo")
         s = placa.angulos()
         camino = ([DESPLEGAR, (100.0, 46.7, 50.0)] if s and s[1] >= SOLTAR_Q2_MIN_PY and s[2] >= 78.0 else []) + [REPOSO]
@@ -1058,7 +1179,8 @@ def cosechar(placa, vision, tf, n, seg, timeout, confirmar=True):
     except KeyboardInterrupt:
         placa.mandar("s")
         print("[Ctrl+C: \"s\", las tres se sostienen donde están]")
-    print(f"[cosecha: {hechos} limones en {time.time() - t0:.0f} s]")
+    print(f"[cosecha: {hechos} limones en {time.time() - t0:.0f} s"
+          + (f"; {len(descartados)} descartados" if descartados else "") + "]")
     return hechos
 
 
@@ -1073,7 +1195,7 @@ def sesion(args):
     placa = Placa(args.puerto)
     vision, tf = None, None
     time.sleep(2.0)  # saludo y ayuda si se reinició al abrir
-    print("[punta.py: \"p x y z\", \"ver x y z\", \"ap x y z\", \"verap x y z\", \"ret\", \"soltar [quedar]\", \"agarrar\", \"veragarrar\", \"cosechar [n]\", \"ajustar\", \"ajuste fin|borrar\", \"donde\", \"anotar\", \"salir\"; lo demás "
+    print("[punta.py: \"p x y z\", \"ver x y z\", \"ap x y z\", \"verap x y z\", \"ret\", \"soltar [quedar]\", \"agarrar\", \"veragarrar\", \"cosechar [n]\", \"ajustar\", \"ajuste fin|borrar\", \"tiron [atrás arriba]\", \"donde\", \"anotar\", \"salir\"; lo demás "
           "va a la placa (pz, mn, mv, c, s...). Primero \"h\"]")
     try:
         while placa.vivo:
@@ -1150,6 +1272,21 @@ def sesion(args):
                             print("[Ctrl+C: \"s\", las tres se sostienen donde están]")
                     else:
                         print("cancelada")
+            elif w[0] == "tiron":   # 19/11: cuánto retrocede y sube con el limón antes de girar la muñeca
+                global TIRON_MM, TIRON_ARRIBA_MM
+                try:
+                    if len(w) == 3:
+                        atras, arriba = float(w[1]), float(w[2])
+                        if not (0 <= atras <= 150 and 0 <= arriba <= 150):
+                            raise ValueError
+                        TIRON_MM, TIRON_ARRIBA_MM = atras, arriba
+                    elif len(w) != 1:
+                        raise ValueError
+                except ValueError:
+                    print("Uso: tiron [<atrás mm> <arriba mm>]  (0 a 150 cada uno)")
+                    continue
+                print(f"[tirón: sube {TIRON_ARRIBA_MM:.0f} mm, después {TIRON_MM:.0f} mm hacia el robot, "
+                      f"después la muñeca ({TIRON_MUNECA})]")
             elif w[0] == "ajuste" and len(w) == 2 and w[1] in ("fin", "borrar"):
                 if w[1] == "fin":
                     ajuste_fin()

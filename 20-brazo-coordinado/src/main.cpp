@@ -217,6 +217,7 @@ struct {
   uint32_t tEtapa[N] = {};       // millis() al empezar el retroceso
   uint32_t tFlancoJ3 = 0;        // millis() cuando J3 llegó a su flanco (para medir la espera)
   bool j3Solto = false;          // J3 ya soltó su final de carrera al retroceder
+  bool j2Rapida = false;         // J2 sin cero ya acelerada (J3 abajo esperándola)
   bool conCero[N] = {};
   float delta[N] = {NAN, NAN, NAN};
 } hm;
@@ -279,6 +280,7 @@ void homingIniciar() {
   for (auto &d : hm.delta) d = NAN;
   // 2026-11-10 (doble helicoidales, casi sin juego): con J2 abajo J3 no puede alejarse de su final de carrera para
   // volver a buscar el flanco (trayectoria_20261110_141606_cortado: +50 % sin una cuenta). J2 sube antes
+  hm.j2Rapida = false;
   hm.preSubida = art[I3].fc();
   if (hm.preSubida) {
     hm.tPre = millis();
@@ -340,6 +342,14 @@ bool homingPasoArt(int i) {
     if (a.error()) {
       homingCortar(a.error());
       return false;
+    }
+    // 2026-11-19 (pedido del usuario): sin cero J2 buscaba todo a 1,5 °/s (~17° desde el reposo, J3 esperaba ~10 s).
+    // Con J3 ya en su final de carrera, J2 bajando no traba el cuatro barras: busca a homingVelRapida y el flanco lo
+    // vuelve a tomar despacio (se aleja homingSalida y baja a homingVelBuscar)
+    if (!hm.j2Rapida && !hm.conCero[I2] && hm.etapa[I2] == 1 && art[I2].homingAcelerar()) {
+      hm.j2Rapida = true;
+      msg("   J3 abajo: J2 busca a %.1f °/s (el flanco lo toma de nuevo a %.1f °/s).", CFG_J2.homingVelRapida,
+          CFG_J2.homingVelBuscar);
     }
     if (!j2DejaLugarAJ3()) return true;
     j3Retrocede();
