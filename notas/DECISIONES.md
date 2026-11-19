@@ -129,3 +129,9 @@
 - **Pinza con el servo RDS3218 (2026-11-18, usuario):** el MG996R vibraba mucho; abierta 500 µs, cerrada 1200.
 - **Velocidad de los `mv` al máximo (2026-11-18, usuario):** `vel 1 4 0.5` por defecto; los puntos intermedios van
   "de paso" (`mvp`), solo el final de cada camino espera a quedar firme.
+- **Cosechar de a un limón, midiendo de nuevo cada vez (2026-11-18):** el árbol se mueve al arrancar cada limón y la
+  visión da una posición por vez; se mide desde la canasta (el brazo fuera de la vista), sin tiempo extra.
+- **Desprender el limón: tirar 2 cm, girar la muñeca 90° y arrastrar con J1 5° (2026-11-18, usuario);** después, directo
+  a la canasta sin pasar por el reposo.
+- **Ajuste fino: por dirección, el modelo que mejor acierta con puntos que no usó (2026-11-18):** con 9 puntos solo el
+  costado según el lado de la imagen; corregir todo empeoraba (sobreajuste).

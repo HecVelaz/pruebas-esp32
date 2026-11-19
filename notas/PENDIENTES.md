@@ -5,20 +5,21 @@
 
 ## Lo inmediato
 
-1. **Flashear `~/firmware/brazo20_serie_20261118g.bin`** (velocidad 1 por defecto) y **probar `agarrar` a esa
-   velocidad** (que J2/J3 no se pasen al arrimarse al limón); después `recolectar.py` completo (agarrar → canasta).
-2. **Probar RODEAR** (`ir_a_parada.py --rodear 1`, solo la base; afuera `--auto 15` con `nohup`): marcas 0–3 ya
-   pegadas; medir con cinta la parada siguiente (70 cm a la izquierda de J1, +15 cm). Después `--rodear 3` y
-   `recolectar.py --paradas 4`.
-3. **Cortes del enlace USB de la S3** (3 el 18/11, con la seta y moviendo la base): cable, ferrita, alimentación; y
-   por qué la Pi se reinició sola (~12:16 del 18/11). Encoder izquierdo: si vuelve el `atasco`, revisar el Dupont.
-4. Brazo: J3 propio en 125° es PROVISORIO (medir con `fr 0` si en la pose plegada llega a ~120 sin trabarse, o volver
-   a 101,5); `cinematica.py` sin la zona plegada (Q1 ≤ 115, Q3 ≤ 98,5); llevar a `recolector_de_frutas/firmware/brazo`
-   la pose plegada, `mvp`, la pinza RDS3218 (cerrada 1200) y las velocidades; el env `ros` (teleop) tampoco las tiene.
-5. Hotspot: fijar la IP de la Pi en el hotspot o arrancar el teleop solo al encender (servicio systemd); país del wifi
-   `cfg80211.ieee80211_regdom=PY` en `/boot/firmware/cmdline.txt` para usar el hotspot en 2,4 GHz.
+1. **Probar `cosechar 3` con el ajuste fino** (limones a 48–65 cm de J1, 33–54 cm, mejor en el centro de la imagen):
+   ¿centra mejor en los bordes? ¿confirma bien con la visión? Si el error adelante (±2 cm) molesta, más puntos de
+   `ajustar` (sobre todo en los bordes de la imagen y bajos) y `ajuste fin`.
+2. **Visión: publicar todos los limones** (`/limon/todos` en `vision_estereo/.../localizador_node.py`; hoy publica el
+   de mayor confianza) y en `punta.py` elegir el más cercano que tenga plan y verificar el agarre con todos (hoy, si
+   después de fallar la visión elige otro limón, el fallado se cuenta como cosechado).
+3. **Recolección completa:** `recolectar.py --limones 3` (marca → parada → cosecha); después RODEAR
+   (`ir_a_parada.py --rodear 1`, solo la base) y `recolectar.py --paradas 4 --limones N`.
+4. **Pi que se reinicia sola** (12:16, 16:10, 18:04 del 18/11) y cortes del USB de la S3: alimentación, cables.
+5. Brazo: J3 propio 125° PROVISORIO (medir o volver a 101,5); J2 a veces "no quedan firmes" en el reposo (`mv 3 17
+   4`); llevar a `recolector_de_frutas/firmware/brazo` la pose plegada, `mvp`, la pinza RDS3218 y las velocidades.
+6. Hotspot: IP fija de la Pi o teleop al encender; país del wifi para 2,4 GHz.
 
-Hecho el 18/11: HC-SR04 derecho cambiado; seguridad de la base con motores (frente, bumpers, seta, vuelco, también a
+Hecho el 18/11: cosecha con la visión (agarrar → desprender → canasta, `cosechar N`, ajuste fino); cámara derecha
+(cinta al revés); HC-SR04 derecho cambiado; seguridad de la base con motores (frente, bumpers, seta, vuelco, también a
 0,20 m/s); recuperación de la IMU en placa (commit `cc96d1f`); **canasta sobre la tapa y `soltar`** (12,5–14 s, 28–30
 s ida y vuelta); pinza con el servo RDS3218 (abierta 500, cerrada 1200); RODEAR programado.
 

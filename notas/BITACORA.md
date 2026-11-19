@@ -1459,3 +1459,37 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   `20-brazo-coordinado/20_20_24.mp4` y `~/Imágenes/brazo/Pos_canasta.jpeg` (aparecen personas; repo público).
 - Commits: `95c8545`, `7a9990d`, `23d1a69`, `73d2bb9`, `4eef923`, `0acc10c`, `df74329`, `89abf52`, `cd5041c`,
   `acab11d` (con push) y el de este cierre (sin push).
+
+## 2026-11-18 (noche) — Agarre con la visión, desprendimiento, cosecha de varios limones, ajuste fino
+
+- **Cámara derecha no detectada** (solo una `imx708` al arrancar desde hace ~17 arranques): la cinta estaba al
+  revés; dada vuelta, las dos (`rpicam-hello --list-cameras`). Sin ella no hay `/limon/posicion` (el detector sí ve).
+  La Pi se reinició sola ~16:10 y ~18:04 (además de las 12:16): revisar la alimentación. Lanzar la visión:
+  `bash ~/scripts/vision.sh`; `punta.py` necesita `source /opt/ros/jazzy/setup.bash` (si no: "No module named rclpy").
+- **Altura de la visión** con 3 limones medidos con cinta (33 / 46 / 51 cm; la visión daba 31,2 / 49,8 / 56,1 cm,
+  error de escala): `z = 23,1 + 0,718·z_visión` (modelo; piso ≈ 256 + 1,43·z). La distancia a la cámara la mide bien.
+- **Agarre (`punta.py`)**, ajustado probando con el usuario: entrar 2,8 cm más allá del centro (`AGARRAR_ADELANTE`;
+  40 era demasiado), 1,25 cm a la izquierda de la entrada, hacia arriba +0,25 cm a 35 cm del piso y +1,25 a 50
+  (interpolado); entrada desde 10, 7 o 5 cm y, si no llega por poco, menos honda. **Desprendimiento:** cerrar (1200),
+  tirar 2 cm, `mn a` (90°), J1 +5° (arrastra la rama), salir, `mn 0`; servos a máxima velocidad (`pz w 0`). Con carga
+  (entrar, tirar, arrastrar, salir) a la mitad de velocidad (`vel 0.5 4 0.5`): a velocidad 1 la salida cortaba ("se
+  mueve al revés", "no sigue la trayectoria"). Alcance (modelo): centro del limón a ~48–65 cm de J1 para 33–54 cm de
+  altura (más allá, J2 ~80° y menos preciso); a 38 cm de J1 no llega.
+- **`agarrar` va directo a la canasta** (sin el reposo); con la salida baja o J2 ≥ 63 sube antes de girar (regla de la
+  caja del firmware: rechazó "a la canasta" desde J2 66,5). **`cosechar N`**: mide un limón, lo cosecha, mide el
+  siguiente desde la canasta (fuera de la vista); confirma con la visión (si el limón sigue a < 6 cm, no cuenta y
+  reintenta, 2 veces); si un movimiento corta por atraso, reintenta (2) y si falla el limón, lleva lo que tenga a la
+  canasta y sigue. Firmware `brazo20_serie_20261118h.bin`: `mvp` tolera 10° de atraso. `recolectar.py --limones N`.
+  **Primera cosecha de 3: 2 en la canasta (~34 s cada uno: ir 10, entrar 2,5, desprender 3,7, salir 3,5, canasta 9,8)**;
+  el tercero (borde de la imagen, a 68 cm, J2 79,6°) lo erró y se recuperó solo. En otra, el tercero en el borde
+  derecho de la imagen erró "muy a la derecha" (foto de `/yolo/left/image_annotated`: detección correcta, en el borde).
+- **Problemas del planificador encontrados y corregidos:** la salida usaba la zona plegada (J2 50,08 → se pasó a 51,01,
+  afuera, J3 74,7: "FRANJA") → la zona solo para la canasta y con 2° de margen; la entrada pasaba a 1° del borde de
+  abajo de la franja y J3 lo cruzó 0,5° → `MARGEN_CAMINO` 2. Para salir de un corte por franja: `j <n> <°>` de a una,
+  esperando que llegue (un comando nuevo corta el anterior).
+- **Ajuste fino** (`ajustar`: la pinza abierta va adonde cree, el usuario la centra con `a± i± s±`, `ok` guarda;
+  `ajuste fin`): 9 puntos (`20/resultados/ajuste_20261118.csv`). Dejando uno afuera, solo mejora corregir el costado
+  según el lado de la imagen (±2,4 → ±1,6 cm; en el borde derecho ~2,7 cm a la izquierda); adelante (±2,0) y arriba
+  (±1,0) empeoraban con más parámetros (sobreajuste) → `ajuste fin` elige el modelo por dirección
+  (`ajuste_agarre.json`). Sin probar en una cosecha.
+- `punta.py` guarda todo lo que imprime en `~/logs/punta_*.log`. Commits: `ad4a492` … `9c4a72f` (18), sin push.

@@ -6,10 +6,9 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
 ## Recolección autónoma (lo actual)
 
 - **`27-aruco-arbol/tools/recolectar.py`:** homing del brazo → reposo → mira la marca → va a la parada (girar con el
-  giróscopo, avanzar con las ruedas, girar) → mide el limón 5 s → `agarrar` → **`soltar` en la canasta** (18/11;
-  `--sin-soltar` lo deja en la pinza). 3 Enter: 12 V apagados (abre la WROOM), 12 V encendidos (homing), ir. En la Pi:
-  `cd ~/scripts/27-aruco-arbol; python3 tools/recolectar.py` (visión y agente de la base corriendo; WROOM env `brazo`).
-  El 13/11 agarró en 95 s; agarre + canasta juntos todavía no se probaron.
+  giróscopo, avanzar con las ruedas, girar) → **`cosechar --limones`** (ver Brazo). 3 Enter: 12 V apagados (abre la
+  WROOM), 12 V encendidos (homing), ir. En la Pi: `cd ~/scripts/27-aruco-arbol; python3 tools/recolectar.py`
+  (visión y agente de la base corriendo; WROOM env `brazo`). Base + cosecha juntas todavía no se probaron.
 - **RODEAR (18/11, sin probar en el robot):** `--paradas N` en `recolectar.py`; solo la base: `ir_a_parada.py --rodear
   N [--auto S]` (sin Enter, con `nohup`; parar con la seta). Desde la parada va con la odometría a 1,1 m del tronco
   frente a la cara siguiente (90° antihorario), mira esa marca y corrige como en la primera.
@@ -35,27 +34,28 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
   a 20 cm a 0,10 y 0,20 m/s); bumpers, seta y vuelco (25°) OK, enclavados (`r` por `/base/comando`). Los de las
   esquinas solo publican (decisión del usuario). Herramientas: `25-teleop-pi/README.md` ("Seguridad de la base").
 - Batería ~11,2 V (LiPo 3S sin BMS, corte 10,5 V). Odometría: recto < 1 %; giros con el giróscopo (~±1°).
-- **A vigilar:** un `atasco` aislado del encoder izquierdo; cortes del enlace USB de la S3 (3 el 18/11). Si la S3 no
+- **A vigilar:** un `atasco` aislado del encoder izquierdo; cortes del USB de la S3 (3 el 18/11); la Pi se reinicia sola. Si la S3 no
   se conecta tras reiniciar la Pi: `pkill -f micro_ros_agent`, `esptool ... --after watchdog-reset chip-id`, agente.
 
 ## Brazo (`20-brazo-coordinado`, WROOM)
 
-- **WROOM de la Pi: env `brazo` `brazo20_serie_20261118f.bin`**; está listo el **`g`** (sin flashear): `mv` a
-  velocidad 1, aproximación de J2/J3 4 °/s, asentamiento 0,5 s por defecto (en `f`, con `vel 1 4 0.5`). Las imágenes
-  de `~/firmware/brazo20_serie*.bin` son completas: `write-flash 0x0` (en 0x10000 queda en bucle).
+- **WROOM de la Pi: env `brazo` `brazo20_serie_20261118h.bin`**: `mv` a velocidad 1, aproximación 4 °/s, asentamiento
+  0,5 s; `mvp` tolera 10°. Imágenes completas: `write-flash 0x0` (en 0x10000 queda en bucle).
 - **Pose plegada** (`SOLTAR_*` en `config.h`): J1 hasta 130 solo con J2 42–51 y J3 ≥ 78 (si no, 115); ahí la franja deja
   J3 hasta 85. J3 propio 125 (PROVISORIO, sin medir más allá de 85).
-- **`soltar`** (punta.py; lo usa recolectar.py): `mvp` (100; 46,7; 50) → `mvp` (100; 46,7; 80) → `mvp` canasta (130;
-  46,7; 80) → `pz a` → vuelta. **Soltado a los 12,5–14 s, ida y vuelta 28–30 s.** `mvp` = mv de paso (sin aproximación
-  ni esperar firmes, responde `PASO`; J1 hasta 25 °/s²). `agarrar` a velocidad 1: sin probar.
-- **Abrir el puerto serie reinicia la WROOM** (cero perdido): siempre `h` después. El homing acepta J2/J3 a ≤ 2° del
-  retroceso sin quedar firmes (con la pinza nueva J2 queda en ~6,6–7°).
-- `punta.py`: `p`, `ap`, `ret`, `tarea`, `anotar`, `agarrar` / `veragarrar`, **`soltar [quedar]`**; log de cada sesión en
-  `~/logs/punta_*.log` (con el tiempo de cada `mv`). Joystick (17) en la Pi: `joystick.py --placa 20 [--sin-franja]
-  --host 0.0.0.0 -p /dev/ttyUSB0`, página en `http://100.116.96.71:8000`, con botones de pinza y muñeca.
+- **Cosecha (`punta.py`, sesión: `source /opt/ros/jazzy/setup.bash` antes):** `cosechar N` mide un limón, entra de
+  frente (2,8 cm más allá del centro, corrimientos y ajuste fino), cierra, tira, gira la muñeca, arrastra con J1 5°,
+  sale (con carga a la mitad de velocidad) y va **directo a la canasta**; mide el siguiente desde ahí; confirma con la
+  visión y reintenta; si falla, recupera a la canasta y sigue. ~34 s por limón; 2 de 3 en la primera prueba.
+  Alcance: centro del limón a ~48–65 cm de J1, 33–54 cm del piso, mejor en el centro de la imagen. `agarrar` = uno.
+- **`soltar`** (canasta J1 130 / J2 46,7 / J3 80, de paso): 12,5–14 s, ida y vuelta 28–30 s. `mvp` = mv de paso.
+- **Visión → brazo:** altura `z = 23,1 + 0,718·z_visión`; ajuste fino (`ajustar`, `ajuste fin|borrar`) de 9 puntos:
+  solo el costado según el lado de la imagen (`20/resultados/ajuste_agarre.json`). Log: `~/logs/punta_*.log`.
+- **Abrir el puerto reinicia la WROOM:** siempre `h`. Corte por franja: `j <n> <°>` de a una, esperando que llegue.
+- Joystick (17) en la Pi: `joystick.py --placa 20 [--sin-franja] --host 0.0.0.0 -p /dev/ttyUSB0` (puerto 8000).
 - J1, J2, J3 con `lib/Articulacion`, 100 Hz, 20 kHz; homing → J1 3°, J2 6°, J3 3°; reposo `mv 3 17 4`; franja con
   tablas; caja con J1 ≥ 53,5; repetibilidad RP 0,13 / 0,20 / 0,06°. Cero en los finales de carrera (J1 32, J2 27, J3 33).
-- Cinemática (`tools/cinematica.py`): ~10 mm de media; en z ~1,26–1,43 × el modelo; no conoce la zona plegada.
+- Cinemática: ~10 mm de media; en z ~1,26–1,43 × el modelo; zona plegada solo con `USAR_ZONA` (caminos de la canasta).
 - `recolector_de_frutas/firmware/brazo` sigue con franja, homing y reposo viejos: falta pasarle lo de `20`.
 
 ## Pinza y muñeca (servos)
@@ -69,7 +69,7 @@ Foto de hoy. La historia, las mediciones completas y los nombres de los CSV est�
   por la UART0. Se compila en la notebook y se flashea con `~/venvs/esptool/bin/esptool` desde la Pi (imágenes nuevas
   con `esptool merge-bin`). Scripts en `~/scripts/<carpeta>/tools/` (copias del repo), logs en `~/logs/`. Apagar:
   `sudo shutdown now`. Después de reiniciar: `agente_base.sh` y `vision.sh` (limones a 0,40–0,95 m) a mano.
-- Binarios en `~/firmware/`: WROOM `brazo20_serie_20261118g.bin` (el último), `respaldo_wroom_20261112.bin` (20 `ros`,
+- Binarios en `~/firmware/`: WROOM `brazo20_serie_20261118h.bin` (cargado), `respaldo_wroom_20261112.bin` (20 `ros`,
   teleop), `brazo20_serie.bin` (20 `brazo` del 12/11); S3 `base_ros_20261117_imu` (cargado), `base_ros_20261113`,
   `hcsr04_03*`.
 
