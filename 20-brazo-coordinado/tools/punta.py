@@ -381,7 +381,7 @@ FIN_MV = ("LLEGO", "PASO", "MV_ERROR", "Fuera de", "J2 y J3 fuera", "Uso:", "Har
 RECHAZO = ("Fuera de", "J2 y J3 fuera", "Uso:", "Hardware sin", "J1 pasada", "Sobre la caja")
 
 
-def ejecutar(placa, plan, timeout, reintentos=2, de_paso=False, ultimo_de_paso=False):
+def ejecutar(placa, plan, timeout, reintentos=2, de_paso=False, ultimo_de_paso=False, rodeo=False):
     """Manda los mv de a uno esperando LLEGO. Si uno corta por "no quedan firmes" (J2 sin fuerza con carga, 11/11), lo
     repite hasta reintentos veces desde donde quedó. de_paso: todos menos el último con "mvp" (sin aproximación ni
     esperar firmes, responde PASO): para puntos intermedios que no necesitan precisión (18/11)."""
@@ -402,6 +402,13 @@ def ejecutar(placa, plan, timeout, reintentos=2, de_paso=False, ultimo_de_paso=F
             if l is None:
                 placa.mandar("s")
                 print(f"[{timeout:.0f} s sin LLEGO: \"s\"]")
+                return False
+            if l.startswith(">> El camino recto sale") and rodeo:
+                # pasos chicos de "ajustar": el rodeo del firmware es de décimas de grado; seguir esperando LLEGO
+                l = placa.esperar(FIN_MV[:3], timeout)
+                if l and l.startswith(("LLEGO", "PASO")):
+                    print(f"[mv: {time.time() - t_mv:.1f} s, con rodeo]")
+                    break
                 return False
             if l.startswith(">> El camino recto sale"):
                 placa.mandar("s")
@@ -834,7 +841,7 @@ def ajustar(placa, vision, tf, seg, timeout):
         if q is None or mot or k.problemas(*q):
             print("NO:", "; ".join(mot or k.problemas(*q) if q is not None else mot))
             continue
-        if ejecutar(placa, [tuple(round(v, 2) for v in q)], timeout):
+        if ejecutar(placa, [tuple(round(v, 2) for v in q)], timeout, rodeo=True):
             meta = meta + paso
     if w[0] == "ok":
         d = meta - np.array(base)
