@@ -76,7 +76,7 @@ ANOTADOS = (Path(__file__).absolute().parent.parent / "resultados"
             / f"camara_brazo_{time.strftime('%Y%m%d_%H%M%S')}_brazo.csv")
 # Del firmware (include/config.h)
 Q2_MENOS_Q3_MAX = 49.0     # borde de abajo de la franja en el firmware (el camino puede pasar por ahí)
-MARGEN_CAMINO = 1.2        # ° (el firmware usa 1,0: un poco más para que acepte la recta que elegimos acá)
+MARGEN_CAMINO = 2.0        # ° (firmware 1,0). 18/11: 1,2 -> 2; a velocidad 1 J3 se pasó 1,5° en la entrada y cortó la franja
 APROX = 2.0                # APROX_GRADOS de J2 y J3
 TOLPOS = 0.2               # si se mueve menos que esto no hace aproximación
 LIM_MIN = 3.0              # límite de abajo con MARGEN_LIMITE
@@ -515,7 +515,7 @@ DE_PASO = {"ir frente al limón": (True, False), "salir de frente": (True, True)
 
 # Con el limón recién arrancado (tirar, arrastrar, salir) los mv van a la mitad (18/11: a velocidad 1 la salida cortaba
 # por atraso); el resto a la velocidad de siempre (firmware: 1, aproximación 4 °/s, asentamiento 0,5 s)
-CON_CARGA = ("tirar", "arrastrar con J1", "salir de frente")
+CON_CARGA = ("entrar de frente", "tirar", "arrastrar con J1", "salir de frente")   # entrar: más preciso (18/11)
 VEL_CARGA, VEL_NORMAL = "vel 0.5 4 0.5", "vel 1 4 0.5"
 
 
