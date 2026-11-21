@@ -1,36 +1,47 @@
-# Pendientes de pruebas-esp32 (al 2026-11-19, cierre de la tarde)
+# Pendientes de pruebas-esp32 (al 2026-11-21, cierre de la madrugada)
 
 <!-- Movido desde CLAUDE.md (2026-10-22). Los bloques "Pendiente GPS", "Pendiente" de 08 y "Falta" se movieron
      tal cual; el resto se copió de los "Pendiente:" que siguen dentro de cada entrada de BITACORA.md. -->
 
-## Lo inmediato (meta: viernes 27/11, cosechar con navegación)
+## Lo inmediato (meta: viernes 27/11, cosechar con navegación) — recolección desde la app
 
--1. **Pose de transporte plegada y reposo más retraído (pedido del usuario 19/11; extendido, el brazo vibra cuando
-   la base se mueve):** que el usuario pruebe de a una desde el reposo `j 2 46.7`, `j 3 80`, `j 1 130` (volver `j 1
-   3`, `j 3 4`, `j 2 17`) y diga si toca algo y si la deja en la canasta (130, trabada por el firmware) o sobre la caja
-   (100). Después: **homing sin cero en orden J3 → J2 → J1** (hoy "juntas", desde el plegado traba el cuatro barras;
-   J1 más rápida) y permitir el homing con cero desde J2 ~47 (`HOMING_Q2_MAX_ARRANQUE` 25); `recolectar.py` pliega
-   antes de mover la base y cosecha desde ahí; cambiar `REPOSO` / `mv 3 17 4` en `punta.py`, `recolectar.py`,
-   `25/tools/teleop.py`, `17` y `tools/trayectoria.py` (`VOLVER`). Si no se usa el plegado: J2 17 → J3 hasta ~15.
-0. **Banderín único (19/11, programado):** medir el eje del árbol respecto de la marca (derecha / frente mirándola de
-   frente) → `27-aruco-arbol/banderin.json`; probar `ir_a_parada.py --arbol D F` (solo mirar: ¿el árbol sale donde
-   está?), después `--buscar` y `cosechar` en la parada. Medir el error de rumbo del banderín (`medir_marca.py` a 1–3 m).
-   Banderín fuera del anillo del robot (~0,5–1,5 m del árbol), a 20–40 cm del piso, rígido.
-1. **Cosecha con el tirón hacia arriba (19/11: 2 de 4, 2 de 2):** mirar en video si sube con la rama y se desprende;
-   ajustar con `tiron <atrás> <arriba>`. ¿El segundo intento de un limón con el tirón viejo (2 cm, sin subir)? Si
-   el error adelante (±2 cm) molesta, más puntos de `ajustar` y `ajuste fin`. Limones fuera de alcance (J1 < 3,
-   J2 > 80): mover la base con la odometría y volver a medir (cuando no esté en la fuente del lab).
-2. ~~Visión: publicar todos los limones~~ (19/11: `/limon/todos`, `cosechar` elige el más cercano con plan).
-3. **Recolección completa (20/11):** `recolectar.py` con `--banderin` / `--buscar` (hoy solo `ir_a_parada.py` los
-   tiene) y `--limones 3`; después RODEAR (`ir_a_parada.py --banderin --rodear 1`, solo la base, odometría; J1 pasa a
-   48 cm del tronco) y `--paradas 4`. Calibrar la odometría (diámetro de ruedas, giro de 360°) si la parada 2+ queda mal.
-4. Cortes del USB de la S3 (cables). La Pi no se reinicia sola: la apagaba el usuario (19/11).
-5. Brazo: J3 propio 125° PROVISORIO (medir o volver a 101,5); J2 a veces "no quedan firmes" en el reposo (`mv 3 17
-   4`); en el homing J3 tarda ~10 s en retroceder y quedar firme; la correa de J1 se salió el 19/11 (revisar tensión); llevar a `recolector_de_frutas/firmware/brazo` la pose plegada, `mvp`, la pinza RDS3218 y las velocidades.
-6. Hotspot: IP fija de la Pi o teleop al encender; país del wifi para 2,4 GHz.
-7. `recolector_de_frutas`: commitear `docs/resumen_pruebas_20261119.pdf` (16 págs.) + `INDICE.md` (¿repo público?
-   lleva fotos del robot). El script que lo genera está solo en el scratchpad de la sesión: guardarlo si se va a
-   regenerar. Resultados de 15/16 sin anotar.
+1. **Limón bajo (~30 cm del piso) no se agarra** (21/11: 2 intentos fallidos; el alto, a ~46 cm, al primer intento con
+   `GRASP_RAISE_MM` = +2 cm). Preguntar al usuario qué hizo la pinza (por debajo / arriba / corta / lo empujó) y, según
+   eso, hacer la corrección de altura dependiente de la altura del limón (`punta.AGARRAR_ARRIBA_H/MM` hoy cubre 35–50 cm
+   del piso) o entrar más hondo. Después repetir con 2–3 limones y 1–2 intentos.
+2. **Varios limones sin perder de vista a los demás** (pedido del usuario): hoy se acerca al más cercano y mide el
+   siguiente desde ahí; falta elegir la parada para que los otros sigan en la imagen (y recalcular al acercarse).
+3. **Rumbo al volver al cero (~4°):** el último giro con la odometría en vez del giróscopo, o corregir con el yaw de
+   `/odom`. Probar la vuelta tras un acercamiento con giros grandes (87°).
+4. **¿Firmware del brazo?** La WROOM quedó en micro-ROS (`ros`, `62695d4a`): la app funciona, pero `recolectar.py` /
+   `punta.py` sesión / `joystick.py` necesitan el serie (`brazo20_serie_20261119.bin`). Decidir con el usuario cuál
+   queda para la demo (la app ya hace marca→… con el cero del limón; el banderín/RODEAR siguen en `recolectar.py`).
+5. **Carga de la Pi** (load 7–9 con 4 núcleos: detector v4 ~100 %, disparidad ~90 %, puente ~50 %): bajar fps de las
+   cámaras o pausar el video de Misión durante la recolección; medir la disparidad (~1,5 Hz).
+6. Poner la app en `recolector_de_frutas/docs` (ESTADO/BITACORA de ese repo; tiene un `docs/ESTADO.md` modificado por
+   el usuario sin commitear) y push de `recolector_de_frutas`, `vision_estereo` y `pruebas-esp32` cuando el usuario lo pida.
+7. **Pose de transporte plegada y reposo más retraído (pedido del 19/11; extendido, el brazo vibra cuando la base se
+   mueve):** probar de a una desde el reposo `j 2 46.7`, `j 3 80`, `j 1 130` (volver `j 1 3`, `j 3 4`, `j 2 17`);
+   después homing sin cero en orden J3 → J2 → J1 y homing con cero desde J2 ~47 (`HOMING_Q2_MAX_ARRANQUE` 25);
+   cambiar `REPOSO` / `mv 3 17 4` en `punta.py`, `recolectar.py`, `25/tools/teleop.py`, `17`, `tools/trayectoria.py`
+   y en la misión del puente.
+8. **Banderín único (19/11, programado, sin probar):** medir el eje del árbol respecto de la marca →
+   `27-aruco-arbol/banderin.json`; `ir_a_parada.py --arbol D F`, `--buscar`, `cosechar` en la parada.
+9. **Recolección completa con `recolectar.py`** (`--banderin` / `--buscar`, `--limones 3`, RODEAR `--paradas 4`;
+   calibrar la odometría si la parada 2+ queda mal). Necesita el firmware serie (punto 4).
+10. Cortes del USB de la S3 (cables). ~~La Pi se reiniciaba~~ (21/11: era bajo voltaje con la powerbank; con la fuente
+    oficial `throttled=0x0`; afuera hace falta una powerbank que dé 5 V / 5 A).
+11. Brazo: J3 propio 125° PROVISORIO; J3 dura cerca de 80° ("sin cuentas"); J2 a veces "no quedan firmes" en el reposo;
+    correa de J1 (se salió el 19/11); llevar a `recolector_de_frutas/firmware/brazo` la pose plegada, `mvp`, la pinza
+    RDS3218 y las velocidades.
+12. Hotspot: IP fija de la Pi o teleop al encender; país del wifi para 2,4 GHz.
+13. `recolector_de_frutas`: commitear `docs/resumen_pruebas_20261119.pdf` + `INDICE.md` (¿repo público?); resultados
+    de 15/16 sin anotar.
+
+Hecho el 20–21/11: app Arturito de Mathias en `recolector_de_frutas/app` (compila en la notebook, tablet por USB);
+WROOM con el micro-ROS actual del 20; visión v4 (sin el falso limón del metal); vistas Izquierdo/Central/Derecho;
+homing de un botón; cero relativo al limón; recolección de un limón y vuelta al cero desde la app; 1 de 2 con dos
+limones; Pi con la fuente oficial.
 
 Hecho el 19/11 (tarde): tirón hacia arriba con la rama; J2 a 5 °/s en el homing (~22 → 20,5 s); `cosechar` con
 todos los limones a la vista (`/limon/todos`).
@@ -52,12 +63,13 @@ s ida y vuelta); pinza con el servo RDS3218 (abierta 500, cerrada 1200); RODEAR 
    buscar: que los HC-SR04 de las esquinas también frenen o corten el giro (hoy solo publican).
 5. **Al robot (ROS):** la misión de `recolector_de_frutas` con lo de hoy (marca → parada → agarrar → rodear), primero en
    Gazebo; que mande comandos de texto por `/brazo/comando` al firmware 20 (`brazo_ik` publica `/brazo/joint_cmd`,
-   que el 20 no entiende); WROOM al env `ros` (`respaldo_wroom_20261112.bin`). Pasar `movimiento.py` / el giróscopo
+   que el 20 no entiende); ~~WROOM al env `ros`~~ (21/11, el actual). Pasar `movimiento.py` / el giróscopo
    para los giros (o `robot_localization` con `/odom` + IMU, y el GPS para la rúbrica).
 6. **Precisión del brazo:** recalibrar el modelo de la punta en z (el brazo sube/baja ~1,26–1,43 × lo calculado); así
    una sola calibración de la cámara serviría para agarre y navegación.
 7. GPS para la rúbrica: script de arranque del driver (remapeo a `/gps/fix`), fix afuera, registro del recorrido.
-8. Visión: el nodo de disparidad (segfault del 12/11 con dos copias de `start_limon.sh`); detector v3 en cifras.
+8. Visión: el nodo de disparidad (segfault del 12/11 con dos copias de `start_limon.sh`); ~~detector v3 en cifras~~
+   (21/11: v4 contra v3 en la bitácora).
 
 Hecho el 13/11 (detalle en la bitácora): `agarrar`; simulación de la estación (`26`); GPS en la Pi; marcas ArUco y
 calibración de navegación (`27`); base en ROS con IMU y odometría medida; `ir_a_parada.py`; **`recolectar.py`**.

@@ -1567,3 +1567,41 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   localizador relanzado con `nohup setsid ros2 run yolo_ros localizador_node --ros-args -p z_min:=0.40 -p
   z_max:=0.95 -p clase:=limon` (log `~/logs/localizador_*.log`).
 - Commits: `20` (tirón, `cosechar` con todos, homing J2 rápida) y en `vision_estereo` el `localizador_node.py`.
+
+## 2026-11-20/21 — App Arturito (de Mathias) en `recolector_de_frutas/app`: recolección desde la tablet
+
+- **Origen:** la app Android y el puente de la Pi que hizo Mathias con Codex (carpeta `APLICACION_MATHIAS`, con copias
+  viejas de los dos repos, borradas tras comprobar que no tenían cambios propios) pasaron a
+  **`recolector_de_frutas/app/`** (`android-app/` Kotlin + Compose, Xiaomi Pad 5; `robot-bridge/` FastAPI en la Pi,
+  `127.0.0.1:18006`, perfil `--physical-manual`). SDK Android de línea de comandos en la notebook (`~/Android/Sdk`,
+  plataforma 36, build-tools 36.0.0); `./gradlew :app:assembleDebug :app:testDebugUnitTest :app:lintDebug`. Tablet por
+  USB: `adb reverse tcp:18006 tcp:18006` + túnel `ssh -N -L 127.0.0.1:18006:127.0.0.1:18006 r2d2@100.116.96.71`; MIUI
+  no deja instalar una app nueva por USB (se copia el APK a Descargas), sí actualizar (`adb install -r`).
+- **WROOM: firmware micro-ROS actual del 20** (env `ros`, fuente `750ba4c`, `.pio/build/ros/firmware.bin`, SHA-256
+  `62695d4a…`, grabado solo `write-flash 0x10000`; respaldo previo `~/arturito-build/20261120/respaldo_wroom_20261120.bin`).
+  El candidato que había grabado Mathias el 19/11 era la fuente del **11/11** (el ZIP de GitHub estaba atrasado: sin
+  `mvp`, sin pose plegada). Verificado con `mvp 0 0 0` → `J1 sin cero` (el viejo decía "Comando desconocido").
+  EN por software desde la Pi (RTS con DTR suelto, como `lanzar.sh`), sin abrir la caja.
+- **Visión v4** (`Vision_limones_robot_gabi`, YOLO26n con Optuna, NCNN **fijo a 640**): sin el falso limón gigante sobre
+  el panel de metal (v3 0,61–0,66 en 20/20 cuadros; v4 nada) y limón real 0,86–0,97 (v3 0,77); ~2,5–4 img/s (v3 ~4–7).
+  `start_limon.sh` acepta `IMGSZ` (commit `5eeffd9` en `vision_estereo`), `25/tools/vision.sh` usa el v4 (`52279f9`).
+  Un reinicio dejó trabado `rectify_left` por un segmento de Fast DDS corrupto (`/dev/shm/fastrtps_port7421`, que
+  `fastdds shm clean` no detectó): se borró a mano.
+- **Pi:** se reiniciaba sola por **bajo voltaje** (13 y 8 "Undervoltage detected!" antes de cada corte) con la
+  powerbank; con la **fuente oficial de 27 W**, `throttled=0x0`. `~/arturito-bridge-0.9.0/arrancar_pi.sh` levanta
+  agentes, visión y puente.
+- **App y puente (19 commits en `recolector_de_frutas`, `b707a8e`…`ac7c6ef`; app 0.8.0 → 0.11.1, puente 64 → 92
+  pruebas):** homing con un botón (y si el firmware lo rechaza por la franja, `j 2 6` y reintento); vistas Izquierdo
+  (YOLO) · Central (imagen normal + cajas) · Derecho (limones proyectados del estéreo) y video en Misión; vistas e
+  imagen del ArUco solo a pedido (puente 66 → 46 % CPU, detector 2,5 → 4 img/s); **cero = pose respecto del limón más
+  cercano** (ya no el ArUco); la misión cosecha como `punta.cosechar` (correcciones de `limon_de_cara`, `mvp`,
+  velocidad de carga, reintentos), con el limón a **50–55 cm de J1** (si ya está, no se mueve; si no, se acerca en su
+  dirección hasta 53,5 cm, nunca retrocede), **agarre 2 cm más arriba** (`GRASP_RAISE_MM`), varios limones seguidos,
+  **vuelve al cero por la odometría** (también tras un fallo y con el botón "Volver al cero"); en la parada solo vale
+  el limón a < 12 cm de donde se esperaba (el estéreo daba un punto del follaje a 42 cm); planificadores de `punta.py`
+  en **otro proceso** (en un hilo el estado de la base "envejecía" > 650 ms y se cortaba la sesión); hacia la canasta,
+  con el brazo plegado, solo gira J1 (J3 se cortaba por "sin cuentas" en la zona dura de 80°).
+- **Resultados en el robot:** 1 limón recogido y a la canasta, vuelta al cero a 0,9 cm / 4° (~2 min); con 2 limones,
+  **1 de 2** (el alto, a 53 cm y ~46 cm del piso, al primer intento; el bajo, ~30 cm del piso, falló dos veces) y
+  vuelta al cero. Fallas vistas y resueltas: obstáculo delante (`no_avanza`), cero viejo reutilizado, follaje en el
+  estéreo, J3 "sin cuentas" hacia la canasta, latidos de la app de 450 ms, GIL del planificador.

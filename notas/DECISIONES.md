@@ -145,3 +145,19 @@
   viejo (2 cm sin subir): el limón se cosecha igual.
 - **Cosechar los limones que se pueda (2026-11-19, usuario):** la visión publica todos; se prueba el más cercano a J1
   con plan, se descartan los sin plan o que fallan 2 veces, en vez de parar con el de mayor confianza.
+
+## 2026-11-21 — Recolección desde la app (Arturito) y lo que la rodea
+
+- **La app y el puente de Mathias viven en `recolector_de_frutas/app/`** (software del robot, no una prueba de un
+  componente). Las copias de los repos que traía se borraron (eran versiones viejas, sin cambios propios).
+- **Cero de la recolección = pose de la base respecto del limón más cercano** (pedido del usuario), no la marca ArUco.
+  Se marca "usado" al cosechar ese limón y se borra si una medición falla, para no reutilizar uno viejo.
+- **Cosechar con el limón a 50–55 cm de J1** (a 57–58 la pinza quedó 3 cm corta; a < ~50 `punta.py` no entra de frente
+  desde 10 cm): sin moverse si ya está; si no, acercarse en su dirección hasta 53,5 cm; **nunca retroceder** para
+  acercarse (atrás no hay sensores). La vuelta al cero sí retrocede, desandando por la odometría a ≤ 6 cm/s.
+- **Agarre 2 cm más arriba en el puente** (`GRASP_RAISE_MM`), sin tocar `punta.py` para que `recolectar.py` no cambie.
+- **Planificadores de `punta.py` en un proceso aparte** (en un hilo acaparaban el intérprete del puente y la sesión de la
+  base se cortaba por estado "vencido").
+- **WROOM con el firmware micro-ROS (`ros`) actual del 20** para la app; el serie queda respaldado en `~/firmware/`.
+- **Detector v4** (Optuna, 640 px) en lugar del v3: elimina el falso limón sobre el metal; cuesta ~2× de CPU.
+- **Pi con la fuente oficial de 27 W**: con la powerbank se reiniciaba por bajo voltaje.
