@@ -242,12 +242,12 @@ def planear_frente(s, x, y, z, d=100.0):
 
 
 def planear_salida(s, d=100.0, dz=0.0):
-    """Salir de frente desde los ángulos s: subir dz y retroceder d hacia J1, con J1 quieta."""
+    """Salir de frente desde los ángulos s: subir dz (negativo: bajar) y retroceder d hacia J1, con J1 quieta."""
     p, _ = k.directa(*s)
     r = math.hypot(p[0], p[1])
     u = np.array([p[0] / r, p[1] / r, 0.0])
     arriba = p + [0.0, 0.0, dz]
-    sube, msgs = recta_j1_quieta(tuple(s), p, arriba) if dz > 0 else ([], [])
+    sube, msgs = recta_j1_quieta(tuple(s), p, arriba) if dz != 0 else ([], [])
     if sube is None:
         return None, msgs
     atras, msgs = recta_j1_quieta(sube[-1] if sube else tuple(s), arriba, arriba - d * u)
@@ -696,12 +696,15 @@ def con_margen(margen, f, *a):
 # Desprender el limón (18/11, pedido del usuario): después de cerrar, tirar TIRON_MM hacia atrás, girar la muñeca
 # (TIRON_MUNECA) y girar J1 TIRON_J1 grados hacia el lado del giro, arrastrando la rama; recién ahí salir. El signo de
 # TIRON_J1 respecto del giro de la muñeca está SIN PROBAR: si arrastra hacia el otro lado, cambiarlo de signo
-ENTRADA_MM = (100.0, 70.0, 50.0)   # entrar de frente desde acá (el primero que se pueda)
-# 19/11 (pedido del usuario, limones colgados de ramas falsas): antes de girar la muñeca, SUBIR el limón (levanta la
-# rama) y después traerlo hacia el robot. Si la subida no entra (limón alto), prueba con menos; con 0 es lo de antes
-# (solo retroceder). Se cambian en vivo con "tiron <atrás mm> <arriba mm>". El modelo da z ~1,3 veces menos que lo real
-TIRON_MM = 50.0            # mm hacia el robot (antes 20, sin subir)
-TIRON_ARRIBA_MM = 50.0     # mm hacia arriba, antes de retroceder
+# 23/11 (pedido del usuario: la pinza se apoyaba en ramas al bajar justo delante del limón): bajar a la altura del
+# limón lo más atrás posible y entrar horizontal desde ahí. La punta no se recoge a menos de ~44 cm de J1 (franja), así
+# que la entrada máxima es (distancia del limón a J1) - 44 cm: con el limón a 53 cm sigue siendo 7 cm; más lejos, más
+ENTRADA_MM = (200.0, 150.0, 100.0, 70.0, 50.0)   # entrar de frente desde acá (el primero que se pueda)
+# 23/11 (pedido del usuario; antes, 19/11, SUBÍA 50 mm): después de cerrar, BAJAR el limón (estira el pedúnculo hacia
+# abajo) y después traerlo hacia el robot, como siempre. Si la bajada no entra (limón bajo), prueba con menos; con 0
+# solo retrocede. Se cambian en vivo con "tiron <atrás mm> <abajo mm>". El modelo da z ~1,3 veces menos que lo real
+TIRON_MM = 50.0            # mm hacia el robot (antes 20)
+TIRON_ABAJO_MM = 50.0      # mm hacia abajo, antes de retroceder
 TIRON_MUNECA = "mn a"      # 90° horario
 TIRON_J1 = 5.0             # ° (a ~60 cm de J1: ~5 cm de costado)
 
@@ -726,16 +729,16 @@ def planear_agarre(s, limon, a_canasta=False):
         m_ent = []
     ti = None
     for d_ti in sorted({TIRON_MM, min(TIRON_MM, 20.0)}, reverse=True):
-        for dz in sorted({TIRON_ARRIBA_MM, TIRON_ARRIBA_MM * 0.6, TIRON_ARRIBA_MM * 0.3, 0.0}, reverse=True):
-            ti, m_ti = con_margen(MARGEN_SALIDA_CARGA, planear_salida, pa[-1], d_ti, dz)
+        for dz in sorted({TIRON_ABAJO_MM, TIRON_ABAJO_MM * 0.6, TIRON_ABAJO_MM * 0.3, 0.0}, reverse=True):
+            ti, m_ti = con_margen(MARGEN_SALIDA_CARGA, planear_salida, pa[-1], d_ti, -dz)
             if ti is not None:
                 break
         if ti is not None:
             break
     if ti is None:
         return None, ["tirar: " + "; ".join(m_ti)]
-    if dz < TIRON_ARRIBA_MM or d_ti < TIRON_MM:
-        m_ent = m_ent + [f"tirón: sube {dz:.0f} mm y retrocede {d_ti:.0f} (con {TIRON_ARRIBA_MM:.0f} / {TIRON_MM:.0f} no llega)"]
+    if dz < TIRON_ABAJO_MM or d_ti < TIRON_MM:
+        m_ent = m_ent + [f"tirón: baja {dz:.0f} mm y retrocede {d_ti:.0f} (con {TIRON_ABAJO_MM:.0f} / {TIRON_MM:.0f} no llega)"]
     q = ti[-1]
     de = (round(q[0] + TIRON_J1, 2), q[1], q[2])
     m_de = k.problemas(*de) + revisar_camino(q, de)
@@ -1272,20 +1275,20 @@ def sesion(args):
                             print("[Ctrl+C: \"s\", las tres se sostienen donde están]")
                     else:
                         print("cancelada")
-            elif w[0] == "tiron":   # 19/11: cuánto retrocede y sube con el limón antes de girar la muñeca
-                global TIRON_MM, TIRON_ARRIBA_MM
+            elif w[0] == "tiron":   # cuánto baja (23/11; antes subía) y retrocede con el limón antes de la muñeca
+                global TIRON_MM, TIRON_ABAJO_MM
                 try:
                     if len(w) == 3:
-                        atras, arriba = float(w[1]), float(w[2])
-                        if not (0 <= atras <= 150 and 0 <= arriba <= 150):
+                        atras, abajo = float(w[1]), float(w[2])
+                        if not (0 <= atras <= 150 and 0 <= abajo <= 150):
                             raise ValueError
-                        TIRON_MM, TIRON_ARRIBA_MM = atras, arriba
+                        TIRON_MM, TIRON_ABAJO_MM = atras, abajo
                     elif len(w) != 1:
                         raise ValueError
                 except ValueError:
-                    print("Uso: tiron [<atrás mm> <arriba mm>]  (0 a 150 cada uno)")
+                    print("Uso: tiron [<atrás mm> <abajo mm>]  (0 a 150 cada uno)")
                     continue
-                print(f"[tirón: sube {TIRON_ARRIBA_MM:.0f} mm, después {TIRON_MM:.0f} mm hacia el robot, "
+                print(f"[tirón: baja {TIRON_ABAJO_MM:.0f} mm, después {TIRON_MM:.0f} mm hacia el robot, "
                       f"después la muñeca ({TIRON_MUNECA})]")
             elif w[0] == "ajuste" and len(w) == 2 and w[1] in ("fin", "borrar"):
                 if w[1] == "fin":
