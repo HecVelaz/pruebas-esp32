@@ -572,7 +572,7 @@ DISPERSION_MAX = 10.0   # mm: más que esto, el limón se movió o la visión du
 MIN_POSICIONES = 3
 RADIO_LIMON = 25.0      # mm (limón de juguete de 5 cm; uno real: ~30)
 AGARRAR_PINZA_US = 1200 # 18/11, RDS3218: pz c (con el MG996R 1300, un poco más que su pz c 1250)
-AGARRAR_ADELANTE = 28.0  # mm más allá del centro del limón, en la dirección de entrada (18/11: 40, el usuario lo bajó a ~2,8 cm)
+AGARRAR_ADELANTE = 13.0  # mm más allá del centro del limón, en la dirección de entrada (18/11: 40 -> 28; 23/11, usuario: 1,5 cm menos)
 # 18/11, el usuario: para centrar la pinza en los limones, 1-1,5 cm a la izquierda y 1-1,5 cm más arriba
 AGARRAR_IZQUIERDA = 12.5     # mm, a la izquierda de la dirección de entrada (mirando desde J1 hacia el limón)
 # Corrimiento hacia arriba, en altura real, según la altura del limón (18/11: +12,5 mm centraba los de ~46-52 cm; a
