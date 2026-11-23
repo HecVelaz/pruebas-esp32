@@ -258,7 +258,9 @@ def planear_salida(s, d=100.0, dz=0.0):
 
 def planear_salida_max(s, dz=0.0, d_max=400.0, paso=10.0):
     """Como planear_salida, pero retrocede lo más que se pueda (de d_max para abajo, de a paso mm). 12/11"""
-    d = d_max
+    # 23/11: la punta no se recoge a menos de ~430 mm de J1 a ninguna altura (franja): retroceder más que
+    # radio - 420 nunca entra. Arrancar ahí da el mismo resultado y evita ~25 inversas (9 de 11 s del plan)
+    d = min(d_max, paso * math.floor((radio_punta(*s) - 420.0) / paso))
     while d >= paso:
         plan, _ = planear_salida(s, d, dz)
         if plan:
