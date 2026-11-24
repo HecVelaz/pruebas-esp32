@@ -577,7 +577,8 @@ AGARRAR_PINZA_US = 1200 # 18/11, RDS3218: pz c (con el MG996R 1300, un poco más
 AGARRAR_ADELANTE = -27.0  # mm más allá del centro del limón, en la dirección de entrada (18/11: 40 -> 28; 23/11, usuario:
                           # 13, -7 y -27: la pinza superaba el limón; negativo = antes del centro)
 # 18/11, el usuario: para centrar la pinza en los limones, 1-1,5 cm a la izquierda y 1-1,5 cm más arriba
-AGARRAR_IZQUIERDA = 12.5     # mm, a la izquierda de la dirección de entrada (mirando desde J1 hacia el limón)
+AGARRAR_IZQUIERDA = -7.5     # mm, a la izquierda de la dirección de entrada (mirando desde J1 hacia el limón);
+                             # 23/11, usuario: 2 cm más a la derecha (con el limón a ~86 cm de la cámara)
 # Corrimiento hacia arriba, en altura real, según la altura del limón (18/11: +12,5 mm centraba los de ~46-52 cm; a
 # 35 cm empujaba el limón: 1 cm más abajo). Interpolado y constante fuera del rango
 AGARRAR_ARRIBA_H = (350.0, 500.0)    # mm del piso
