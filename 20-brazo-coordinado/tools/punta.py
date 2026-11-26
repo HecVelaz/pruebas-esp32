@@ -758,6 +758,13 @@ def planear_agarre(s, limon, a_canasta=False):
     if a_canasta:
         # Directo a la canasta, sin subir al reposo (18/11). La canasta (J1 130) queda fuera del modelo (Q1 <= 115):
         # se revisa el camino hasta el punto de plegado; el último tramo es el de soltar(), probado
+        # 26/11 (pedido del usuario: una rama trabó la pinza al girar J1 y saltó la correa): primero plegar sin girar
+        # (la punta de ~45 a ~25 cm de J1) y recién ahí girar J1 a la canasta. Si no entra, el camino de antes
+        plegar = [(sa[-1][0],) + tuple(CAMINO_CANASTA[0][1:]), (sa[-1][0],) + tuple(CANASTA[1:]), CANASTA]
+        if sa[-1][1] < 63.0 and not (con_zona(revisar_camino, sa[-1], plegar[0]) +
+                                     con_zona(revisar_camino, plegar[0], plegar[1]) +
+                                     con_zona(revisar_camino, plegar[1], (k.Q1_LIM[1],) + CANASTA[1:])):
+            return comun + [("a la canasta", plegar), ("servo", "pz a")], m_ent + m_ret
         camino = CAMINO_CANASTA
         m_c = con_zona(revisar_camino, sa[-1], camino[0]) + con_zona(revisar_camino, camino[0], camino[1])
         # El firmware (caja, J1 >= 53,5) limita J3 con J2 >= 64 y el modelo no lo sabe: 18/11 rechazó "a la canasta"
