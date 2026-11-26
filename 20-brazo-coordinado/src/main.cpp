@@ -13,6 +13,7 @@
 #include "config.h"
 #include "pins.h"
 #include "servos.h"
+#include "lidar.h"
 #ifdef USAR_MICROROS
 #include "capa_ros.h"
 #endif
@@ -1417,6 +1418,7 @@ void setup() {
   Serial.begin(115200);
   delay(1500);
 #endif
+  lidarBegin();
   colaComandos = xQueueCreate(16, sizeof(Linea));
   colaMensajes = xQueueCreate(24, sizeof(Mensaje));
   colaTele = xQueueCreate(50, sizeof(Muestra));  // 1 s de muestras
@@ -1446,6 +1448,7 @@ void setup() {
 }
 
 void loop() {
+  lidarLoop();
 #ifdef USAR_MICROROS
   rosLoop();  // /brazo/comando -> encolar(); publica /brazo/estado y lo que quedó en out
 #else

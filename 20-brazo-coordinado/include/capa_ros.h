@@ -7,6 +7,7 @@
 //                                              (e: 0 suelta, 1 yendo, 2 llegó, 3 firme, 4 frenada, 5 mov, 6 homing;
 //                                              pz/mn -1 = suelto)
 //           /brazo/respuesta  std_msgs/String  lo que el monitor serial mostraría
+//           /range/lidar_izq sensor_msgs/Range  metros, frame lidar_izq_link, 10 Hz; NaN si inválido/vencido
 // Sin agente: "s" (las tres se sostienen); el joystick (jv) ya frena solo a los 300 ms sin comandos.
 void rosBegin();
 void rosLoop();

@@ -6,6 +6,8 @@
 
 #include <Arduino.h>
 #include <std_msgs/msg/string.h>
+#include <sensor_msgs/msg/range.h>
+#include "lidar.h"
 
 #include "EnlaceMicroRos.h"
 
@@ -25,7 +27,9 @@ constexpr size_t N_HANDLES = 2;  // 1 suscripción + 1 timer
 EnlaceMicroRos enlace;
 BufferTexto salida;
 
-rcl_publisher_t pubEstado, pubResp;
+rcl_publisher_t pubEstado, pubResp, pubLidar;
+sensor_msgs__msg__Range lidarMsg;
+char marcoLidar[] = "lidar_izq_link";  // TF pendiente de medir; no inventar una transformación
 rcl_subscription_t subComando;
 rcl_timer_t timer;
 std_msgs__msg__String estadoMsg, respMsg, comandoIn;
@@ -52,16 +56,21 @@ void alTimer(rcl_timer_t *t, int64_t) {
   textoEstado(estadoBuf, sizeof(estadoBuf));
   estadoMsg.data.size = strlen(estadoBuf);
   ignorar(rcl_publish(&pubEstado, &estadoMsg, nullptr));
+  lidarMsg.range = lidarMetros();
+  if (enlace.hora(lidarMsg.header.stamp)) ignorar(rcl_publish(&pubLidar, &lidarMsg, nullptr));
 }
 
 bool crear(rcl_node_t *node, rclc_support_t *support, rclc_executor_t *ex) {
   pubEstado = rcl_get_zero_initialized_publisher();
   pubResp = rcl_get_zero_initialized_publisher();
+  pubLidar = rcl_get_zero_initialized_publisher();
   subComando = rcl_get_zero_initialized_subscription();
   timer = rcl_get_zero_initialized_timer();
   const auto *tStr = ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, String);
   if (rclc_publisher_init_default(&pubEstado, node, tStr, "brazo/estado") != RCL_RET_OK) return false;
   if (rclc_publisher_init_default(&pubResp, node, tStr, "brazo/respuesta") != RCL_RET_OK) return false;
+  if (rclc_publisher_init_best_effort(&pubLidar, node, ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, Range),
+                                      "range/lidar_izq") != RCL_RET_OK) return false;
   for (rcl_publisher_t *p : {&pubEstado, &pubResp}) EnlaceMicroRos::timeoutPublicador(p, PUB_TIMEOUT_MS);
   if (rclc_subscription_init_default(&subComando, node, tStr, "brazo/comando") != RCL_RET_OK) return false;
   if (rclc_timer_init_default2(&timer, support, RCL_MS_TO_NS(PERIODO_MS), alTimer, true) != RCL_RET_OK) return false;
@@ -74,7 +83,7 @@ bool crear(rcl_node_t *node, rclc_support_t *support, rclc_executor_t *ex) {
 void destruir(rcl_node_t *node) {
   ignorar(rcl_timer_fini(&timer));
   ignorar(rcl_subscription_fini(&subComando, node));
-  for (rcl_publisher_t *p : {&pubEstado, &pubResp}) ignorar(rcl_publisher_fini(p, node));
+  for (rcl_publisher_t *p : {&pubEstado, &pubResp, &pubLidar}) ignorar(rcl_publisher_fini(p, node));
 }
 
 }  // namespace
@@ -87,6 +96,13 @@ void rosBegin() {
   estadoMsg = {};
   fijarTexto(estadoMsg.data, estadoBuf, sizeof(estadoBuf));
   respMsg = {};
+  lidarMsg = {};
+  fijarTexto(lidarMsg.header.frame_id, marcoLidar, sizeof(marcoLidar));
+  lidarMsg.header.frame_id.size = strlen(marcoLidar);
+  lidarMsg.radiation_type = sensor_msgs__msg__Range__INFRARED;
+  lidarMsg.field_of_view = 0.034906585f;  // 2 grados, ficha técnica; radianes
+  lidarMsg.min_range = .1f;
+  lidarMsg.max_range = 12.f;
   enlace.begin(Serial, "brazo", N_HANDLES, crear, destruir);
 }
 

@@ -5,7 +5,7 @@
 // las tres articulaciones quedan conectadas a la vez; el firmware de esta carpeta (20) mueve las tres.
 // Evitar: GPIO6-11 (flash), 0/2/5/12/15 (strapping), 1/3 (UART0 = USB).
 // 34-39: solo entrada y SIN pull-up interno: ahí van solo los encoders, que traen pull-up de 5,1 kΩ en su placa.
-// Queda libre el GPIO 13 (reserva).
+// GPIO 13: RX del TFmini-S lateral izquierdo (TX verde; rojo 5 V, negro GND, blanco aislado).
 
 // Los tres IBT-2 (BTS7960) comparten el EN: R_EN y L_EN de los tres al GPIO 23 (+ pull-down 10 kΩ a GND).
 // VCC de los tres IBT-2 al riel de 5 V (VIN del shield); R_IS y L_IS sin conectar.
@@ -39,3 +39,5 @@ constexpr int PIN_SERVO_GIRO = 14;
 constexpr int PIN_FC_J1 = 32;
 constexpr int PIN_FC_J2 = 27;  // 2026-10-30: J2 y J3 cruzados respecto de v0.5 (era 33)
 constexpr int PIN_FC_J3 = 33;  // 2026-10-30: era 27
+
+constexpr int PIN_LIDAR_RX = 13;

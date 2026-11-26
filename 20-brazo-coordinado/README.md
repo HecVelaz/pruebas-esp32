@@ -212,3 +212,18 @@ Línea de telemetría: `T,ms,etapa,` y por cada una `q,ref,duty,w,estado` (etapa
 | 2026-11-10 | Repetibilidad, 10 ciclos, poses nuevas (`repetibilidad_20261110_151950`) | Peor RP **J1 0,18° · J2 0,13° · J3 0,07°** |
 | 2026-11-10 | `tAnticipo` de J2 0,01 s (`repetibilidad_20261110_153901`) | Peor (J2 0,16°, J3 0,09°): vuelve a 0,055 s |
 | 2026-11-10 | Borde de abajo (`limites_20261110_154123.csv`, `_155350.csv`) | A medias: J2 45 → J3 libre hasta su final de carrera; 60 → 10,4; 75 → 27,8 (sin saber si traba o arrastra). Se rompió el eje de J1 |
+
+## TFmini-S lateral izquierdo (25/11/2026)
+
+Cableado confirmado por el usuario: TX verde → GPIO 13, rojo → bornera 5 V, negro → GND;
+RX blanco queda aislado. UART1 solo recepción, 115200 8N1; no ocupa GPIO 16/17 ni UART0 del USB.
+El sensor usa la salida binaria de fábrica en cm. Validación de checksum, intensidad >=100 sin saturación,
+rango 0,1–12 m y vigencia de 300 ms. El lector no espera bytes ni corre en la tarea de control del brazo.
+
+El entorno `ros` publica `/range/lidar_izq` a 10 Hz (`sensor_msgs/Range`, metros, infrarrojo,
+`frame_id=lidar_izq_link`). Lecturas inválidas o vencidas salen como NaN, nunca como espacio libre.
+La transformación de montaje queda **MEDIR**; no se usa todavía para mover el robot.
+
+Pruebas: `pio test -e native`; compilación: `pio run -e brazo -e ros`.
+Luego, con los 12 V apagados, cargar el entorno `ros` y comparar contra cinta métrica con el robot quieto.
+Resultado físico: pendiente. No abrir un monitor serie mientras el agente micro-ROS usa el USB.
