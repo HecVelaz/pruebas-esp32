@@ -1605,3 +1605,11 @@ de `CLAUDE.md`, movido tal cual el 2026-10-22 (algunas cubren varios días).
   **1 de 2** (el alto, a 53 cm y ~46 cm del piso, al primer intento; el bajo, ~30 cm del piso, falló dos veces) y
   vuelta al cero. Fallas vistas y resueltas: obstáculo delante (`no_avanza`), cero viejo reutilizado, follaje en el
   estéreo, J3 "sin cuentas" hacia la canasta, latidos de la app de 450 ms, GIL del planificador.
+
+## 2026-11-25 (noche) — 20-brazo-coordinado: TFmini-S (Codex + Claude)
+- `67f5d7f`: TFmini-S por UART1 (RX GPIO 13, TX sin pin, 115200) → `/range/lidar_izq` (sensor_msgs/Range, 10 Hz,
+  metros, `lidar_izq_link`, NaN si inválido o sin trama válida en 300 ms). Parser en `lib/TFminiS` con 5 pruebas
+  `pio test -e native`; `pio run -e brazo -e ros` sin warnings.
+- Flasheado en la WROOM desde la Pi (12 V apagados): respaldo completo a 115200 (a 460800 el CH340 corrompe)
+  `~/arturito-build/20261125_lidar/respaldo_wroom_20261125.bin`, `write-flash 0x10000 firmware.bin`. Mide ~0,28 m quieto.
+- Detalle del uso en Rodear árbol: bitácora de recolector_de_frutas (25–26/11).
